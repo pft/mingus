@@ -567,7 +567,7 @@ see function `mingus-help' for instructions."
   (font-lock-mode t)
   (use-local-map mingus-playlist-map)
   (set (make-local-variable 'font-lock-defaults) '(mingus-font-lock-keywords))
-  (set (make-local-variable 'point-of-insertion) nil)
+  (unless (boundp 'point-of-insertion) (set (make-local-variable 'point-of-insertion) nil))
   (setq major-mode 'mingus-playlist-mode)
   (setq mode-name "MINGUS-PLAYLIST")
   (font-lock-mode t)										;wip
@@ -1375,10 +1375,8 @@ With prefix argument, instantly play the insertion."
 																			(split-string (substring lst 0 -1) "\n+")) nil nil)))
     (if (string= "" playlist)
 				(message "No name for playlist provided, won't save...")
-      (progn
-				(shell-command (format "mpc rm %s&& mpc save %s" playlist playlist))
-				(message "Playlist saved as %s" playlist)))))
-
+				(shell-command (format "mpc rm %s& mpc save %s" playlist playlist))
+				(message "Playlist saved as %s" playlist))))
 
 (defun mingus-remove-playlist ()
   "Remove an mpd playlist"
