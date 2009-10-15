@@ -1,21 +1,21 @@
-;;; mingus.el --- 
+;;; mingus.el ---
 
-;;            _                       
-;;  _ __ ___ (_)_ __   __ _ _   _ ___ 
+;;            _
+;;  _ __ ___ (_)_ __   __ _ _   _ ___
 ;; | '_ ` _ \| | '_ \ / _` | | | / __|
 ;; | | | | | | | | | | (_| | |_| \__ \
 ;; |_| |_| |_|_|_| |_|\__, |\__,_|___/
-;;                    |___/           
+;;                    |___/
 ;; -----------------------------------------------------------
-;; MPD Interface that's No Garbage, but (just) Utterly Stylish 
+;; MPD Interface that's No Garbage, but (just) Utterly Stylish
 ;; -----------------------------------------------------------
 ;; ....................but actually named after a man so named
-;; 
+;;
 
 ;; Copyright (C) 2006  Niels Giesen <nielsgiesen at ibbu dot nl>
 
 ;; Author: Niels Giesen <nielsgiesen at ibbu dot nl> <pft on #emacs>
-;; Version: Put Me In That Dungeon, or: 0.1
+;; Version: moanin', or: 0.2
 ;; Keywords: multimedia, elisp, music, mpd
 
 ;; This file is *NOT* part of GNU Emacs
@@ -37,17 +37,17 @@
 
 ;;; Commentary:
 
-;; INSTALLATION INSTRUCTIONS: 
-;; 
+;; INSTALLATION INSTRUCTIONS:
+;;
 ;; Put something like the following in your .emacs file:
 
-;; make sure you have mpc installed. This is just a wrapper. 
+;; make sure you have mpc installed. This is just a wrapper.
 
-;; (add-to-list 'load-path "/path/to/where/you/put/mingus.el") 
+;; (add-to-list 'load-path "/path/to/where/you/put/mingus.el")
 ;; (require 'mingus)
 
 ;; Design issues:
-;; 
+;;
 ;; mingus is a wrapper around the mpc command line tool, and works via
 ;; shell-commands. As such, it is probably slower than clients using
 ;; modules or so, but has the advantage of easiness of installation:
@@ -92,18 +92,18 @@
 
 ;; For those already familiar with mpd/mpc, and have set that up, you're done now.
 
-;; If you get a message like 
- 
+;; If you get a message like
+
 ;; MPD_HOST and/or MPD_PORT environment variables are not set
 ;; message: problems getting a response from "localhost" on port 6600 : Connection refused
 
-;; there are two options: 
+;; there are two options:
 
 ;; 1. you want to run locally, so run mpd
 ;; first. Do so from somewhere else or simply evaluate (mingus-start-daemon).
 ;; On some configurations of mpd this must be done as root.
 
-;; For those unfamiliar with mpd, to set it up, put something like the following in 
+;; For those unfamiliar with mpd, to set it up, put something like the following in
 ;; ~/.mpdconf (this is for when run a user)
 
 ;; port		             "6600"
@@ -121,7 +121,7 @@
 ;; (customize-group 'mingus), after which you can call
 ;; (mingus-set-variables) again)
 
-;; Known bugs: 
+;; Known bugs:
 
 ;; * a file name cannot have a " (double quotes) in it. Do not know
 ;; how to fix that, so if anyone feels so inclined... You CAN query
@@ -143,7 +143,7 @@
 (defgroup mingus nil "Group customization for mingus mpd interface"
   :group 'applications)
 
-(defcustom mingus-mpd-env-set-p nil 
+(defcustom mingus-mpd-env-set-p nil
   "Whether to set environment variables from emacs.\nDo not set when nil.\nDo set when t.\nDefault: nil.\nThese variables are set when mingus.el(c) is loaded or when mingus-set-variables is called."
   :group 'mingus
   :type '(boolean))
@@ -162,8 +162,7 @@
 	:group 'mingus
 	:type '(integer))
 
-
-(when mingus-mpd-env-set-p 
+(when mingus-mpd-env-set-p
   (setenv "MPD_HOST" mingus-mpd-host)
   (setenv "MPD_PORT" (number-to-string mingus-mpd-port)))
 
@@ -177,90 +176,94 @@
   (interactive)
   (customize-group 'mingus))
 
-(defvar mingus-version "Put Me In That Dungeon, or: 0.1")
+(defvar mingus-version "Moanin', or: 0.2")
 (defvar mingus-song-extension-regexp "\.\\([Mm][Pp]3\\|[Oo][Gg][Gg]\\|[fF][lL][aA][cC]\\|[wW][aA][vV]\\)")
 (defvar mingus-song-regexp (concat "^.+" mingus-song-extension-regexp))
 (defvar mingus-stream-regexp "http:[^<>'\"?{}() ]+\.\\([Mm][Pp]3\\|[Oo][Gg][Gg]\\|[fF][lL][aA][cC]\\|[wW][aA][vV]\\|[0-9][0-9][0-9][0-9]\\)")
 
-(defvar mingus-help-text 
-  "           _                       
- _ __ ___ (_)_ __   __ _ _   _ ___ 
+(defvar mingus-help-text
+(format
+  "           _
+ _ __ ___ (_)_ __   __ _ _   _ ___
 | '_ ` _ \\| | '_ \\ / _` | | | / __|
 | | | | | | | | | | (_| | |_| \\__ \\
 |_| |_| |_|_|_| |_|\\__, |\\__,_|___/
-                   |___/             
+                   |___/
 =====================================================
 MPD Interface, Nice, GPL'ed, User-friendly and Simple
 =====================================================
 .........but actually just named after Charles Mingus
 
+Version: %s
+
 REFCARD: (see further down for more elaborate instructions)
 
-Those familiar  with dired-mode should find themselves at home; 
+Those familiar  with dired-mode should find themselves at home;
 those familiar with ncmpc too, AMAP that is
 
 MAIN CONTROLS:
 
-mingus-help:     \"1\"
-mingus-playlist: \"2\"
-mingus-browser:  \"3\"
+mingus-help:     1
+mingus-playlist: 2
+mingus-browser:  3
 
 Global keys:
 
-p 		 		mingus-toggle			 	  (toggle play/pause)
-> 		 		mingus-next				 			
-< 		 		mingus-prev				 			
-g/q       mingus-git-out			 	  		
-s 		 		mingus-stop				 			
-?,1,H	 	 	mingus-help						
-+,right,* mingus-vol-up			 	  
--,left,/ 	mingus-vol-down	    	
-a         mingus-insert
-~         mingus-add-stream
-`         mingus-add-podcast
-b 		 		mingus-seek-backward	
-f         mingus-seek-forward																	 
-%         mingus-seek-percents
-$         mingus-seek-from-start
-I 		 		mingus-info					
-c         mingus-crop
-C 		 		mingus-clear									 
-L 		 		mingus-load-all			
-z 		 		mingus-random					
-Z 		 		mingus-shuffle			
-r 		 		mingus-repeat		    
-C-x C-s   mingus-save-playlist
-R         mingus-remove-playlist
-l         mingus-load-playlist
-o         mingus-open-playlist
-Q         mingus-query
-M-%       mingus-query-regexp
-\         mingus-last-query-results
-k         forward-line -1
-j         forward-line
-v 		 		mingus-show-version		              
+p 		 		              mingus-toggle (toggle play/pause)
+> 		 		              mingus-next
+< 		 		              mingus-prev
+g/q                     mingus-git-out
+s 		 		              mingus-stop
+?,1,H	 	 	              mingus-help
++,right,*, C-<mouse-4>  mingus-vol-up
+-,left,/,  C-<mouse-5> 	mingus-vol-down
+a                       mingus-insert
+~                       mingus-add-stream
+`                       mingus-add-podcast
+b,S-<mouse-5>		        mingus-seek-backward
+f,S-<mouse-4>           mingus-seek-forward
+%%                       mingus-seek-percents
+$                       mingus-seek-from-start
+I 		 		              mingus-info
+c                       mingus-crop
+C 		 		              mingus-clear
+L 		 		              mingus-load-all
+z 		 		              mingus-random
+Z 		 		              mingus-shuffle
+r 		 		              mingus-repeat
+C-x C-s                 mingus-save-playlist
+R                       mingus-remove-playlist
+l                       mingus-load-playlist
+o                       mingus-open-playlist
+Q                       mingus-query
+M-%%                     mingus-query-regexp
+\\                       mingus-last-query-results
+k                       forward-line -1
+j                       forward-line
+v 		 		              mingus-show-version
 
 
 Playlist keys:
 
 d,C-d,
-<delete>, C-w  mingus-del						 
-D         mingus-del-marked					 
-M     		mingus-move-all						 
-C-l   		mingus-goto-current-song	 
-C-k   		mingus-move-up						 
-C-j   		mingus-move-down					 
-RET   		mingus-play								 
-SPC,m  		mingus-mark								 
-U         mingus-unmark-all
-!         run a command on the marked songs
+<delete>, C-w       		mingus-del
+D                   		mingus-del-marked
+O                   		mingus-del-other-songs
+M     		          		mingus-move-all
+C-l   		          		mingus-goto-current-song
+C-k   		          		mingus-move-up
+C-j   		          		mingus-move-down
+RET,[mouse-3]       		mingus-play
+SPC,m,[mouse-2]  				mingus-mark
+U                   		mingus-unmark-all
+!                   		run a command on the marked songs
 
-Browser keys:					 
-                                 
-RET       mingus-down-dir-or-play-song 	
-:,^  			mingus-dir-up							 	 	
-SPC 			mingus-insert                	
-P   			mingus-insert-and-play        
+Browser keys:
+
+RET, [mouse-1]      mingus-down-dir-or-play-song
+:,^, [mouse-3]		 	mingus-dir-up
+SPC  [mouse-2]	  	mingus-insert
+P   			          mingus-insert-and-play
 
 MORE ELABORATE INSTRUCTIONS:
 
@@ -275,52 +278,78 @@ acces to mpd, running either locally or on another server
 Getting started:
 
 This help is always available with the command mingus-help, or
-the keys \"?\" or \"1\" from the buffers *Mingus* or *Mingus
+the keys ? or 1 from the buffers *Mingus* or *Mingus
 Browser*
 
 When mpd is already playing a playlist, the command M-x mingus
-will show this playlist; when not so, load a playlist with \"l\",
-or make a new one with M-x mingus-browse (default key: \"3\").
+will show this playlist; when not so, load a playlist with l,
+or make a new one with M-x mingus-browse (default key: 3).
 
 Starting mpd:                    mingus-start-mpd-daemon
-Providing environment variables: mingus-set-variables-interactively 
+Providing environment variables: mingus-set-variables-interactively
                                  (see also mingus-customize)
 
 SELECTION OF SONGS:
 
-Browsing:  command (mingus-browse) key: \"3\"
+Browsing:  command: mingus-browse key: 3
 
 movement and insertion:
 
 SPACEBAR always inserts everything under point or region
 
-\"P\"        same as SPACEBAR, and plays the inserted song(s) instantly
+P          same as SPACEBAR, and plays the inserted song(s) instantly
 
 RET        same as SPACEBAR, exept when on a directory and mark not active, then descend into dir.
 
-\"^\" or \":\" go up a directory
+^  or :    go up a directory
 
 Minibuffer browsing:
 
-\"a\"       insert a file or directory through the use of the minibuffer; 
-          follow instructions there provided
+a          insert a file or directory through the use of the minibuffer;
+           follow instructions there provided
 
 Playlist loading:
 
-\"l\"        load playlist
-\"o\"        as \"l\", but clear playlist first (prompts)
+l          load playlist
 
-Querying: 
+Streaming audio:
 
-\"Q\"        query the database for artist, album, filename, title, or regexp on filename
+Mpd supports streaming audio.  Aside from the fact that one can
+always save a link in a playlist, this provides a way to take
+one's own presets with you as a client, as streaming audio does
+not require storage of songs on the server. Mingus takes
+advantage of this fact by providing the customizable variables
+`mingus-stream-alist' and `mingus-podcast-alist': alists of
+conses whose key is a pretty name, and whose value is the url of
+the respective radio stream or podcast file.
+
+~          load an audio stream, read from minibuffer, with completion from the customizable variable `mingus-stream-alist';
+           defaults to link (in w3m and possibly in gnus html mail buffers) or url under point.
+
+`          same as ~, but loads all podcasts found in a link. Completion provided by the customizable variable `mingus-podcast-alist'.
+           actually ~ will load a podcast too if a podcast is under point. However, to provide two separate variables for completion,
+           this option
+
+Making sure an insertion is instantly played:
+
+If any of the insertion commands is prefinged, they will play the insertion instantly after insertion.
+
+C-u a      mingus-insert-and-play
+C-u l      mingus-load-playlist-and-play
+C-u ~      mingus-add-stream-and-play
+C-u `      mingus-add-podcast-and-play
+
+Querying:
+
+Q          query the mpd database for artist, album, filename, title, or regexp on filename
            (type read from minibuffer)
-\"M-%\"      query for regexp on filename
-\"\\\"       show last query results again 
+M-%%        query for regexp on filename
+\\          show last query results again
 
 
 Results are shown in the *Mingus Browser* buffer, where all commands for browsing are available
 
-PLAYING CONTROLS: 
+PLAYING CONTROLS:
 
 see the refcard, and documentation of various commands, just try
 them out. They should be quite self-evident, but let me know when
@@ -331,11 +360,11 @@ PLAYLIST EDITING:
 
 Deletion:
 
-on marked songs: see section \"Marking\"
+on marked songs: see section `Marking'
 
-\"\\C-d\", \"d\", \"\\C-w\" or DEL 
+C-d, d, C-w or DEL
 
-delete single file, or region when there is a region; 
+delete single file, or region when there is a region;
 
 NB: this leaves the marking of other songs intact. As such it can
 be slow, esp. when the region is large; it is then highly
@@ -344,23 +373,23 @@ mingus-del-marked (until I rewrite this function :])
 
 Movement:
 
-of marked songs: see section \"Marking\"
+of marked songs: see section `Marking'
 
-of single song: 
+of single song:
 
-\"\\C-k\"                 Move song up one position
-\"\\C-j\"                 Move song up down position
+C-k                 Move song up one position
+C-j                 Move song up down position
 
 Marking:
 
 Marking songs is useful for movement or deletion of multiple songs in or from the playlist;
 first mark them, then delete or move them (to point).
 
-\"m\" or SPACEBAR       (un)mark a song, or region, when there is a region
-\"D\" (upcased)         delete marked songs (this will have the same effect as 
-                      mingus-del when there are no marked songs)
-\"M\"                   move marked songs to point
-\"!\"                   get prompted for an operation on the marked songs
+m or SPACEBAR       (un)mark a song, or region, when there is a region
+D (upcased)         delete marked songs (this will have the same effect as
+                    mingus-del when there are no marked songs)
+M                   move marked songs to point
+!                   get prompted for an operation on the marked songs
 
 Point of insertion:
 
@@ -369,35 +398,36 @@ insertions from the insertion commands from the *Mingus Browser*
 buffer or from minibuffer-insertion will take place. Otherwise
 the insertions will take place at the end of the playlist.
 
-\"i\"                   set insertion point
-\"u\"                   unset insertion point (available from everywhere)
-\"\\C-u i\"              show current insertion point and move point there
+i                   set insertion point
+u                   unset insertion point (available from everywhere)
+C-u i               show current insertion point and move point there
 
 Saving your playlist:
 
-what about \"\\C-x \\C-s\", can you memorize that?
+what about C-x C-s, can you memorize that?
 
 
 =================================================
-AUTHOR:  Niels Giesen 
+AUTHOR:  Niels Giesen
 CONTACT: nielsgiesen at ibbu dot nl
-")
+" mingus-version))
 
 (defconst mingus-font-lock-keywords
   (list
    '("^\* .*" . font-lock-warning-face)))
 
 (defconst mingus-browse-font-lock-keywords
-  (list 
+  (list
    `(,mingus-song-regexp . dired-ignored-face)
    '(".*" . font-lock-type-face)))
 
 (defconst mingus-help-font-lock-keywords
-  (list 
+  (list
    '("mingus[a-z-]*" . font-lock-function-name-face)
    '("^[A-Z ]+:" . font-lock-warning-face)
    '("^[A-Z][a-z ]+:" . font-lock-constant-face)
-   '("=" . font-lock-variable-name-face)))
+   '("=" . font-lock-variable-name-face)
+	 '("`.+'")))
 
 (defconst mingus-global-map
   (let ((mingus-global-map (make-keymap)))
@@ -413,27 +443,27 @@ CONTACT: nielsgiesen at ibbu dot nl
     (define-key mingus-global-map "@" 'mingus-update)
     (define-key mingus-global-map "p" 'mingus-toggle)
     (define-key mingus-global-map "%" 'mingus-seek-percents)
-    (define-key mingus-global-map ">" 'mingus-next)		
-    (define-key mingus-global-map "<" 'mingus-prev)		
+    (define-key mingus-global-map ">" 'mingus-next)
+    (define-key mingus-global-map "<" 'mingus-prev)
     (mapcar (lambda (key) (define-key mingus-global-map key 'mingus-vol-up))
 	    '("+" [(right)] "*"))
     (mapcar (lambda (key) (define-key mingus-global-map key 'mingus-vol-down))
 	    '("-" [(left)] "/"))
-    (define-key mingus-global-map "b" 'mingus-seek-backward)		
-    (define-key mingus-global-map "f" 'mingus-seek)		
+    (define-key mingus-global-map "b" 'mingus-seek-backward)
+    (define-key mingus-global-map "f" 'mingus-seek)
     (define-key mingus-global-map "$" 'mingus-seek-from-start)
-    (define-key mingus-global-map "x" 'mingus-crossfade)		
-    (define-key mingus-global-map "C" 'mingus-clear)		    
-    (define-key mingus-global-map "c" 'mingus-crop)		
-    (define-key mingus-global-map "L" 'mingus-load-all)		
-    (define-key mingus-global-map "I" 'mingus-info)		
-    (define-key mingus-global-map "v" 'mingus-show-version)		
-    (define-key mingus-global-map "z" 'mingus-random)		
-    (define-key mingus-global-map "Z" 'mingus-shuffle)		
-    (define-key mingus-global-map "r" 'mingus-repeat)		
-    (define-key mingus-global-map "u" 'mingus-unset-insertion-point)		
-    (define-key mingus-global-map "l" 'mingus-load-playlist)		
-    (define-key mingus-global-map "R" 'mingus-remove-playlist)		
+    (define-key mingus-global-map "x" 'mingus-crossfade)
+    (define-key mingus-global-map "C" 'mingus-clear)
+    (define-key mingus-global-map "c" 'mingus-crop)
+    (define-key mingus-global-map "L" 'mingus-load-all)
+    (define-key mingus-global-map "I" 'mingus-info)
+    (define-key mingus-global-map "v" 'mingus-show-version)
+    (define-key mingus-global-map "z" 'mingus-random)
+    (define-key mingus-global-map "Z" 'mingus-shuffle)
+    (define-key mingus-global-map "r" 'mingus-repeat)
+    (define-key mingus-global-map "u" 'mingus-unset-insertion-point)
+    (define-key mingus-global-map "l" 'mingus-load-playlist)
+    (define-key mingus-global-map "R" 'mingus-remove-playlist)
     (mapcar (lambda (key) (define-key mingus-global-map key 'mingus-help))
 	    '("H" "?" "1"))
 		(define-key mingus-global-map "a" 'mingus-insert)
@@ -441,14 +471,124 @@ CONTACT: nielsgiesen at ibbu dot nl
 		(define-key mingus-global-map "~" 'mingus-add-stream)
 		(define-key mingus-global-map "`" 'mingus-add-podcast)
     (define-key mingus-global-map "\C-x\C-s" 'mingus-save-playlist)
-    (define-key mingus-global-map "2" 'mingus)				
-    (define-key mingus-global-map "3" 'mingus-browse)				
-    mingus-global-map) 
+    (define-key mingus-global-map "2" 'mingus)
+    (define-key mingus-global-map "3" 'mingus-browse)
+		(define-key mingus-global-map [C-mouse-5] 'mingus-vol-down)
+		(define-key mingus-global-map [C-mouse-4] 'mingus-vol-up)
+		(define-key mingus-global-map [S-mouse-5] 'mingus-seek-backward)
+		(define-key mingus-global-map [S-mouse-4] 'mingus-seek)
+    mingus-global-map)
   "Global keymap for `mingus'")
+
+;; build the menu
+(define-key mingus-global-map [menu-bar mingus]
+  (cons "Mingus" (make-sparse-keymap "mingus")))
+
+(define-key mingus-global-map [menu-bar mingus customization]
+  (cons  "Customization"  (make-sparse-keymap "mingus customization")))
+(define-key mingus-global-map [menu-bar mingus customization port]
+	'(menu-item "MPD PORT" (lambda () (interactive) (customize-variable 'mingus-mpd-port)) :help "Port for connecting to mpd server"))
+(define-key mingus-global-map [menu-bar mingus customization host]
+	'(menu-item "MPD HOST" (lambda () (interactive) (customize-variable 'mingus-mpd-host)) :help "Host to connect to"))
+(define-key mingus-global-map [menu-bar mingus customization seek-amount]
+	'("Seek Amount" . (lambda () (interactive) (customize-variable 'mingus-seek-amount))))
+(define-key mingus-global-map [menu-bar mingus customization stream-alist]
+	'(menu-item "Streams"  (lambda () (interactive) (customize-variable 'mingus-stream-alist)) :help "Customize stream presets"))
+(define-key mingus-global-map [menu-bar mingus customization podcast-alist]
+	'(menu-item "Podcasts" (lambda () (interactive) (customize-variable 'mingus-podcast-alist)) :help "Customize podcast presets"))
+(define-key mingus-global-map [menu-bar mingus customization all]
+	'(menu-item "All" mingus-customize :help "customize all mingus variables"))
+
+(define-key mingus-global-map [menu-bar mingus sep1]
+	'(menu-item "--"))
+
+(define-key mingus-global-map [menu-bar mingus query-regexp]
+	'(menu-item "Query regexp"  mingus-query-regexp :help "Query the mpd database with a regexp"))
+(define-key mingus-global-map [menu-bar mingus query]
+	'(menu-item "Query" mingus-query :help "Query the mpd database"))
+(define-key mingus-global-map [menu-bar mingus sep-above-query]
+	'(menu-item "--"))
+
+(define-key mingus-global-map [menu-bar mingus streams]
+  (cons "Streams and Podcasts" (make-sparse-keymap "mingus streams")))
+(define-key mingus-global-map [menu-bar mingus streams podcast-alist]
+	'(menu-item "Customize Podcasts" (lambda () (interactive) (customize-variable 'mingus-podcast-alist)) :help "Customize podcast presets"))
+(define-key mingus-global-map [menu-bar mingus streams stream-alist]
+	'(menu-item "Customize Streams"  (lambda () (interactive) (customize-variable 'mingus-stream-alist)) :help "Customize stream presets"))
+(define-key mingus-global-map [menu-bar mingus streams sep]
+	'(menu-item "--"))
+(define-key mingus-global-map [menu-bar mingus streams podcast-and-play]
+  '("Add Podcast and Play"       . mingus-add-podcast-and-play))
+(define-key mingus-global-map [menu-bar mingus streams podcast]
+  '("Add Podcast"       . mingus-add-podcast))
+(define-key mingus-global-map [menu-bar mingus streams stream-and-play]
+  '("Add Stream and Play"  . mingus-add-stream-and-play))
+(define-key mingus-global-map [menu-bar mingus streams stream]
+  '("Add Stream"       . mingus-add-stream))
+
+(define-key mingus-global-map [menu-bar mingus playlists]
+  (cons "Playlist loading/saving/removing" (make-sparse-keymap "mingus playlists")))
+(define-key mingus-global-map [menu-bar mingus playlists remove]
+  '("Remove"       . mingus-remove-playlist))
+(define-key mingus-global-map [menu-bar mingus playlists save]
+  '("Save"       . mingus-save-playlist))
+(define-key mingus-global-map [menu-bar mingus playlists load-and-play]
+  '("Load entire database" . mingus-load-all))
+(define-key mingus-global-map [menu-bar mingus playlists load-all]
+  '("Load and Play" . mingus-load-playlist-and-play))
+(define-key mingus-global-map [menu-bar mingus playlists load]
+  '("Load" . mingus-load-playlist))
+
+(define-key mingus-global-map [menu-bar mingus sep-above-playlists-and-streams]
+	'(menu-item "--"))
+
+(define-key mingus-global-map [menu-bar mingus repeat]
+  '("Repeat (toggle)"          . mingus-repeat))
+(define-key mingus-global-map [menu-bar mingus shuffle]
+  '("Shuffle"          . mingus-shuffle))
+(define-key mingus-global-map [menu-bar mingus random]
+  '("Random (toggle)"          . mingus-random))
+
+(define-key mingus-global-map [menu-bar mingus clear]
+  '("Clear Playlist"          . mingus-clear))
+(define-key mingus-global-map [menu-bar mingus crop]
+  '(menu-item "Crop Playlist"  mingus-crop :help "Delete all but the playing song"))
+
+(define-key mingus-global-map [menu-bar mingus vol-up]
+	'("Vol up" . mingus-vol-up))
+(define-key mingus-global-map [menu-bar mingus vol-down]
+	'("Vol down" . mingus-vol-down))
+
+(define-key mingus-global-map [menu-bar mingus seek]
+  '("Seek Forward"          . mingus-seek))
+(define-key mingus-global-map [menu-bar mingus seek-back]
+  '("Seek Backward"          . mingus-seek-backward))
+
+(define-key mingus-global-map [menu-bar mingus next]
+  '("Next"          . mingus-next))
+(define-key mingus-global-map [menu-bar mingus previous]
+  '("Previous"      . mingus-prev))
+(define-key mingus-global-map [menu-bar mingus stop]
+  '("Stop"          . mingus-stop))
+(define-key mingus-global-map [menu-bar mingus play]
+  '("Play"          . mingus-play))
+(define-key mingus-global-map [menu-bar mingus toggle]
+  '("Toggle play/pause"  . mingus-toggle))
+
 
 (defconst mingus-help-map
   (let ((mingus-help-map (copy-keymap mingus-global-map)))
     (define-key mingus-help-map " " 'scroll-up)
+		(define-key mingus-help-map [menu-bar mingus sep-playlist-editing]
+			'(menu-item "--"))
+		(define-key mingus-help-map [menu-bar mingus unset]
+			'("Unset Insertion Point" . mingus-unset-insertion-point))
+		(define-key mingus-help-map [menu-bar mingus sep3]
+			'(menu-item "--"))
+		(define-key mingus-help-map [menu-bar mingus browser]
+			'(menu-item "Browser" mingus-browse :help "go to browser"))
+		(define-key mingus-help-map [menu-bar mingus playlist]
+			'(menu-item "Playlist" mingus :help "go to playlist"))
     mingus-help-map)
   "Help keymap for `mingus'")
 
@@ -456,25 +596,26 @@ CONTACT: nielsgiesen at ibbu dot nl
   (let ((mingus-playlist-map (copy-keymap mingus-global-map)))
     ;;deletion keys
     (mapcar (lambda (key)
-	      (define-key mingus-playlist-map key (lambda () (interactive) 
+	      (define-key mingus-playlist-map key (lambda () (interactive)
 						    (if mark-active
 							(call-interactively 'mingus-del-region)
 						      (mingus-del-marked))))) '("D" "\C-w"))
 
-    (mapcar (lambda (key) (define-key mingus-playlist-map key 
-			    '(lambda () (interactive) 
+    (mapcar (lambda (key) (define-key mingus-playlist-map key
+			    '(lambda () (interactive)
 			       (if mark-active
 				   (call-interactively 'mingus-del-region)
 				 (mingus-del)))))
 	    '("d" "\C-d"))
+    (define-key mingus-playlist-map "O" 'mingus-del-other-song)
     ;;movement keys
-    (define-key mingus-playlist-map "M" 'mingus-move-all)		
-    (define-key mingus-playlist-map "\C-k" 'mingus-move-up)		
-    (define-key mingus-playlist-map "\C-j" 'mingus-move-down)				
+    (define-key mingus-playlist-map "M" 'mingus-move-all)
+    (define-key mingus-playlist-map "\C-k" 'mingus-move-up)
+    (define-key mingus-playlist-map "\C-j" 'mingus-move-down)
     ;;marking keys
     (define-key mingus-playlist-map "U" 'mingus-unmark-all)
     (mapcar (lambda (key)
-	      (define-key mingus-playlist-map key (lambda () (interactive) 
+	      (define-key mingus-playlist-map key (lambda () (interactive)
 						    (if mark-active
 							(call-interactively 'mingus-mark-region)
 						      (mingus-mark)))))
@@ -484,28 +625,104 @@ CONTACT: nielsgiesen at ibbu dot nl
 					  (interactive)
 					  (if (or mingus-marked-list)
 					      (progn
-						(let ((command (read-key-sequence "! on marked songs (D: deletion M: Move here)" )))
+						(let ((command (read-key-sequence "! on marked songs (D: deletion M: Move here O: delete the non-marked songs)" )))
 						  (cond ((string-match "d\\|D" command)
 							 (mingus-del-marked))
 							((string-match "m\\|M" command)
 							 (mingus-move-all))
+							((string-match "o\\|O" command)
+							 (mingus-del-other-songs))
 							(t nil))))
 					    (message "No marked songs"))))
     ;; miscellaneous keys
     (define-key mingus-playlist-map "\r" 'mingus-play)
-    (define-key mingus-playlist-map "\C-l" 'mingus-goto-current-song)		
-    mingus-playlist-map)
+    (define-key mingus-playlist-map "\C-l" 'mingus-goto-current-song)
+		;; menu keys
+		(define-key mingus-playlist-map [menu-bar mingus sep-playlist-editing]
+			'("---" . separador))
+		(define-key mingus-playlist-map [menu-bar mingus playlist-editing]
+			(cons "Playlist Editing" (make-sparse-keymap "mingus playlist editing")))
+		(define-key mingus-playlist-map [menu-bar mingus playlist-editing mingus-unmark-all]
+			'("Unmark All Songs"          . mingus-unmark-all))
+		(define-key mingus-playlist-map [menu-bar mingus playlist-editing del-other]
+			'("Delete Unmarked Songs"          . mingus-del-other-songs))
+		(define-key mingus-playlist-map [menu-bar mingus playlist-editing del-marked]
+			'("Delete Marked Songs or Song at Point"          . mingus-del-marked))
+		(define-key mingus-playlist-map [menu-bar mingus playlist-editing move]
+			'("Move Marked Songs"          . mingus-move-all))
+		(define-key mingus-playlist-map [menu-bar mingus playlist-editing mark]
+			'("Mark Region or (un)Mark Line"          . (lambda () (interactive) (if mark-active
+																																							 (call-interactively 'mingus-mark-region)
+																																				 (mingus-mark)))))
+		(define-key mingus-playlist-map [menu-bar mingus playlist-editing uns-ins-point]
+			'("Unset Point of Insertion"          . mingus-unset-insertion-point))
+		(define-key mingus-playlist-map [menu-bar mingus playlist-editing ins-point]
+			'("Set Point of Insertion"          . mingus-set-insertion-point))
+		(define-key mingus-playlist-map [menu-bar mingus playlist-editing del-region]
+			'("Delete Region" . mingus-del-region))
+		(define-key mingus-playlist-map [menu-bar mingus sep3]
+			'(menu-item "--"))
+		(define-key mingus-playlist-map [menu-bar mingus help]
+			'(menu-item "Help" mingus-help :help "go to help"))
+		(define-key mingus-playlist-map [menu-bar mingus browser]
+			'(menu-item "Browser" mingus-browse :help "go to browser"))
+		;; mouse keys
+		(define-key mingus-playlist-map (if (featurep 'xemacs) [button2] [mouse-2])
+			(lambda (ev) (interactive "e") (if mark-active
+																				 (call-interactively (quote mingus-mark-region))
+																			 (mouse-set-point ev)
+																			 (mingus-mark))))
+		(define-key mingus-playlist-map (if (featurep 'xemacs) [button3] [mouse-3]) 'mingus-play)
+;		(define-key mingus-playlist-map (if (featurep 'xemacs) [button1] [mouse-1]) 'mingus-play)
+		mingus-playlist-map)
   "Playlist keymap for `mingus'")
 
 (defconst mingus-browse-map
   (let ((mingus-browse-map (copy-keymap mingus-global-map)))
-    (define-key mingus-browse-map "\r" 'mingus-down-dir-or-play-song)				
+    (define-key mingus-browse-map "\r" 'mingus-down-dir-or-play-song)
+		(define-key mingus-browse-map (if (featurep 'xemacs) [button1] [mouse-1]) 'mingus-down-at-mouse)
+		(define-key mingus-browse-map (if (featurep 'xemacs) [button2] [mouse-2]) 'mingus-insert-at-mouse)
+		(define-key mingus-browse-map (if (featurep 'xemacs) [button3] [mouse-3]) 'mingus-dir-up)
     (mapcar (lambda (key) (define-key mingus-browse-map key 'mingus-dir-up))
 	    '(":" "^"))
-
-    (define-key mingus-browse-map " " 'mingus-insert)      
+		(define-key mingus-browse-map [menu-bar mingus sep-playlist-editing]
+			'("---" . separador))
+		(define-key mingus-browse-map [menu-bar mingus unset]
+			'("Unset Insertion Point" . mingus-unset-insertion-point))
+		(define-key mingus-browse-map [menu-bar mingus sep3]
+			'(menu-item "--"))
+		(define-key mingus-browse-map [menu-bar mingus help]
+			'(menu-item "Help" mingus-help :help "go to help"))
+		(define-key mingus-browse-map [menu-bar mingus playlist]
+			'(menu-item "Playlist" mingus :help "go to playlist"))
+    (define-key mingus-browse-map " " 'mingus-insert)
     mingus-browse-map)
-  "Browse keymap for `mingus'") 
+  "Browse keymap for `mingus'")
+
+(defun mingus-mark-operation ()
+	(interactive)
+	(if (or mingus-marked-list)
+			(progn
+				(let ((command (read-key-sequence "! on marked songs (D: deletion M: Move here)" )))
+					(cond ((string-match "d\\|D" command)
+								 (mingus-del-marked))
+							((string-match "m\\|M" command)
+							 (mingus-move-all))
+							(t nil))))
+					    (message "No marked songs")))
+
+;; mouse functions
+(defun mingus-insert-at-mouse (ev)
+  "Insert song or dir at mouse."
+  (interactive "e")
+  (mouse-set-point ev)
+  (mingus-insert))
+
+(defun mingus-down-at-mouse (ev)
+  "Insert song or dir at mouse."
+  (interactive "e")
+  (mouse-set-point ev)
+  (mingus-down-dir-or-play-song))
 
 (defun mingus-show-version ()
   (interactive)
@@ -532,13 +749,13 @@ CONTACT: nielsgiesen at ibbu dot nl
 	 (secs (progn (if (string-match ":[0-9]+" time)
 			  (string-to-number (substring (match-string 0 time) 1))))))
     (if (and (null secs) (null mins))
-	nil 
+	nil
       (+ (or secs 0) (* 60 (or mins 0))))))
 
 (defun mingus-delete-line ()
   "Delete line at point."
   (delete-region (point-at-bol 1) (point-at-bol 2))
-  (when (eobp) 
+  (when (eobp)
     (delete-region (point-at-bol) (point-at-eol 0))
     (beginning-of-line)))
 
@@ -547,7 +764,7 @@ CONTACT: nielsgiesen at ibbu dot nl
     (goto-char (point-max))
     (delete-region (point-at-bol) (point-at-eol 0))
     (goto-char pos)))
-  
+
 (defun mingus-switch-to-playlist ()
 	(switch-to-buffer "*Mingus*")
 	(mingus-playlist-mode))
@@ -618,7 +835,7 @@ see function `mingus-help' for instructions."
 (mingus-make-fn mingus-toggle "toggle" "Toggle mpd pause/play mode." (mingus-info))
 (mingus-make-fn mingus-pause "pause" "Pause mpd." (mingus-info))
 (mingus-make-fn mingus-prev "prev" "Play previous song in mpd playlist." (mingus-info))
-(mingus-make-fn mingus-next "next" "Play next song in mpd playlist." 
+(mingus-make-fn mingus-next "next" "Play next song in mpd playlist."
 		(when (string=
 		       "*Mingus*" (buffer-name))
 		  (mingus-info)))
@@ -628,7 +845,7 @@ see function `mingus-help' for instructions."
 (mingus-make-fn mingus-vol-up "volume +1" "Tell mpd to increase volume." (mingus-info))
 (mingus-make-fn mingus-vol-down "volume -1" "Tell mpd to decrease volume." (mingus-info))
 
-(defmacro mingus-advice (func-name buffer-name &optional docstring) 
+(defmacro mingus-advice (func-name buffer-name &optional docstring)
 																				;fixme: should make this dependent on a keyword
   (funcall
    (lambda ()
@@ -639,7 +856,7 @@ see function `mingus-help' for instructions."
 	  (message ,(format "Not in %s buffer" buffer-name)))))))
 
 (defun mingus-insertion-point-set-p ()
-	(save-window-excursion 
+	(save-window-excursion
 		(mingus-switch-to-playlist)
 	(if (boundp 'point-of-insertion)(caar point-of-insertion))))
 
@@ -651,11 +868,11 @@ see function `mingus-help' for instructions."
 (mingus-advice mingus-move-up "*Mingus*")
 (mingus-advice mingus-down-dir-or-play-song "*Mingus Browser*")
 
-(mapcar 'ad-activate '(mingus-goto-current-song 
-		       mingus-del-region 
-		       mingus-down-dir-or-play-song 
+(mapcar 'ad-activate '(mingus-goto-current-song
+		       mingus-del-region
+		       mingus-down-dir-or-play-song
 		       mingus-move-down
-		       mingus-move-up 
+		       mingus-move-up
 		       mingus-set-insertion-point))
 
 (defmacro mingus-insertion-advice (func-name)
@@ -665,7 +882,7 @@ see function `mingus-help' for instructions."
 					 (insertion-point (if (mingus-insertion-point-set-p)
 																(mingus-get-insertion-number))))
 			 (when	ad-do-it
-				 (save-window-excursion 
+				 (save-window-excursion
 					 (mingus-switch-to-playlist)
 				(let* ((howmanysongs (- (1+ (mingus-playlist-length)) end-of-playlist))
 							 (song (if (< 1 howmanysongs) "songs" "song"))
@@ -674,9 +891,9 @@ see function `mingus-help' for instructions."
 					(unless (= (mingus-playlist-length) (1- end-of-playlist))
 						(message "Processing request...")
 						(if insertion-point
-								(progn					
+								(progn
 									;;move all just inserted songs to their destination:
-									(mingus-move 
+									(mingus-move
 									 (do* ((num end-of-playlist (1+ num))
 												 (result (list num) (push num result)))
 											 ((= (car result) (mingus-playlist-length)) result))
@@ -706,6 +923,7 @@ Play the first thing they have inserted after such insertion. "
 (mingus-and-play mingus-add-podcast mingus-add-podcast-and-play)
 (mingus-and-play mingus-insert mingus-insert-and-play)
 (mingus-and-play mingus-load-playlist mingus-load-playlist-and-play)
+(mingus-and-play mingus-load-all mingus-load-all-and-play)
 
 (defun* mingus-seek (amount &optional percentage from-start)
   "Seek song played by mpd in seconds or percentage.
@@ -715,7 +933,7 @@ When PERCENTAGE is specified, seek to PERCENTAGE of song.
 If PERCENTAGE is specified and AMOUNT is negative, seek PERCENTAGE backwards."
   (interactive "p")
   (if (string= "seek amount" (substring (shell-command-to-string
-					 (concat "mpc seek " (if (or (minusp amount) percentage from-start) "" "+") 
+					 (concat "mpc seek " (if (or (minusp amount) percentage from-start) "" "+")
 						 (number-to-string (if (and (null from-start)(= 1 amount)) mingus-seek-amount amount)) (if percentage "%"))) 0 11))
       (message "Seek amount would seek past the end of the song")
     (mingus-info)))
@@ -752,7 +970,7 @@ prefix argument of 0 sets crossfade off."
   (interactive "P")
   (shell-command (concat "mpc crossfade " (if p (number-to-string (if (listp p) (car p) p)) "")))
   (if p (message "crossfade: %d" p)))
-  
+
 
 (defmacro mingus-make-fn-shell-after (name command &optional docstring &rest body) ;should make this dependent on a keyword
   (funcall
@@ -766,11 +984,11 @@ prefix argument of 0 sets crossfade off."
 
 (defun mingus-cur-line (&optional stringify)
   "In Mingus, return number of song under point"
-  (if stringify 
+  (if stringify
       (number-to-string	(line-number-at-pos))
     (line-number-at-pos)))
 
-(defun mingus-playlist ()	
+(defun mingus-playlist ()
   "Insert current playlist into buffer \"*Mingus*\"."
   (mingus-switch-to-playlist)
   (let ((buffer-read-only nil))
@@ -778,7 +996,7 @@ prefix argument of 0 sets crossfade off."
       (erase-buffer)
       (cond ((string= "" (shell-command-to-string "mpc playlist"))
 	     (insert "Press ? for help, 3 for Mingus Browser"))
-	    (t 
+	    (t
 	     (insert (substring (shell-command-to-string "mpc playlist") 0 -1))
 	     (let ((int '(0)))
 	       (while
@@ -793,7 +1011,7 @@ prefix argument of 0 sets crossfade off."
   "In Mingus, unset `mingus-marked-list'."
   (interactive)
   (save-excursion
-    (let ((buffer-read-only nil))										
+    (let ((buffer-read-only nil))
       (setq mingus-marked-list nil)
       (goto-char (point-min))
       (while (re-search-forward "^* " (point-max) 1)
@@ -803,22 +1021,22 @@ prefix argument of 0 sets crossfade off."
 (defun mingus-cur-song-number ()
   "Return number of song currently played by mpd.
 Return nil if no song playing."
-  (let ((mess (shell-command-to-string "mpc"))) 
+  (let ((mess (shell-command-to-string "mpc")))
     (when	(string-match "^\\[\\(paused\\] \\|playing\\]\\) #\\([0-9]+\\)" mess)
       (string-to-number (substring mess (match-beginning 2)(match-end 0))))))
-		
-(defun mingus-goto-current-song ()			
+
+(defun mingus-goto-current-song ()
   "In Mingus, move point to currently playing song."
   (interactive)
   (goto-line (or (mingus-cur-song-number) 1)))
 
 (defun mingus-playlist-length ()
   "Return length of current mpd playlist."
-  (if (string= "" (shell-command-to-string "mpc playlist")) 
+  (if (string= "" (shell-command-to-string "mpc playlist"))
       0
-    (with-temp-buffer 
-      (insert (shell-command-to-string "mpc playlist")) 
-      (goto-char (point-max)) 
+    (with-temp-buffer
+      (insert (shell-command-to-string "mpc playlist"))
+      (goto-char (point-max))
       (string-to-number (buffer-substring-no-properties
 			 (1+ (re-search-backward "^#" nil t))
 			 (re-search-forward "[0-9]+" nil t))))))
@@ -886,14 +1104,14 @@ POS increments when number of a song is greater, thereby preserving order."
 			   (incf (car to)))
 			  ((< from (car to))
 			   (shell-command (concat "mpc move " (number-to-string (- from (car count))) " " (number-to-string (1- (car to)))))
-			   (incf (car count))))) 
+			   (incf (car count)))))
 		(sort list #'<)))
       ;;wip
       (unless after-insert
 	(setq mingus-marked-list nil))
       ;;wip
       (mingus)
-      (cond (poi-itself-moved-p 
+      (cond (poi-itself-moved-p
 	     (mingus-unset-insertion-point))
 	    ((/= novy (mingus-playlist-length))
 	     (goto-line novy)
@@ -909,7 +1127,7 @@ POS increments when number of a song is greater, thereby preserving order."
       (let ((line (line-number-at-pos)))
 	(mingus-move mingus-marked-list (1+ (line-number-at-pos)))
 	(goto-line line)
-	(message "Moved %d song%s" length 
+	(message "Moved %d song%s" length
 		 (if (< 1 length) "s" ""))))))
 
 (defun mingus-mark ()
@@ -957,7 +1175,7 @@ To mark a region, use mingus-mark-region."
 			 (decf (caar point-of-insertion))))
 		  (mingus-delete-line)
 		  (setq mingus-marked-list (nreverse (mapcar (lambda (list)
-							       (cond ((< (mingus-cur-line) list) 
+							       (cond ((< (mingus-cur-line) list)
 								      (1- list))
 								     (t list)))(remove (mingus-cur-line) mingus-marked-list))))))
 
@@ -982,8 +1200,8 @@ Leave `mingus-marked-list' intact."
       (setq mingus-marked-list
 	    (remove-if (lambda (item) (and (<= beg item) (> end item))) mingus-marked-list))
       ;; substract howmanysongs from the marked songs that have become at a lower place in playlist due to deletion
-      (setq mingus-marked-list (mapcar (lambda (item) 
-					 (if (<= end item) 
+      (setq mingus-marked-list (mapcar (lambda (item)
+					 (if (<= end item)
 					     (- item howmanysongs)
 					   item)) mingus-marked-list))
       ;; rebuild the playlist according to new specs
@@ -1006,7 +1224,7 @@ Leave `mingus-marked-list' intact."
 	(when	(yes-or-no-p (format "Remove %d marked songs? " (length mingus-marked-list)))
 	  (progn
 	    (shell-command (let ((delete-string "mpc del"))
-			     (mapcar 
+			     (mapcar
 			      (lambda (list)
 				(setq delete-string (concat delete-string " " (number-to-string list))))
 			      mingus-marked-list)
@@ -1027,7 +1245,7 @@ Leave `mingus-marked-list' intact."
 																				;mutually exclusive, or take
 																				;these effects into account
 		(setq mingus-marked-list (nreverse (mapcar (lambda (list)
-																								 (cond ((< (line-number-at-pos) list) 
+																								 (cond ((< (line-number-at-pos) list)
 																												(1- list))
 																											 (t list)))(remove (line-number-at-pos) mingus-marked-list)))))))
   (when (eobp)
@@ -1043,9 +1261,9 @@ Leave `mingus-marked-list' intact."
 	    (newpos (length (member (line-number-at-pos) (setq mingus-marked-list (sort mingus-marked-list #'>)))))
 	    ;; calculate new position of insertion point
 	    (posfrom (length (member (caar point-of-insertion) mingus-marked-list))))
-	(mapcar 
+	(mapcar
 	 (lambda (list)
-	   (setq delete-string 
+	   (setq delete-string
 		 (concat delete-string " " (number-to-string list)))
 	   list)
 	 (let ((result nil))
@@ -1064,12 +1282,12 @@ Leave `mingus-marked-list' intact."
 	  (goto-char (point-min)))
 	(message "Other songs deleted"))))
 
-(defun mingus-play (&optional position)										
+(defun mingus-play (&optional position)
   "Start playing the mpd playlist, only if not yet playing.
 When called with argument POSITION, play playlist id POSITION."
   (interactive)
-  (shell-command 
-   (concat "mpc play " 
+  (shell-command
+   (concat "mpc play "
 	   (or position
 	       (if (string= "*Mingus*" (buffer-name))
 		   (mingus-cur-line t)))))
@@ -1086,7 +1304,7 @@ Does prompting."
   (interactive)
   (if (or dontask (yes-or-no-p "Clear the playlist? "))
       (progn (shell-command "mpc clear ")
-	     (with-current-buffer "*Mingus*"				
+	     (with-current-buffer "*Mingus*"
 	       (let ((buffer-read-only nil))
 		 (erase-buffer)
 		 (mingus-unset-insertion-point)
@@ -1094,13 +1312,14 @@ Does prompting."
 		 (message "Playlist cleared"))))
     (message "Playlist not cleared")))
 
-(defun mingus-load-all ()
+(defun mingus-load-all (&optional and-play)
   "Load all songs in mpd database into mpd playlist."
-  (interactive)
-  (when (yes-or-no-p "Load the WHOLE mpd database? " )
-    (shell-command (concat "mpc clear&&mpc ls|mpc add" ) nil)
-    (save-window-excursion
-      (mingus))))
+  (interactive "P")
+	(if and-play (mingus-load-all-and-play)
+		(when (yes-or-no-p "Load the WHOLE mpd database? " )
+			(shell-command (concat "mpc clear&&mpc ls|mpc add" ) nil)
+			(save-window-excursion
+				(mingus)))))
 
 (defun mingus-crop ()
   "Crop mpd playlist "
@@ -1109,11 +1328,12 @@ Does prompting."
     (shell-command "mpc crop")
 		(mingus-unset-insertion-point)
     (save-window-excursion
-      (mingus))))
+      (mingus))
+		(message "Playlist cropped and point-of-insertion unset")))
 
-(defun mingus-add (string &optional mingus-url) 
-  "In Mingus, add a song." 
-  (shell-command (format "mpc add %s" 
+(defun mingus-add (string &optional mingus-url)
+  "In Mingus, add a song."
+  (shell-command (format "mpc add %s"
 												 (if (boundp 'mingus-url) string (shell-quote-argument string)
 ;												 	 (concat "\"" string "\"")
 													 )
@@ -1121,14 +1341,14 @@ Does prompting."
   (save-window-excursion
 		(mingus)))
 
-(defcustom mingus-stream-alist 
+(defcustom mingus-stream-alist
 	'(("brazillbient lounge" . "http://freeteam.nl:9000/brasill.ogg")
 		("Radio Tzara" . "http://radio.indymedia.org:8000/tzara.ogg")
 		("Enemy Combatant Radio" . "http://radio.indymedia.org:8000/ecr.ogg")
 		("New College of California Internet Radio (american)" . "http://radio.indymedia.org:8000/newcollege.ogg")
 		("ralacoco" . "http://orelha.radiolivre.org:8000/ralacoco")
 		("radiolivre" . "http://orelha.radiolivre.org:8000/radiolivre.ogg")
-		("CRo 1 - Radiozurnal (czech)" . "http://amp1.cesnet.cz:8000/cro1-256.ogg") 
+		("CRo 1 - Radiozurnal (czech)" . "http://amp1.cesnet.cz:8000/cro1-256.ogg")
 		("CRo 2 - Praha (czech)" . "http://amp1.cesnet.cz:8000/cro2-256.ogg")
 		("CRo 3 - Vltava czech)" . "http://amp1.cesnet.cz:8000/cro3-256.ogg"))
 	"Alist of radio stations to be used by the function `mingus-add-stream'"
@@ -1148,7 +1368,7 @@ Completion is provided by the entries in `mingus-stream-alist' to choose from.
 With prefix argument, instantly play the insertion."
 	(interactive "P")
 	(if and-play (mingus-add-stream-and-play)
-		(let ((url (completing-read "Url: " mingus-stream-alist nil nil 
+		(let ((url (completing-read "Url: " mingus-stream-alist nil nil
 																(mingus-extract-url))))
 			(case (mingus-playlist-type (setq url (or (cdr (assoc url mingus-stream-alist))
 																								(assoc url mingus-stream-alist)
@@ -1160,7 +1380,7 @@ With prefix argument, instantly play the insertion."
 (defun mingus-extract-url ()
 	"Return url at point;
 If no url at point, return nil."
-	(let ((url (and (not (member major-mode '(mingus-playlist-mode mingus-browse-mode))) 
+	(let ((url (and (not (member major-mode '(mingus-playlist-mode mingus-browse-mode)))
 									(or (plist-get (text-properties-at (point)) 'w3m-href-anchor)
 								 (thing-at-point-url-at-point)))))
 		(when (not (null url))
@@ -1193,7 +1413,7 @@ With prefix argument, play directly."
 																																			 url)))))
 					(count 0 nil))
 				((not (string-match mingus-stream-regexp xml (or count (match-end 0))))
-				 (if (null res) (message "No valid podcast or empty podcast") 
+				 (if (null res) (message "No valid podcast or empty podcast")
 					 (do ((end-result (car res) (concat end-result '(? ) (cadr res)))
 								(res res (cdr res)))
 							 ((null res) (mingus-add end-result))
@@ -1206,7 +1426,7 @@ With prefix argument, play directly."
       (mingus-switch-to-browser)
     (progn
 			(mingus-switch-to-browser)
-      (let ((buffer-read-only nil))	
+      (let ((buffer-read-only nil))
 				(erase-buffer)		     ;only if not yet in browsing mode
 				(goto-char (point-min))
 				(mingus-down-dir-or-play-song)))))
@@ -1216,9 +1436,9 @@ With prefix argument, play directly."
   (save-excursion
     (goto-char (point-min))
     (while (not (eobp))
-      (put-text-property	
-       (point-at-bol) 
-       (or (re-search-forward ".*/" (point-at-eol) t 1) (point-at-bol)) 
+      (put-text-property
+       (point-at-bol)
+       (or (re-search-forward ".*/" (point-at-eol) t 1) (point-at-bol))
        'invisible t)
       (forward-line 1))))
 
@@ -1234,7 +1454,7 @@ If active region, add everything under the region, sloppily."
 					;	(interactive "r")
   (let ((song (buffer-substring-no-properties
 	       (if beg (progn (goto-char beg) (point-at-bol)) (point-at-bol)) ;sloppy region
-	       (if end (progn (goto-char end) (point-at-eol (if (bolp) 0 1))) (point-at-eol)))))	
+	       (if end (progn (goto-char end) (point-at-eol (if (bolp) 0 1))) (point-at-eol)))))
 					;if point is at bol, do not count the current line
     (with-temp-buffer
       (insert song)
@@ -1253,12 +1473,12 @@ If active region, add everything under the region, sloppily."
   (interactive)
   (save-excursion
     (beginning-of-line)
-    (if (mingus-songp) 
+    (if (mingus-songp)
 	(mingus-insert)
       (progn
 	(push (line-number-at-pos) positions)
-	(mingus-ls (concat "\"" 
-			   (buffer-substring-no-properties 
+	(mingus-ls (concat "\""
+			   (buffer-substring-no-properties
 			    (point-at-bol)(point-at-eol)) "\""))))))
 
 (defun mingus-ls (string)
@@ -1271,19 +1491,19 @@ If active region, add everything under the region, sloppily."
     (setq mode-name (if (string= "" string) "top dir" string))
     (mingus-browse-invisible)))
 
-(defun mingus-dir-up () 
+(defun mingus-dir-up ()
   "In Mingus-Browse, go up one directory level."
   (interactive)
-  (end-of-line)				
+  (end-of-line)
   (let ((buffer-read-only nil)
-	(goal (buffer-substring-no-properties 
+	(goal (buffer-substring-no-properties
 	       (or (re-search-backward "/" (point-at-bol) t 1) (point))(point-at-bol))))
     (end-of-line)
     (if (re-search-backward "/" (point-at-bol) t 2)
 	(progn
-	  (mingus-ls 
-	   (concat "\"" 
-		   (buffer-substring-no-properties (point-at-bol) (point)) 
+	  (mingus-ls
+	   (concat "\""
+		   (buffer-substring-no-properties (point-at-bol) (point))
 		   "\"" )))
       (progn
 	(mingus-ls "")))
@@ -1297,7 +1517,7 @@ With prefix argument, instantly play the insertion."
 	(if and-play (mingus-insert-and-play)
 		(if (not (eq major-mode 'mingus-browse-mode))
 				(mingus-add-read-input)
-			(if mark-active 
+			(if mark-active
 					(mingus-add-song-at-p (mark)(point))
 				(mingus-add-song-at-p)))
 		(if (eq major-mode 'mingus-playlist-mode)
@@ -1312,9 +1532,9 @@ Prefix argument shows value of point-of-insertion, and moves there."
   (cond ((string= "*Mingus*" (buffer-name))
 	 (cond ((null p)
 		(set 'point-of-insertion (list (list (line-number-at-pos)
-						     (buffer-substring-no-properties 
+						     (buffer-substring-no-properties
 						      (point-at-bol) (point-at-eol))))))
-	       (point-of-insertion 
+	       (point-of-insertion
 		(goto-line (caar point-of-insertion))))
 	 (message "Point-of-insertion set at %s" (or (cadar point-of-insertion) "end of playlist (unset)")))
 	(t (message "Not in \"*Mingus*\" buffer"))))
@@ -1370,13 +1590,14 @@ With prefix argument, instantly play the insertion."
   (interactive)
   (let* ((lst (shell-command-to-string "mpc lsplaylists"))
 				 (playlist (completing-read "Save playlist as: "
-																		(if (string= "" lst) 
+																		(if (string= "" lst)
 																				nil
 																			(split-string (substring lst 0 -1) "\n+")) nil nil)))
     (if (string= "" playlist)
 				(message "No name for playlist provided, won't save...")
-				(shell-command (format "mpc rm %s& mpc save %s" playlist playlist))
-				(message "Playlist saved as %s" playlist))))
+			(shell-command (format "mpc rm %s" playlist))
+			(shell-command (format "mpc save %s"  playlist))
+			(message "Playlist saved as %s" playlist))))
 
 (defun mingus-remove-playlist ()
   "Remove an mpd playlist"
@@ -1398,10 +1619,10 @@ With prefix argument, instantly play the insertion."
 ;  (interactive)
   (let* ((string (if string string ""))
 				 (res-one "")
-				 (res (completing-read 
+				 (res (completing-read
 							 (format "Add: %s%s" string (if (string= "" string) "" "/"))
-							 (split-string 
-								(with-temp-buffer 
+							 (split-string
+								(with-temp-buffer
 									(insert
 									 (substring (shell-command-to-string (concat "mpc ls " "\"" string "\"")) 0 -1))
 									(goto-char (point-min))
@@ -1415,21 +1636,21 @@ With prefix argument, instantly play the insertion."
 
 ;;;Searching section
 (defun mingus-query ()
-  "Query the mpd database for a string or regexp (in case of regexp on filename); 
+  "Query the mpd database for a string or regexp (in case of regexp on filename);
 Show results in dedicated *Mingus Browser* buffer for further selection."
   (interactive)
   (let* ((type)
 	 (buffer (buffer-name))
 	 (pos (point))
 	 (query
-	  (read-from-minibuffer 
-	   (capitalize (format "%s: " 
+	  (read-from-minibuffer
+	   (capitalize (format "%s: "
 			       (set 'type (completing-read "Search type: "
 							   '("album" "artist" "filename" "title" "regexp on filename") nil t)))))))
     (mingus-query-do-it type query)))
 
 (defun mingus-query-regexp ()
-  "Query the filenames in the mpd database with a regular expression; 
+  "Query the filenames in the mpd database with a regular expression;
 Show results in dedicated *Mingus Browser* buffer for further selection."
   (interactive)
   (let ((buffer (buffer-name))
@@ -1452,21 +1673,21 @@ Show results in dedicated *Mingus Browser* buffer for further selection."
     (mingus-revert-from-query)))
 
 (defun mingus-revert-from-query ()
-  "Restore previous situation when `mingus-query-do-it' did not return any results." 
+  "Restore previous situation when `mingus-query-do-it' did not return any results."
   (cond ((eobp)
 	 (insert prev)
 	 (switch-to-buffer buffer)
 	 (goto-char pos)
 	 (message "No hits!"))
-	(t 
+	(t
 	 (setq mode-name "QUERY RESULTS")
 	 (set (make-local-variable 'mingus-last-query-results) (buffer-string)))))
 
 (defun mingus-last-query-results ()
   "Show last query results again in dedicated *Mingus Browser* buffer"
   (interactive)
-  (cond ((save-window-excursion 
-					 (mingus-switch-to-browser) 
+  (cond ((save-window-excursion
+					 (mingus-switch-to-browser)
 					 (not (boundp 'mingus-last-query-results)))
 				 (message "No succesful search yet"))
 				(t (switch-to-buffer "*Mingus Browser*")
@@ -1477,7 +1698,7 @@ Show results in dedicated *Mingus Browser* buffer for further selection."
 						 (goto-char (point-min))))))
 
 (defalias 'mingus-search 'mingus-query)
-	
+
 (provide 'mingus)
 ;;; mingus.el ends here
 
