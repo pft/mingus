@@ -1,4 +1,4 @@
-;; mingus.el --- Time-stamp: <2008-02-03 11:11:17 sharik>
+;; mingus.el --- Time-stamp: <2009-07-06 20:22:26 sharik>
 
 ;;            _
 ;;  _ __ ___ (_)_ __   __ _ _   _ ___
@@ -12,11 +12,11 @@
 ;; ....................but actually named after a man so named
 ;;
 
-;; Copyright (C) 2006-2008 Niels Giesen <com dot gmail at nielsgiesen, in
+;; Copyright (C) 2006-2009 Niels Giesen <com dot gmail at niels dot giesen, in
 ;; reversed order>
 
 ;; Author: Niels Giesen <pft on #emacs>
-;; Version: Minor Intrusions, or: 0.26
+;; Version: Switch Blade, or: 0.28
 ;; Latest version can be found at http://niels.kicks-ass.org/index.php/emacs/mingus/
 ;; For Changes, please view http://niels.kicks-ass.org/public/mingus/src/ChangeLog
 
@@ -162,6 +162,7 @@
 ;;; Code:
 ;; (@> "requirements")
 (require 'cl)
+(eval-when-compile (load "cl-macs"))
 (require 'dired)
 (require 'time-date)
 (require 'libmpdee)
@@ -359,7 +360,7 @@ customizing these values; use `mingus-customize' for that."
   (interactive)
   (customize-group 'mingus))
 
-(defvar mingus-version "Minor Intrusions, or: 0.26")
+(defvar mingus-version "Switch Blade, or: 0.28")
 
 (defun mingus-version ()
   "Echo `mingus-version' in minibuffer."
@@ -628,7 +629,8 @@ what about C-x C-s, can you memorize that?
 
 =================================================
 AUTHOR:  Niels Giesen
-CONTACT: nielsgiesen at ibbu dot nl
+CONTACT: nielsDINOSAURgiesen@gmailDODOcom, but with the extinct creatures replaced with dots.
+WEBSITE:  http://niels.kicks-ass.org/index.php/emacs/mingus
 " mingus-version))
 
 ;; regexps
@@ -703,9 +705,9 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (define-key mingus-global-map "%" 'mingus-seek-percents)
 (define-key mingus-global-map ">" 'mingus-next)
 (define-key mingus-global-map "<" 'mingus-prev)
-(mapcar (lambda (key) (define-key mingus-global-map key 'mingus-vol-up))
+(mapc (lambda (key) (define-key mingus-global-map key 'mingus-vol-up))
         '("+" [(right)] "*"))
-(mapcar (lambda (key) (define-key mingus-global-map key 'mingus-vol-down))
+(mapc (lambda (key) (define-key mingus-global-map key 'mingus-vol-down))
         '("-" [(left)] "/"))
 (define-key mingus-global-map "b" 'mingus-seek-backward)
 (define-key mingus-global-map "f" 'mingus-seek)
@@ -721,7 +723,7 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (define-key mingus-global-map "u" 'mingus-unset-insertion-point)
 (define-key mingus-global-map "l" 'mingus-load-playlist)
 (define-key mingus-global-map "R" 'mingus-remove-playlist)
-(mapcar (lambda (key) (define-key mingus-global-map key 'mingus-help))
+(mapc (lambda (key) (define-key mingus-global-map key 'mingus-help))
         '("H" "?" "1"))
 (define-key mingus-global-map "a" 'mingus-insert)
 (define-key mingus-global-map "P" 'mingus-insert-and-play)
@@ -923,14 +925,14 @@ Or, you might show me how to use a function/string choice in customize ;)"
   "Playlist keymap for `mingus'")
 
 ;;deletion keys
-(mapcar (lambda (key)
+(mapc (lambda (key)
           (define-key mingus-playlist-map key
             (lambda () (interactive)
               (if (mingus-mark-active)
                   (call-interactively 'mingus-del-region)
                 (mingus-del-marked))))) '("D" "\C-w"))
 
-(mapcar (lambda (key) (define-key mingus-playlist-map key
+(mapc (lambda (key) (define-key mingus-playlist-map key
                    '(lambda () (interactive)
                       (if (mingus-mark-active)
                           (call-interactively 'mingus-del-region)
@@ -949,7 +951,7 @@ Or, you might show me how to use a function/string choice in customize ;)"
 ;;marking keys
 (define-key mingus-playlist-map "U" 'mingus-unmark-all)
 
-(mapcar (lambda (key)
+(mapc (lambda (key)
           (define-key mingus-playlist-map key
             (lambda () (interactive)
               (if (mingus-mark-active)
@@ -985,7 +987,7 @@ Or, you might show me how to use a function/string choice in customize ;)"
 
 ;; miscellaneous keys
 (define-key mingus-playlist-map "\r" 'mingus-play)
-
+(define-key mingus-playlist-map "o" 'mingus-browse-to-song-at-p)
 (define-key mingus-playlist-map "\C-l" 'mingus-goto-current-song)
 
 ;; menu keys
@@ -1054,8 +1056,16 @@ Or, you might show me how to use a function/string choice in customize ;)"
 
 ;; mouse keys
 (define-key mingus-playlist-map
+  (if (featurep 'xemacs) [button1] [mouse-1])
+  (lambda (ev)
+    (interactive "e")
+    (mouse-set-point ev)
+    (mingus-play)))
+
+(define-key mingus-playlist-map
   (if (featurep 'xemacs) [button2] [mouse-2])
-  (lambda (ev) (interactive "e")
+  (lambda (ev)
+    (interactive "e")
     (if (mingus-mark-active)
         (call-interactively (quote mingus-mark-region))
       (mouse-set-point ev)
@@ -1072,8 +1082,13 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (define-key mingus-browse-map "S" 'mingus-browse-sort)
 
 (define-key mingus-browse-map
-  (if (featurep 'xemacs) [button1] [mouse-1])
-  'mingus-down-at-mouse)
+  [(down-mouse-1)]
+  (lambda (event)
+    (interactive "e")
+    (mouse-set-point event)
+    (if (cddr event)
+	(mingus-insert)
+      (mingus-down-dir-or-play-song))))
 
 (define-key mingus-browse-map
   (if (featurep 'xemacs) [button2] [mouse-2])
@@ -1083,7 +1098,7 @@ Or, you might show me how to use a function/string choice in customize ;)"
   (if (featurep 'xemacs) [button3] [mouse-3])
   'mingus-dir-up)
 
-(mapcar (lambda (key)
+(mapc (lambda (key)
           (define-key mingus-browse-map key 'mingus-dir-up))
         '(":" "^"))
 
@@ -1137,8 +1152,8 @@ Or, you might show me how to use a function/string choice in customize ;)"
 
 (defun mingus-mark-active ()
   (if (featurep 'xemacs)
-      (mark))
-  mark-active)
+      (mark)
+    mark-active))
 
 (defun mingus-min:sec->secs (min:secs)
   "Convert MIN:SECS (a string) to seconds (an integer)."
@@ -1312,7 +1327,9 @@ This is an exact copy of line-number-at-pos for use in emacs21."
   "Insert song or dir at mouse."
   (interactive "e")
   (mouse-set-point ev)
-  (mingus-down-dir-or-play-song))
+  (if (cddr ev) 
+      (mingus-insert)
+    (mingus-down-dir-or-play-song)))
 
 (defun mingus-show-version ()
   (interactive)
@@ -1639,10 +1656,12 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
                                 ;non-unique vorbiscomment tags
                     (mapconcat
                      (lambda (list)
-                       (mingus-make-song-string
-                        list
-                        mingus-playlist-format-to-use
-                        mingus-playlist-separator))
+                       (propertize 
+			(mingus-make-song-string
+			 list
+			 mingus-playlist-format-to-use
+			 mingus-playlist-separator)
+			'mouse-face 'highlight))
                      songs "\n")))
                   (mingus-playlist-set-detail-properties songs)
                   (mingus-set-marks)
@@ -1666,7 +1685,7 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
 
  See the documentation for the variable `mingus-mode-line-format' for the
  syntax of EXPRESSION."
-  (let (artist album title
+  (let (artist album title albumartist
                track name
                genre date
                composer performer
@@ -1684,6 +1703,7 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
                                (replace-regexp-in-string
                                 "\\(.*/\\)+" "" file t t 1)))
                          (genre (or genre nil))
+			 (albumartist (or albumartist nil))
                          (comment (or comment nil)))
                      (mapconcat 'identity (eval expression)
                                 (or ,separator " - "))))))))
@@ -1760,14 +1780,14 @@ Actually it is just named after that great bass player."
     ((1 t) 'on)
     ((0 nil) 'off)))
 
-(defun  mingus-repeat ()
+(defun mingus-repeat ()
   "Toggle mpd repeat mode."
   (interactive)
   (let ((newval (abs (1- (getf (mpd-get-status mpd-inter-conn) 'repeat)))))
     (mpd-execute-command mpd-inter-conn (format "repeat %d" newval))
     (message "Mingus: repeat set to %S" (mingus-boolean->string newval))))
 
-(defun  mingus-random ()
+(defun mingus-random ()
   "Toggle mpd repeat mode."
   (interactive)
   (let ((newval (abs (1- (getf (mpd-get-status mpd-inter-conn) 'random)))))
@@ -1839,12 +1859,12 @@ Switch to *Mingus* buffer if necessary."
 (mingus-advice mingus-mark "*Mingus*")
 (mingus-advice mingus-down-dir-or-play-song "*Mingus Browser*")
 
-(mapcar 'ad-activate '(mingus-goto-current-song
-                       mingus-del-region
-                       mingus-down-dir-or-play-song
-                       mingus-move-down
-                       mingus-move-up
-                       mingus-set-insertion-point))
+(mapc 'ad-activate '(mingus-goto-current-song
+		     mingus-del-region
+		     mingus-down-dir-or-play-song
+		     mingus-move-down
+		     mingus-move-up
+		     mingus-set-insertion-point))
 
 (defmacro mingus-insertion-advice (func-name)
   "Move inserted songs to *mingus-point-of-insertion* after insertion.
@@ -2480,11 +2500,15 @@ If active region, add everything between BEG and END."
 ;; vars.
 (defun mingus-get-details-for-song ()
   "Get details for song from text-property `details'"
-  (get-text-property (+ (if (and (equal major-mode 'mingus-playlist-mode)
-                                 (= (1- (mingus-line-number-at-pos)) (mingus-get-song-pos)))
-                            (length mingus-current-song-marker)
-                          0)
-                        (point-at-bol)) 'details))
+  (get-text-property
+   (+ (if (and (equal major-mode 'mingus-playlist-mode)
+	       (= (1- (mingus-line-number-at-pos)) (mingus-get-song-pos)))
+	  (length mingus-current-song-marker)
+	0)
+      (point-at-bol)) 'details))
+
+(defun _mingus-playlist-get-filename-at-p ()
+  (plist-get (car (mingus-get-details-for-song)) 'file))
 
 (defun mingus-playlistp ()
   "In *Mingus Browser* buffer, is thing-at-p a playlist.
@@ -2501,24 +2525,33 @@ If active region, add everything between BEG and END."
  Return cons of form '(\"directory\" . dirname) or nil if not a directory."
   (assoc "directory" (mingus-get-details-for-song)))
 
+(defun _mingus-string->parent-dir (child)
+  (if (string-match "^https?://" child) ;URLS are illegal here
+      (error "Not a local file!")
+    (string-match ".*/" child)
+    (match-string 0 child)))
+
 (defun mingus-ls (string)
   "List songs/dirs in directory STRING in dedicated *Mingus Browser* buffer."
   (mingus-switch-to-browser)
   (save-excursion)
   (let ((buffer-read-only nil)
         (newcontents
-         (loop for i in
-               (remove-if
-                (lambda (item) (not (string-match (car item)
+	 (sort*
+	  (loop for i in
+		(remove-if
+		 (lambda (item) (not (string-match (car item)
                                              "file|directory|playlist")))
-                          (cdr (mingus-exec (format "lsinfo %s"
-                                                    (mpd-safe-string string)))))
-               collect i)))
+		 (cdr (mingus-exec (format "lsinfo %s"
+					   (mpd-safe-string string)))))
+		collect i)
+	  #'string<
+	  :key #'cdr)))
     (erase-buffer)
     (if (null newcontents)
         (message "No songs in database; check your mpd settings")
       (mapc (lambda (item)
-              (insert (cdr item) "\n")
+              (insert (propertize (cdr item) 'mouse-face 'highlight) "\n")
               (put-text-property (point-at-bol 1) (point-at-eol -1)
                                  'details (list item))
               (put-text-property (point-at-bol 1) (point-at-eol -1)
@@ -2532,6 +2565,21 @@ If active region, add everything between BEG and END."
                                    '((foreground-color . "lightgreen"))))))
             newcontents))
     (mingus-browse-invisible)))
+
+(defun mingus-browse-to-song-at-p ()
+  (interactive)
+  (let ((file (_mingus-playlist-get-filename-at-p)))
+    (mingus-browse-to-file file)))
+
+(defun mingus-browse-to-file (file)
+  (mingus-ls (_mingus-string->parent-dir file))
+  (goto-char (point-min))
+  (re-search-forward (file-name-nondirectory file) nil t)
+  (beginning-of-line))
+
+(defun mingus-browse-to-dir (dir)
+  (mingus-ls dir)
+  (goto-char (point-min)))
 
 (defun mingus-dir-up ()
   "In Mingus-Browse, go up one directory level."
@@ -2666,19 +2714,6 @@ Optional argument AND-PLAY means start playing thereafter."
 
 
 ;; {{minibuffer addition of tracks/dirs}}
-(defun mingus-add-read-input ()
-  "Add song or dir to mpd playlist using minibuffer input.
-
-Complete in the style of the function `find-file'."
-  (interactive)
-  (mingus-add
-   (completing-read
-    "Add to playlist: "
-    (dynamic-completion-table mingus-complete-path) nil t)))
-
-' (defun mingus-switch-car-and-cdr (cons)
-    (cons (cdr cons) (car cons)))
-
 (defun mingus-complete-path (input)
   "Complete mpd path based on INPUT.
 INPUT is supposed to be supplied by current minibuffer contents."
@@ -2698,6 +2733,30 @@ INPUT is supposed to be supplied by current minibuffer contents."
                                         ;search on dir if no match found here:
                                         (replace-regexp-in-string
                                          "\\(/\\|[^/]*\\)$" "" input))))))))))
+
+
+(defun mingus-add-read-input ()
+  "Add song or dir to mpd playlist using minibuffer input.
+
+Complete in the style of the function `find-file'."
+  (interactive)
+  (if (fboundp 'completion-table-dynamic)
+      (mingus-add
+       (completing-read
+	"Add to playlist: "
+	(completion-table-dynamic (function mingus-complete-path)) nil t))
+    (mingus-add
+     (completing-read
+      "Add to playlist: "
+      (with-no-warnings
+	(if (functionp 'completion-table-dynamic)
+	    (completion-table-dynamic mingus-complete-path)
+	  ;;compiler thinks `mingus-complete-path' should be a variable
+	  (dynamic-completion-table mingus-complete-path))) nil t))))
+
+' (defun mingus-switch-car-and-cdr (cons)
+    (cons (cdr cons) (car cons)))
+
 
 ;;; Searching section
 (defun mingus-completing-search-type (type query)
@@ -2835,12 +2894,12 @@ Argument POS is the current position in the buffer to revert to (?)."
                  (buffer-substring (point-at-bol) (point-at-eol)))
                 list))
         (erase-buffer)
-        (mapcar (lambda (item)
-                  (insert (concat (cdr item) "\n")))
-                (sort* list (lambda (str1 str2)
-                              (if (get this-command 'reverse)
-                                  (null (string< (car str1) (car str2)))
-                                (string< (car str1) (car str2))))))
+        (mapc (lambda (item)
+                (insert (concat (cdr item) "\n")))
+              (sort* list (lambda (str1 str2)
+                            (if (get this-command 'reverse)
+                                (null (string< (car str1) (car str2)))
+                              (string< (car str1) (car str2))))))
         (put this-command 'reverse (null (get this-command 'reverse)))
         (goto-line line))
     (message "Buffer not in mingus-browse-mode")))

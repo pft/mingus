@@ -1,4 +1,4 @@
-;;;; mingus-stays-home.el --- Time-stamp: <2007-11-09 20:45:20 sharik>
+;;;; mingus-stays-home.el --- Time-stamp: <2009-07-06 20:20:04 sharik>
 
 ;;                    _                    _
 ;;  _ __ ___      ___| |_ __ _ _   _ ___  | |__   ___  _ __ ___   ___
@@ -7,12 +7,12 @@
 ;; |_| |_| |_(_) |___/\__\__,_|\__, |___/ |_| |_|\___/|_| |_| |_|\___|
 ;;                             |___/
 
-;; Copyright (C) 2006-2008 Niels Giesen <com dot gmail at nielsgiesen, in
+;; Copyright (C) 2006-2009 Niels Giesen <com dot gmail at niels dot giesen, in
 ;; reversed order>
 
 ;; Author: Niels Giesen <pft on #emacs>
 
-;; Version: Minor Intrusions, or: 0.26
+;; Version: Switch Blade, or: 0.28
 ;; Latest version can be found at http://niels.kicks-ass.org/emacs/mingus
 
 ;; For Changes, please view http://niels.kicks-ass.org/public/mingus/src/ChangeLog
@@ -165,6 +165,7 @@
 ;;; cd. Actually, this can be customized with the variables
 ;;; `mingus-blank-string' and `mingus-burns-format-string'
 
+;;; DIRED : `symlinks' programme. 
 
 ;;; ** VIEW COVER ART (ach, why not?)
 
@@ -173,14 +174,19 @@
 
 ;;; known bugs: sometimes unicode strings in tags can lead to errors.
 
-;;; For any questions, suggestions and so forth, contact nielsgiesen at ibbu dot
-;;; nl
+;;; For any questions, suggestions and so forth, contact me at the address
+;;; stated at the top of this file.
 
 ;;; ( use dto's --already deprecated-- golisp-mode to make use of the indexing
 ;;; in this file: find it at http://dto.freeshell.org/notebook/GoLisp.html )
 
 ;;; Code:
 (require 'mingus)
+;; Even though Mingus already requires cl, in Emacs23 we have to silence the
+;; compiler (this might be a regression):
+(require 'cl)
+(eval-when-compile (load "cl-macs"))
+(require 'url)
 
 ;;;; {{Update Help Text}}
 
@@ -242,7 +248,7 @@ Mingus buffers, M-x mingus from elsewhere.")
 (defun mingus-get-config-option (file option)
   (with-temp-buffer
     (insert-file-contents file)
-    (re-search-forward (format "%s +" option))
+    (re-search-forward (format "%s[[:blank:]]+" option))
     (goto-char (re-search-forward "\""))
     (buffer-substring-no-properties (point) (1- (re-search-forward "\"")))))
 
@@ -256,10 +262,19 @@ Mingus buffers, M-x mingus from elsewhere.")
   :group 'mingus-stays-home
   :type '(string))
 
-(defconst mingus-mpd-root
+(defcustom mingus-mpd-root
   (expand-file-name
    (concat (mingus-get-config-option
-            mingus-mpd-config-file "music_directory") "/")) "Root for mpd")
+            mingus-mpd-config-file "music_directory") "/"))
+  "Root for mpd.
+
+Note that you can use tramp, as in
+
+\"/ssh:username@host:/var/lib/mpd/music/\" 
+
+\(don't forget the trailing slash)"
+  :group 'mingus-stays-home
+  :type '(string))
 
 (defconst mingus-mpd-playlist-dir
   (expand-file-name
@@ -273,15 +288,6 @@ Mingus buffers, M-x mingus from elsewhere.")
   "Get parent dir of song at point."
   (_mingus-string->parent-dir
    (mingus-get-filename)))
-
-(defun _mingus-string->parent-dir (child)
-  (if (string-match "^https?://" child) ;URLS are illegal here
-      (error "Not a local file!")
-    (string-match ".*/" child)
-    (match-string 0 child)))
-
-(defun _mingus-playlist-get-filename-at-p ()
-  (plist-get (car (mingus-get-details-for-song)) 'file))
 
 (defun _mingus-burner-get-filename-at-p ()
   (plist-get (mingus-get-details-for-song) :file))
@@ -346,13 +352,18 @@ To be used for passing the right data to mpd in dired."
     (remove
      ""
      (split-string
-      (shell-command-to-string
-       (format "symlinks -crv %s" mingus-mpd-root))
+      (let  ((answer-from-shell
+	      (shell-command-to-string
+	       (format "symlinks -crv %s" mingus-mpd-root))))
+	(if (string-match "command not found" answer-from-shell)
+	    (error answer-from-shell)
+	  answer-from-shell))
       (format
        "\\(\\(\n*relative:\\|\n*other_fs:\\|\n*dangling:\\| ->\\) \\|%s\\|\n\\)"
        mingus-mpd-root))))))
 
-
+;; TODO: TEST without mpd-safe-string
+;; DONE: DID NOT work...
 (defun mingus-abs->rel (string)
   "In STRING, replace absolute path with symlink under `mingus-mpd-root';
 
@@ -382,7 +393,9 @@ If found, also quote it.  Used in `mingus-dired-add'."
                                      "\\.\\./"
                                      ""
                                      (car found-association)))
-                            nil)))))))
+                            nil)))
+)
+)))
 
 (defun mingus-dired-add ()
   "In `dired', add marked files or file at point to the mpd playlist; ; ;
@@ -424,7 +437,11 @@ Do you want to symlink the parent directory? " ))
 (defcustom mingus-dired-add-keys nil
   "Add keys for interaction to dired-mode-map;
 
-the file \"mingus-stays-home.elc\" needs to be reloaded for a change here to have effect."
+The file \"mingus-stays-home.elc\" needs to be reloaded for a
+change here to have effect. If `mingus-dired-add-keys' has a
+non-`nil' value, \"SPC\" will add a song, play it immediately
+when invoked with a prefix. Plus an item under Operate to add
+songs to Mingus."
   :group 'mingus
   :type '(boolean))
 
@@ -448,6 +465,13 @@ the file \"mingus-stays-home.elc\" needs to be reloaded for a change here to hav
 
 ;; add some keys to the various modes for dired look-ups
 (define-key mingus-playlist-map "0" 'mingus-dired-file)
+(define-key mingus-playlist-map 
+  (if (featurep 'xemacs) [button3] [mouse-3])
+  (lambda (ev)
+    (interactive "e")
+    (mouse-set-point ev)
+    (mingus-dired-file)))
+
 (define-key mingus-browse-map "0" 'mingus-dired-file)
 (define-key mingus-help-map "0" #'(lambda ()
                                     (interactive)
@@ -662,7 +686,6 @@ its property list is of great importance.")
                  pos)))))
         :history-list '*mingus-id3-album-history*)))
 
-
 ;; id3-history variables (as completing-read needs them to be referred to as a symbol, I cannot hide them)
 (defvar *mingus-id3-song-history* nil
   "History of id3-songs for use in Mingus")
@@ -686,7 +709,6 @@ its property list is of great importance.")
               (cons (downcase genre) count))
             (split-string (shell-command-to-string "id3v2 -L") "\\([ \n0-9]+: \\|[\f\t\n\r\v]+\\)"))))
 
-
 ;; needs a split for different types of file
 (defun mingus-id3-erase ()
   "Erase id3 contents from song at point, in either `mingus' or `mingus-browse'"
@@ -697,7 +719,6 @@ its property list is of great importance.")
       (flac (shell-command (format "metaflac --remove-all-tags %s" (shell-quote-argument name))))
       (mp3 (shell-command (format "id3v2 -D %s" (shell-quote-argument name))))
       (t (message "Don't know how to strip tag of type %s; notify me if you do know." type)))))
-
 
 (defun mingus-what-type (string)
   "Return symbol, based on extension"
@@ -988,9 +1009,9 @@ Use M-x mingus-decode-playlist if you just want to decode the files."
 (defun mingus-b-ask-to-keep-session (&optional process event) ;a sentinel
   (put '*mingus-b-session* :burn nil)   ;always reset to not go burning!
   (if (y-or-n-p "Remove temporary wave files?")
-      (mapcar 'delete-file
-              (mapcar (lambda (item)
-                        (mingus-dec-transl-src->dest (getf item :file))) *mingus-b-session*)))
+      (mapc 'delete-file
+            (mapc (lambda (item)
+                    (mingus-dec-transl-src->dest (getf item :file))) *mingus-b-session*)))
   (unless (y-or-n-p "Keep session data? ")
     (setq *mingus-b-session* nil)))
 
@@ -1098,7 +1119,7 @@ Both filename are absolute paths in the filesystem"
 
       (put '*mingus-b-session* :total-time total-time)
       (erase-buffer)
-      (mapcar
+      (mapc
        (lambda (item)
          (insert (format "%5s %s\n" (mingus-sec->min:sec (getf item :time))
                          (mingus-ldots (replace-regexp-in-string "\\(.*/\\)+" "" (getf item :file) t t 1)
@@ -1158,6 +1179,39 @@ Both filename are absolute paths in the filesystem"
 (defun mingus-blank-sentinel (process event)
   (when (null (process-status "mingblank"))
     (message "Disk blanked")))
+
+;;;; Drag 'n' Drop
+;; These functions should return the action done (move, copy, link or
+;; private); for now, simply return action unaltered.
+(defun mingus-add-url (url action)
+  (mingus-add (mingus-url-to-relative-file url))
+  action)
+
+(defun mingus-url-to-relative-file (url)
+  (mingus-abs->rel (url-unhex-string (mingus-url-to-absolute-file url))))
+
+(defun mingus-url-to-absolute-file (url)
+  (string-match "^file://\\(.*\\)\\'" url)
+  (match-string 1 url))
+
+(defun mingus-inject-dnd-action (action)
+  (set (make-local-variable 'dnd-protocol-alist)
+       (delete (assoc "^file:///" dnd-protocol-alist) dnd-protocol-alist))
+  (push `("^file:///" . ,action) dnd-protocol-alist))
+
+(defadvice mingus (after mingus-dnd-injection activate)
+  (mingus-inject-dnd-action 'mingus-add-url))
+
+(defun mingus-browse-url (url action)
+  (let* ((file (url-unhex-string (mingus-url-to-absolute-file url)))
+	 (file-relative (mingus-abs->rel file)))
+    (if (file-directory-p file)
+	(mingus-browse-to-dir file-relative)
+      (mingus-browse-to-file file-relative))
+  action))
+
+(defadvice mingus-browse (after mingus-dnd-injection activate)
+  (mingus-inject-dnd-action 'mingus-browse-url))
 
 (provide 'mingus-stays-home)
 ;;; mingus-stays-home ends here
