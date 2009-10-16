@@ -1,4 +1,4 @@
-;;;; mingus-stays-home.el --- Time-stamp: <2009-07-06 20:20:04 sharik>
+;;; mingus-stays-home.el --- Time-stamp: <2009-07-06 20:20:04 sharik>
 
 ;;                    _                    _
 ;;  _ __ ___      ___| |_ __ _ _   _ ___  | |__   ___  _ __ ___   ___
@@ -12,7 +12,7 @@
 
 ;; Author: Niels Giesen <pft on #emacs>
 
-;; Version: Song With Orange, or: 0.30
+;; Version: Jelly Roll, or: 0.31
 ;; Latest version can be found at http://niels.kicks-ass.org/emacs/mingus
 
 ;; For Changes, please view http://niels.kicks-ass.org/public/mingus/src/ChangeLog

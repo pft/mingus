@@ -16,7 +16,7 @@
 ;; reversed order>
 
 ;; Author: Niels Giesen <pft on #emacs>
-;; Version: Song With Orange, or: 0.30
+;; Version: Jelly Roll, or: 0.31
 ;; Latest version can be found at http://niels.kicks-ass.org/index.php/emacs/mingus/
 ;; For Changes, please view http://niels.kicks-ass.org/public/mingus/src/ChangeLog
 
@@ -153,7 +153,7 @@
 ;; environment variables MPD_HOST and/or MPD_PORT. Do so by calling
 ;; (mingus-set-variables-interactively) (settings lost when emacs
 ;; restarted) or by means of customization (mingus-customize) or
-;; (customize-group 'mingus). 
+;; (customize-group 'mingus).
 
 ;; NEW in mingus 0.21: `mingus-wake-up-call'; fixed the lisp-max-eval-depth
 ;; error message when leaving mingus-info on for a while; allowing spaces in
@@ -194,11 +194,25 @@
 (defvar *mingus-positions* nil "Cursor positions retained in *Mingus Browser*")
 (defvar *mingus-header-when-empty* "Press ? for help, 3 for Mingus Browser, 0 for dired."
   "Header to show when the playlist is empty")
+(defvar mingus-propertized-song-strings
+  (make-hash-table :test 'eq
+		   :size 1000)
+    "Cache for song strings according to `mingus-playlist-format' and propertized for use in playlist.
+
+Songs are hashed by their MPD ids.")
+(defvar mingus-song-strings 
+  (make-hash-table :test 'eq
+		   :size 1000)
+  "Cache for song strings according to `mingus-playlist-format',
+
+Songs are hashed by their MPD ids")
 (defstruct (mingus-data)
   (playlist -1)
   (song nil))
 (defvar mingus-data (make-mingus-data))
-
+(defvar mingus-current-song-marker ">>> ")
+(defvar *mingus-NP-mark* nil)
+(defvar *mingus-pausing-mark* nil)
 ;; (@> "faces")
 (defgroup mingus-faces ()
   "Customization group for faces in Mingus"
@@ -230,6 +244,7 @@
 
 ;; (@> "currentsongdata")
 (defun mingus-get-song-pos ()
+  "Return position in playlist of current song."
   (getf (mingus-data-song mingus-data) 'pos))
 
 (defun mingus-set-song-pos (&optional pos)
@@ -273,7 +288,7 @@
 (defcustom mingus-mpd-playlist-dir
   (expand-file-name
    (concat (mingus-get-config-option
-            mingus-mpd-config-file "playlist_directory") 
+            mingus-mpd-config-file "playlist_directory")
            "/"))
   "Directory where MPD puts its playlists"
   :group 'mingus
@@ -295,7 +310,7 @@ These variables are set when loading mingus or callinge `mingus-set-variables'."
 (defun mingus-set-host (sym host)
   (let ((mpd-interactive-connection-parameters
          (list host
-               (or (and 
+               (or (and
                     (boundp 'mingus-mpd-port)
                     mingus-mpd-port)
                    (or (and (getenv "MPD_PORT")
@@ -317,8 +332,8 @@ These variables are set when loading mingus or callinge `mingus-set-variables'."
 
 (defun mingus-set-port (sym port)
   (let ((mpd-interactive-connection-parameters
-         (list 
-          (or (and 
+         (list
+          (or (and
                (boundp 'mingus-mpd-host)
                mingus-mpd-host)
               (or (getenv "MPD_HOST") "localhost"))
@@ -359,7 +374,7 @@ These variables are set when loading mingus or callinge `mingus-set-variables'."
 
 Note that you can use tramp, as in
 
-\"/ssh:username@host:/var/lib/mpd/music/\" 
+\"/ssh:username@host:/var/lib/mpd/music/\"
 
 \(don't forget the trailing slash)"
   :group 'mingus
@@ -490,7 +505,7 @@ customizing these values; use `mingus-customize' for that."
   (interactive)
   (customize-group 'mingus))
 
-(defvar mingus-version "Song With Orange, or: 0.30")
+(defvar mingus-version "Jelly Roll, or: 0.31")
 
 (defun mingus-version ()
   "Echo `mingus-version' in minibuffer."
@@ -781,21 +796,6 @@ Or, you might show me how to use a function/string choice in customize ;)"
  :group 'mingus
  :type '(string))
 
-(defcustom mingus-current-song-marker ">>> "
-
-  "Marker for the currently playing song.
-
-You might want to put something like the following in your .emacs:
-
-  (setq mingus-current-song-marker
-     (if window-system
-          \"‣‣‣ \"
-        \">>> \"))
-
-Or, you might show me how to use a function/string choice in customize ;)"
-  :group 'mingus
-  :type '(string))
-
 (defmacro mingus-define-color-line-or-region (name params)
   `(defun ,name (&optional beg end)
      (put-text-property (or beg (point-at-bol)) (or end (point-at-bol 2))
@@ -1070,18 +1070,24 @@ Or, you might show me how to use a function/string choice in customize ;)"
   "Playlist keymap for `mingus'")
 
 ;;deletion keys
-(mapc (lambda (key)
-          (define-key mingus-playlist-map key
-            (lambda () (interactive)
-              (if (mingus-mark-active)
-                  (call-interactively 'mingus-del-region)
-                (mingus-del-marked))))) '("D" "\C-w"))
+(defun mingus-del-dwim ()
+  "Delete either songs in region or marked songs"
+  (interactive)
+  (if (mingus-mark-active)
+      (call-interactively 'mingus-del-region)
+    (mingus-del-marked)))
 
 (mapc (lambda (key) (define-key mingus-playlist-map key
-                   '(lambda () (interactive)
-                      (if (mingus-mark-active)
-                          (call-interactively 'mingus-del-region)
-                        (mingus-del)))))
+	    'mingus-del-dwim)) '("D" "\C-w"))
+
+(defun mingus-del-dwim2 ()
+  "Delete either songs in region or song at point"
+  (interactive)
+  (if (mingus-mark-active)
+      (call-interactively 'mingus-del-region)
+    (mingus-del)))
+
+(mapc (lambda (key) (define-key mingus-playlist-map key 'mingus-del-dwim2))
         '("d" "\C-d"))
 
 (define-key mingus-playlist-map "O" 'mingus-del-other-songs)
@@ -1203,7 +1209,7 @@ Or, you might show me how to use a function/string choice in customize ;)"
   '(menu-item "Browser" mingus-browse
               :help "go to browser"))
 
-(define-key mingus-playlist-map 
+(define-key mingus-playlist-map
   [menu-bar mingus dired]
   '(menu-item "Dired file" mingus-dired-file
               :help "find file in dired"))
@@ -1225,7 +1231,7 @@ Or, you might show me how to use a function/string choice in customize ;)"
       (mouse-set-point ev)
       (mingus-mark))))
 
-(define-key mingus-playlist-map 
+(define-key mingus-playlist-map
   (if (featurep 'xemacs) [button3] [mouse-3])
   (lambda (ev)
     (interactive "e")
@@ -1534,7 +1540,7 @@ This is an exact copy of line-number-at-pos for use in emacs21."
   "Insert song or dir at mouse."
   (interactive "e")
   (mouse-set-point ev)
-  (if (cddr ev) 
+  (if (cddr ev)
       (mingus-insert)
     (mingus-down-dir-or-play-song)))
 
@@ -1599,6 +1605,7 @@ see function `mingus-help' for instructions.
   (setq mode-name "Mingus-playlist")
   (font-lock-mode -1)
   (setq buffer-read-only t)
+  (setq left-fringe-width 16)
   (run-hooks 'mingus-playlist-hook))
 
 (defun mingus-browse-mode ()
@@ -1768,47 +1775,129 @@ ATOM10))) for (mingus-make-cond-exp '((ATOM1 ATOM2)(ATOM8 ATOM10))).
                       ;; a small (?) side effect, but only if playlist buffer is
                       ;; shown:
                       (and (get-buffer-window-list "*Mingus*")
-                           (mingus-triangle-current nil (getf data 'Pos)))
+                           (mingus-set-NP-mark nil (getf data 'Pos)))
                       (mingus-ldots str mingus-mode-line-string-max))
                     (mingus-make-status-string))))
-    ;; (error (cancel-timer mingus-modeline-timerpppp)
+    ;; (error (cancel-timer mingus-modeline-timer)
     ;;     (cancel-timer mingus-generic-timer))
     ))
 
-(defun mingus-triangle-current (override &optional pos)
-  "Put a triangle before currently playing song.
+(defun mingus-set-NP-mark (override &optional pos)
+  "Mark song 'now playing'.
 
 Optional argument POS gives possibility of supplying the currentsong without
 making a connection.
 
 Argument OVERRIDE defines whether to treat the situation as new."
+  (when (null *mingus-NP-mark*)
+    (mingus-create-NP-mark))
   (condition-case nil
       (let ((pos (or pos (getf (mpd-get-status mpd-inter-conn) 'song))))
-        (if (or override (/= pos (mingus-get-song-pos)))
-            (save-excursion
-              (save-window-excursion
-                (switch-to-buffer "*Mingus*")
-                (let (buffer-read-only)
-                  (unless override
-                    (goto-char (point-min))
-                    (while (re-search-forward
-                            mingus-current-song-marker (point-max) t)
-                      (replace-match "" nil nil)))
-                  (goto-line (1+ pos))
-                  (insert mingus-current-song-marker)
-                  (put-text-property
-                   (point-at-bol)
-                   (+ 3 (point-at-bol))
-                   'face 'mingus-song-face)
-                  (unless override
-                    (goto-line (1+ (mingus-get-song-pos)))
-                    (beginning-of-line)
-                    (when (looking-at mingus-current-song-marker)
-                      (delete-char 4))))
-                (if (member (mingus-get-song-pos) mingus-marked-list)
-                    (mingus-mark-line)))
-              (mingus-set-song-pos pos))))))
+        (and pos
+	     (save-excursion
+	       (save-window-excursion
+		 (mingus-switch-to-playlist)
+		 (let (buffer-read-only)
+		   (goto-line (1+ pos))
+		   (mingus-move-NP-mark (point))))
+	       (mingus-set-song-pos pos))))))
 
+(define-fringe-bitmap 'mingus-NP-fringe
+  [128 192 224 240 248 252 248 240 224 192 128])
+
+(defvar 
+  *mingus-playing-string*
+  (propertize
+   mingus-current-song-marker
+   'display
+   '(left-fringe mingus-NP-fringe)))
+
+;; 1 0 0 0 0 0 0 0
+;; 1 1 0 0 0 0 0 0
+;; 1 1 1 0 0 0 0 0
+;; 1 1 1 1 0 0 0 0
+;; 1 1 1 1 1 0 0 0
+;; 1 1 1 1 1 1 0 0
+;; 1 1 1 1 1 1 1 0
+;; 1 1 1 1 1 1 0 0
+;; 1 1 1 1 1 0 0 0
+;; 1 1 1 1 0 0 0 0
+;; 1 1 1 0 0 0 0 0
+;; 1 1 0 0 0 0 0 0
+;; 1 0 0 0 0 0 0 0
+
+(define-fringe-bitmap 'mingus-pausing-fringe
+  [102 102 102 102 102 102 102 102 102 102])
+
+(defvar 
+  *mingus-pausing-string*
+  (propertize
+   mingus-current-song-marker
+   'display
+   '(left-fringe mingus-pausing-fringe)))
+
+;; (+ 0 64 32 0 0 4 2 0)
+
+;; 0 1 1 0 0 1 1 0
+;; 0 1 1 0 0 1 1 0
+;; 0 1 1 0 0 1 1 0
+;; 0 1 1 0 0 1 1 0
+;; 0 1 1 0 0 1 1 0
+;; 0 1 1 0 0 1 1 0
+;; 0 1 1 0 0 1 1 0
+;; 0 1 1 0 0 1 1 0
+;; 0 1 1 0 0 1 1 0
+;; 0 1 1 0 0 1 1 0
+;; 0 1 1 0 0 1 1 0
+;; 0 1 1 0 0 1 1 0
+;; 0 1 1 0 0 1 1 0
+
+(define-fringe-bitmap 'mingus-stopped-fringe
+  [-1 -1 -1 -1 -1 -1 -1 -1])
+
+(defvar 
+  *mingus-stopped-string*
+  (propertize
+   mingus-current-song-marker
+   'display
+   '(left-fringe mingus-stopped-fringe)))
+
+(set-fringe-bitmap-face 'mingus-NP-fringe 'mingus-song-file-face)
+(set-fringe-bitmap-face 'mingus-pausing-fringe 'font-lock-string-face)
+(set-fringe-bitmap-face 'mingus-stopped-fringe 'font-lock-string-face)
+
+(defun mingus-create-NP-mark ()
+  (let ((string
+         (propertize
+          mingus-current-song-marker
+          'display
+          '(left-fringe mingus-NP-fringe))))
+
+    (save-window-excursion
+      (setq *mingus-NP-mark*
+            (make-overlay (point-min)
+                          (point-min)))
+      (delete-overlay *mingus-NP-mark*)
+      (overlay-put *mingus-NP-mark*
+                   'before-string string)
+      (overlay-put *mingus-NP-mark*
+                   'face 'mingus-song-file-face)
+      (overlay-put *mingus-NP-mark*
+                   'name "mingus-NP-mark"))))
+
+(defun mingus-move-NP-mark (pos)
+  (move-overlay *mingus-NP-mark* pos pos (get-buffer "*Mingus*"))
+  (case 
+      (getf (mpd-get-status mpd-inter-conn) 'state)
+    ((pause) (overlay-put *mingus-NP-mark*
+                          'before-string
+                          *mingus-pausing-string*))
+    ((play)  (overlay-put *mingus-NP-mark*
+                          'before-string
+                          *mingus-playing-string*))
+    ((stop)  (overlay-put *mingus-NP-mark*
+                          'before-string
+                          *mingus-stopped-string*))))
 
 ;;; help echo:
 (defconst mingus-mode-line-help-echo-format
@@ -1836,7 +1925,6 @@ Argument OVERRIDE defines whether to treat the situation as new."
                      str)
                    (mingus-make-status-string))))))
 ;; filling the buffer:
-
 (defun mingus-playlist (&optional refresh)
   "Fill the playlist buffer so as to reflect current status in most proper way.
 Optional argument REFRESH means not matter what is the status, do a refresh"
@@ -1847,7 +1935,10 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
         (when (or
                refresh
                (/= (mingus-get-old-playlist-version)
-                   (mingus-get-new-playlist-version))
+		   (mingus-set-playlist-version))
+               (= (point-min)
+                  ;; apparently buffer was deleted before
+                  (point-max))
                (get 'mingus-marked-list :changed))
           (let ((songs (mingus-get-songs "playlistinfo"))
                 (buffer-read-only nil)
@@ -1856,24 +1947,29 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
             (mingus-set-playlist-version)
             (erase-buffer)
             (if songs
-                (progn
-                  (insert
+            	(progn  
+		  (insert	
                    (replace-regexp-in-string
                     "\n\n" "\n" ;<<< circumvent a bug in libmpdee concerning
-                                ;non-unique vorbiscomment tags
+                                        ;non-unique vorbiscomment tags
                     (mapconcat
                      (lambda (list)
-                       (propertize 
-			(mingus-make-song-string
-			 list
-			 mingus-playlist-format-to-use
-			 mingus-playlist-separator)
-			'mouse-face 'highlight))
+		       (let ((id (plist-get list 'Id)))
+			 (or (gethash id mingus-propertized-song-strings)
+			     (let ((val
+				    (propertize
+				     (mingus-make-song-string
+				      list
+				      mingus-playlist-format-to-use
+				      mingus-playlist-separator)
+				     'mouse-face 'highlight
+				     'details (list list))))
+			       (puthash id val mingus-propertized-song-strings)
+			       val))))
                      songs "\n")))
-                  (mingus-playlist-set-detail-properties songs)
                   (mingus-set-marks)
-                  (mingus-triangle-current t))
-              (insert *mingus-header-when-empty*))
+                  (mingus-set-NP-mark t))
+	      (insert *mingus-header-when-empty*))
             (goto-line pos))))
     (error err)))
 
@@ -1892,28 +1988,34 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
 
  See the documentation for the variable `mingus-mode-line-format' for the
  syntax of EXPRESSION."
-  (let (artist album title albumartist
-               track name
-               genre date
-               composer performer
-               comment disc
-               time pos id file)
-    (eval `(mingus-bind-plist
-            ',plist
-            (progn (let ((time
-                          (and time
-                               (format "%02d:%.2d" (/ time 60) (mod time 60))))
-                         (pos (and pos (number-to-string pos)))
-                         (id (and id (number-to-string id)))
-                         (file
-                          (and file
-                               (replace-regexp-in-string
-                                "\\(.*/\\)+" "" file t t 1)))
-                         (genre (or genre nil))
-			 (albumartist (or albumartist nil))
-                         (comment (or comment nil)))
-                     (mapconcat 'identity (eval expression)
-                                (or ,separator " - "))))))))
+  (let ((id (plist-get plist 'Id)))
+    (or (gethash id mingus-song-strings)
+	(let ((val
+	       (let (artist album title albumartist
+			    track name
+			    genre date
+			    composer performer
+			    comment disc
+			    time pos id file
+			    (separator (or separator " - ")))
+		 (eval `(mingus-bind-plist
+			 ',plist
+			 (let ((time
+				(and time
+				     (format "%02d:%.2d" (/ time 60) (mod time 60))))
+			       (pos (and pos (number-to-string pos)))
+			       (id (and id (number-to-string id)))
+			       (file
+				(and file
+				     (file-name-nondirectory
+				      file)))
+			       (genre (or genre nil))
+			       (albumartist (or albumartist nil))
+			       (comment (or comment nil)))
+			   (mapconcat 'identity ,expression separator)))))))
+	  (puthash id val mingus-song-strings)
+	  val)
+	mingus-song-strings)))
 
 (defvar mingus-generic-timer nil)
 
@@ -1940,7 +2042,7 @@ Actually it is just named after that great bass player."
                                     (setq mingus-status
                                           (mingus-make-mode-line-string))
                                   (setq mingus-status nil))))))
-  (mingus-playlist (or (get-buffer-window-list "*Mingus*") t)))
+          (mingus-playlist))
 
 (defun mingus-start-daemon ()
   "Start mpd daemon for `mingus'."
@@ -1957,17 +2059,6 @@ Actually it is just named after that great bass player."
   (mpd-shuffle-playlist mpd-inter-conn)
   (mingus-playlist 1))
 
-;; (defmacro mingus-define-mpd->mingus (name &rest body)
-;;   "Curry an mpd function as a mingus function."
-;;   (funcall
-;;    (lambda ()
-;;      `(defun ,name ()
-;;         (interactive)
-;;         (,(intern-soft
-;;            (replace-regexp-in-string "mingus-" "mpd-" (symbol-name name)))
-;;          mpd-inter-conn)
-;;         ,@body))))
-
 (defmacro mingus-define-mpd->mingus (name &rest body)
   (funcall
    (lambda ()
@@ -1981,18 +2072,30 @@ Actually it is just named after that great bass player."
 
 (mingus-define-mpd->mingus
  mingus-update
+ (clrhash mingus-song-strings)
+ (clrhash mingus-propertized-song-strings)
  (and (member 'updating_db (mpd-get-status mpd-inter-conn))
       (message "Updating DB")))
 
-(mingus-define-mpd->mingus mingus-pause (mingus-minibuffer-feedback 'state))
+(mingus-define-mpd->mingus mingus-pause
+			   (mingus-minibuffer-feedback 'state)
+			   (mingus-set-NP-mark t))
 
-(defalias 'mingus-toggle 'mingus-pause)
+(defalias 'mingus-toggle
+  'mingus-pause
+  (mingus-set-NP-mark t))
 
-(mingus-define-mpd->mingus mingus-prev)
+(mingus-define-mpd->mingus
+ mingus-prev
+ (mingus-set-NP-mark t))
 
-(mingus-define-mpd->mingus mingus-next)
+(mingus-define-mpd->mingus 
+ mingus-next
+ (mingus-set-NP-mark t))
 
-(mingus-define-mpd->mingus mingus-stop)
+(mingus-define-mpd->mingus 
+ mingus-stop
+ (mingus-set-NP-mark t))
 
 (defun mingus-boolean->string (bool)
   (case bool
@@ -2144,7 +2247,7 @@ Switch to *Mingus* buffer if necessary."
 (defun* mingus-seek (amount &optional percentage from-start)
   "Seek song played by mpd in seconds or percentage.
 
- (Prefix) argument AMOUNT specifies movement forward or backward. 
+ (Prefix) argument AMOUNT specifies movement forward or backward.
  Defaults to variable `mingus-seek-amount'.
  When PERCENTAGE is specified, seek to PERCENTAGE of song.
  If PERCENTAGE is specified and AMOUNT is negative, seek PERCENTAGE backwards."
@@ -2338,6 +2441,7 @@ Switch to *Mingus* buffer if necessary."
                                              (car uplist)) 0)
                                      (- (mingus-line-number-at-pos) 1))
                             (mingus-update-command-list) ;reset the count
+			    (mingus-set-NP-mark t)
                             ;; (mingus-set-song-pos)
                             ))))))
         (cond ((= (mingus-line-number-at-pos)
@@ -2354,7 +2458,8 @@ Switch to *Mingus* buffer if necessary."
                 (forward-line 1)
                 (transpose-lines 1)
                 (forward-line -1)
-                (message "Moved 1 song down."))))))))
+                (message "Moved 1 song down.")
+		(mingus-set-NP-mark t))))))))
 
 (defun mingus-move-all ()
   "In Mingus, move all marked songs to current position in buffer."
@@ -2440,7 +2545,9 @@ deleted."
   ;;no need for consuming computation and bindings when whole buffer is selected
   (if (and (= beg (point-min)) (= end (point-max)))
       (mingus-clear t)
-    (let* ((buffer-read-only nil)
+    (let* ((ole-beg beg)
+	   (ole-end end)
+	   (buffer-read-only nil)
            (beg (1- (mingus-line-number-at-pos beg)))
            (end (1- (if (bolp)
                         (mingus-line-number-at-pos end)
@@ -2464,7 +2571,9 @@ deleted."
       ;; remove all songs that are deleted from the mingus-marked-list (mapcar
       ;; 'mingus-pos->id (set-difference '(3 111 4 5) (intersection '(3 111) '(2
       ;; 3 111))))
-      (mingus))))
+      (delete-region ole-beg ole-end)
+;;      (mingus)
+)))
 
 (defun mingus-delete-lines (lines)
   "Delete every line in LINES, where 0 is the first line in the buffer.
@@ -2515,7 +2624,8 @@ deleted."
   "Start playing the mpd playlist, only if not yet playing.
  When called with argument POSITION, play playlist id POSITION."
   (interactive)
-  (mpd-play mpd-inter-conn (or position (1- (mingus-line-number-at-pos)))))
+  (mpd-play mpd-inter-conn (or position (1- (mingus-line-number-at-pos))))
+  (mingus-set-NP-mark t))
 
 (defun mingus-play-pos (position)
   "Play song in mpd playlist at position specified by prefix argument."
@@ -2719,12 +2829,7 @@ If active region, add everything between BEG and END."
 ;; vars.
 (defun mingus-get-details-for-song ()
   "Get details for song from text-property `details'"
-  (get-text-property
-   (+ (if (and (equal major-mode 'mingus-playlist-mode)
-	       (= (1- (mingus-line-number-at-pos)) (mingus-get-song-pos)))
-	  (length mingus-current-song-marker)
-	0)
-      (point-at-bol)) 'details))
+  (get-text-property (point-at-bol) 'details))
 
 (defun _mingus-playlist-get-filename-at-p ()
   (plist-get (car (mingus-get-details-for-song)) 'file))
@@ -2759,14 +2864,14 @@ If active region, add everything between BEG and END."
 	 (sort*
 	  (loop for i in
 		(remove-if
-		 (lambda (item) (or 
+		 (lambda (item) (or
                             (null (cdr item))
                             (not (string-match (car item)
                                                "file|directory|playlist"))))
 		 (cdr (mingus-exec (format "lsinfo %s"
 					   (mpd-safe-string string)))))
 		collect i)
-          #'mingus-logically-less-p 
+          #'mingus-logically-less-p
 	  :key #'cdr)))
     (erase-buffer)
     (if (null newcontents)
@@ -2962,7 +3067,7 @@ INPUT is supposed to be supplied by current minibuffer contents."
    prompt
     (if (fboundp 'completion-table-dynamic)
 	(completion-table-dynamic (function mingus-complete-path))
-      (dynamic-completion-table mingus-complete-path)) 
+      (dynamic-completion-table mingus-complete-path))
     predicate require-match
     initial-input hist def
     inherit-input-method))
@@ -2972,24 +3077,24 @@ INPUT is supposed to be supplied by current minibuffer contents."
 
 Complete in the style of the function `find-file'."
   (interactive)
-  (mingus-add 
+  (mingus-add
    (mingus-complete-from-minibuffer "Add to playlist: " nil t)))
 
 (defun mingus-update-partially ()
   "Update the database partially."
   (interactive)
-  (let ((updatable 
-	 (mingus-complete-from-minibuffer 
+  (let ((updatable
+	 (mingus-complete-from-minibuffer
 	  "Update database for: " nil nil)))
     (mingus-update updatable)))
 
 (defun mingus-update-thing-at-p ()
   "Update the database partially for song or directory at point."
   (interactive)
-  (let ((updatable 
-	 (cdar 
+  (let ((updatable
+	 (cdar
 	  (mingus-get-details-for-song))))
-    (if (listp updatable)		
+    (if (listp updatable)
 	;;have to fix weird differences in details tss..
 	(setq updatable (car updatable)))
     (mingus-update updatable)))
@@ -3012,6 +3117,14 @@ Complete in the style of the function `find-file'."
                     (format "search %s %s" type (mpd-safe-string query)))
                    if (eq 'file (car i)) collect i))
      :test 'string=)))
+
+(defvar mingus-album-query-hist nil)
+(defvar mingus-artist-query-hist nil)
+(defvar mingus-genre-query-hist nil)
+(defvar mingus-composer-query-hist nil)
+(defvar mingus-filename-query-hist nil)
+(defvar mingus-title-query-hist nil)
+(defvar mingus-regexp\ on\ filename-query-hist nil)
 
 (defun mingus-query (&optional type)
   "Query the mpd database.
@@ -3057,7 +3170,12 @@ possible).  Optional argument TYPE predefines the type of query."
                            (t (test-completion
                                string
                                (mingus-completing-search-type type string)
-                               predicate))))))))
+                               predicate)))))
+                 nil
+                 nil
+                 nil
+                 (intern-soft
+                  (format "mingus-%s-query-hist" "artist")))))
     (mingus-query-do-it type query pos buffer)))
 
 (defun mingus-query-regexp ()
@@ -3375,9 +3493,7 @@ songs to Mingus."
          (set-default sym val)))
 
 (defun mingus-dired-file ()
-  "Open dired with parent dir of song at point.
-
-See also the variable `mingus-mpd-root'"
+  "Open dired with parent dir of song at point."
   (interactive)
   (dired
    (cond
@@ -3417,7 +3533,7 @@ Do you want to symlink the parent directory? : " ))
             (mingus-update)
             (message "This might take a while, repeat `mingus-dired-add' when that rattling sound of your harddisk has subsided")))
       (case major-mode
-        ('mingus-burn-mode (with-no-warnings 
+        ('mingus-burn-mode (with-no-warnings
                              ;; `mingus-burns' will be defined in
                              ;; mingus-stays-home
                              (mingus-burns)))))))
@@ -3426,12 +3542,22 @@ Do you want to symlink the parent directory? : " ))
 
 ;; (@> "development stuff")
 ' (mapconcat (lambda (list)
-               (mingus-make-song-string list mingus-playlist-format-to-use
+	       (mingus-make-song-string list mingus-playlist-format-to-use
                                         mingus-playlist-separator))
              (mingus-get-songs "playlistinfo") "\n")
 
 ' (push mingus-modeline-timer timer-list)
 ' (push mingus-generic-timer timer-list)
+
+ ' (message "Average time: %f"
+	    (let ((total (seconds-to-time 0)))
+	      (dotimes (var 4 (/ (time-to-seconds total) var))
+		(setq total (time-add total (time (mingus-playlist t)))))))
+
+' (defmacro time (&rest body)
+    `(let ((time (current-time)))
+       ,@body
+       (time-since time)))
 
 (defun mingus-outputs ()
   (let ((output (mingus-exec "outputs")))
