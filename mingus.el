@@ -16,7 +16,7 @@
 ;; reversed order>
 
 ;; Author: Niels Giesen <pft on #emacs>
-;; Version: Switch Blade, or: 0.28
+;; Version: New Now Know How, or: 0.29
 ;; Latest version can be found at http://niels.kicks-ass.org/index.php/emacs/mingus/
 ;; For Changes, please view http://niels.kicks-ass.org/public/mingus/src/ChangeLog
 
@@ -110,6 +110,21 @@
 
 ;; NOTE: right now these two functions are mutually exclusive.
 
+;; DIRED:
+
+;; Ability to snap to the file location of a song instantly in `dired', so as
+;; to perform file management or other actions on these files easily (such as
+;; removal, movement or renaming), or just to check wtfs '3.ogg' actually
+;; refers to.
+
+;; You might want to change the `dired-mode-map' so that it will play well with
+;; Mingus.  If you want to, you can set the variable `mingus-dired-add-keys' to
+;; t; this can be done with `mingus-customize'. It will set "SPC" to
+;; `mingus-dired-add', "C-u SPC" to `mingus-dired-add-and-play' and add an item
+;; for `mingus-dired-add' to the menu-bar in dired. `mingus-dwim-add' and
+;; `mingus-dwim-add-and-play' (see below) calls mingus-dired-add when in dired,
+;; so binding this to a global key might be a nice solution too.
+
 ;; For those already familiar with mpd, and have set that up, you're done now.
 
 ;; If you get a message like
@@ -137,9 +152,8 @@
 ;; 2. you want to connect to a remote host, but have not set the
 ;; environment variables MPD_HOST and/or MPD_PORT. Do so by calling
 ;; (mingus-set-variables-interactively) (settings lost when emacs
-;; restarted) or by means of customization ((mingus-customize) or
-;; (customize-group 'mingus), after which you can call
-;; (mingus-set-variables) again)
+;; restarted) or by means of customization (mingus-customize) or
+;; (customize-group 'mingus). 
 
 ;; NEW in mingus 0.21: `mingus-wake-up-call'; fixed the lisp-max-eval-depth
 ;; error message when leaving mingus-info on for a while; allowing spaces in
@@ -178,12 +192,38 @@
   "List of marked songs, identified by songid")
 (defvar *mingus-point-of-insertion* nil "Insertion point for mingus")
 (defvar *mingus-positions* nil "Cursor positions retained in *Mingus Browser*")
-(defvar *mingus-header-when-empty* "Press ? for help, 3 for Mingus Browser"
+(defvar *mingus-header-when-empty* "Press ? for help, 3 for Mingus Browser, 0 for dired."
   "Header to show when the playlist is empty")
 (defstruct (mingus-data)
   (playlist -1)
   (song nil))
 (defvar mingus-data (make-mingus-data))
+
+;; (@> "faces")
+(defgroup mingus-faces ()
+  "Customization group for faces in Mingus"
+  :group 'mingus)
+
+(defface mingus-directory-face
+  '((default)
+    (((background light)) (:foreground "#a0606d"))
+    (((background dark)) (:foreground "orange")))
+  "Face for displaying directories"
+  :group 'mingus-faces)
+
+(defface mingus-song-file-face
+  '((default)
+    (((background light)) (:foreground "#616fa2"))
+    (((background dark)) (:foreground "lightgreen")))
+  "Face for displaying song files"
+  :group 'mingus-faces)
+
+(defface mingus-playlist-face
+  '((default)
+    (((background light)) (:foreground "#918e2d"))
+    (((background dark)) (:foreground "yellow")))
+  "Face for displaying playlist files"
+  :group 'mingus-faces)
 
 (defun mingus-exec (string)
   (mpd-execute-command mpd-inter-conn string))
@@ -210,10 +250,34 @@
   "Get current playlist version"
   (getf (mpd-get-status mpd-inter-conn) 'playlist))
 
+;; configuration
+(defun mingus-get-config-option (file option)
+  (if (file-exists-p file)
+      (with-temp-buffer
+        (insert-file-contents file)
+        (re-search-forward (format "%s[[:blank:]]+" option))
+        (goto-char (re-search-forward "\""))
+        (buffer-substring-no-properties (point) (1- (re-search-forward "\""))))
+    nil))
+
 (defgroup mingus nil "Group customization for mingus mpd interface"
  :group 'external
  :group 'multimedia
  :group 'applications)
+
+(defcustom mingus-mpd-config-file "~/.mpdconf"
+  "File used by mpd as a configuration file"
+  :group 'mingus
+  :type '(string))
+
+(defcustom mingus-mpd-playlist-dir
+  (expand-file-name
+   (concat (mingus-get-config-option
+            mingus-mpd-config-file "playlist_directory") 
+           "/"))
+  "Directory where MPD puts its playlists"
+  :group 'mingus
+  :type '(string))
 
 (defgroup mingus-mode-line nil
   "Customization group to control the modeline for `mingus'"
@@ -228,14 +292,78 @@ These variables are set when loading mingus or callinge `mingus-set-variables'."
   :group 'mingus
   :type '(boolean))
 
-(defcustom mingus-mpd-host "localhost"
+(defun mingus-set-host (sym host)
+  (let ((mpd-interactive-connection-parameters
+         (list host
+               (or (and 
+                    (boundp 'mingus-mpd-port)
+                    mingus-mpd-port)
+                   (or (and (getenv "MPD_PORT")
+                            (string-to-number (getenv "MPD_PORT")))
+                       6600))
+               10.0)))
+    (when (processp (aref mpd-inter-conn 1))
+      (stop-process (aref mpd-inter-conn 1)))
+    (setq mpd-inter-conn
+          (apply 'mpd-conn-new `(,@(mpd-connection-tidy
+                                    mpd-interactive-connection-parameters)
+                                 nil))))
+  (set-default sym host)
+  (save-window-excursion
+    (when (get-buffer "*Mingus*")
+      (mingus))
+    (when (get-buffer "*Mingus Browser*")
+      (mingus-ls ""))))
+
+(defun mingus-set-port (sym port)
+  (let ((mpd-interactive-connection-parameters
+         (list 
+          (or (and 
+               (boundp 'mingus-mpd-host)
+               mingus-mpd-host)
+              (or (getenv "MPD_HOST") "localhost"))
+          port 10.0)))
+    (when (processp (aref mpd-inter-conn 1))
+      (stop-process (aref mpd-inter-conn 1)))
+    (setq mpd-inter-conn
+          (apply 'mpd-conn-new `(,@(mpd-connection-tidy
+                                    mpd-interactive-connection-parameters)
+                                 nil))))
+  (set-default sym port)
+  (save-window-excursion
+    (when (get-buffer "*Mingus*")
+      (mingus))
+    (when (get-buffer "*Mingus Browser*")
+      (mingus-ls ""))))
+
+(defcustom mingus-mpd-host (getenv "MPD_HOST")
   "Setting for environment variable MPD_HOST"
   :group 'mingus
-  :type '(string))
+  :type '(string)
+  :set 'mingus-set-host)
 
-(defcustom mingus-mpd-port 6600 "Setting for environment variable MPD_PORT"
- :group 'mingus
- :type '(integer))
+(defcustom mingus-mpd-port (if (getenv "MPD_PORT")
+                               (string-to-number (getenv "MPD_PORT"))
+                             6600)
+  "Setting for environment variable MPD_PORT"
+  :group 'mingus
+  :type '(integer)
+  :set 'mingus-set-port)
+
+(defcustom mingus-mpd-root
+  (expand-file-name
+   (concat (mingus-get-config-option
+            mingus-mpd-config-file
+            "music_directory") "/"))
+  "Music directory used by MPD.
+
+Note that you can use tramp, as in
+
+\"/ssh:username@host:/var/lib/mpd/music/\" 
+
+\(don't forget the trailing slash)"
+  :group 'mingus
+  :type '(string))
 
 (defcustom mingus-seek-amount 10
   "Default amount of seconds or percents to seek by when using `mingus-seek'."
@@ -355,12 +483,14 @@ customizing these values; use `mingus-customize' for that."
                                  nil))))
   "The global mpd connection used for interactive queries.")
 
+
+
 (defun mingus-customize ()
   "Call the customize function with mingus as argument."
   (interactive)
   (customize-group 'mingus))
 
-(defvar mingus-version "Switch Blade, or: 0.28")
+(defvar mingus-version "New Now Know How, or: 0.29")
 
 (defun mingus-version ()
   "Echo `mingus-version' in minibuffer."
@@ -403,6 +533,7 @@ MAIN CONTROLS:
 mingus-help:       1
 mingus-playlist:   2
 mingus-browser:    3
+mingus-dired-file: 0
 
 Global keys:
 
@@ -470,6 +601,7 @@ Requirements:
 
 - cl-macs.el
 - dired.el (included in emacs)
+- the program symlinks (for dired)
 - access to a connection with an mpd server, either locally or on another
   server.
 
@@ -694,6 +826,9 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (defconst mingus-global-map (make-keymap) "Global keymap for `mingus'")
 
 (define-key mingus-global-map "k" (lambda () (interactive) (forward-line -1)))
+
+;; add some keys to the various modes for dired look-ups
+(define-key mingus-global-map "0" 'mingus-dired-file)
 (define-key mingus-global-map "q" 'mingus-git-out)
 (define-key mingus-global-map "Q" 'mingus-query)
 (define-key mingus-global-map "\M-%" 'mingus-query-regexp)
@@ -904,6 +1039,10 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (defconst mingus-help-map (copy-keymap mingus-global-map)
   "Help keymap for `mingus'")
 
+(define-key mingus-help-map "0" #'(lambda ()
+                                    (interactive)
+                                    (dired mingus-mpd-root)))
+
 (define-key mingus-help-map " " 'scroll-up)
 
 (define-key mingus-help-map [menu-bar mingus sep-playlist-editing]
@@ -968,6 +1107,8 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (define-key mingus-playlist-map "i" 'mingus-set-insertion-point)
 
 (define-key mingus-playlist-map "t" 'mingus-toggle-marked)
+
+(define-key mingus-playlist-map "U" 'mingus-update-thing-at-p)
 
 (define-key mingus-playlist-map "!"
   (lambda ()
@@ -1048,11 +1189,18 @@ Or, you might show me how to use a function/string choice in customize ;)"
 
 (define-key mingus-playlist-map
   [menu-bar mingus help]
-  '(menu-item "Help" mingus-help :help "go to help"))
+  '(menu-item "Help" mingus-help
+              :help "go to help"))
 
 (define-key mingus-playlist-map
   [menu-bar mingus browser]
-  '(menu-item "Browser" mingus-browse :help "go to browser"))
+  '(menu-item "Browser" mingus-browse
+              :help "go to browser"))
+
+(define-key mingus-playlist-map 
+  [menu-bar mingus dired]
+  '(menu-item "Dired file" mingus-dired-file
+              :help "find file in dired"))
 
 ;; mouse keys
 (define-key mingus-playlist-map
@@ -1071,15 +1219,19 @@ Or, you might show me how to use a function/string choice in customize ;)"
       (mouse-set-point ev)
       (mingus-mark))))
 
-(define-key mingus-playlist-map
+(define-key mingus-playlist-map 
   (if (featurep 'xemacs) [button3] [mouse-3])
-  'mingus-play)
+  (lambda (ev)
+    (interactive "e")
+    (mouse-set-point ev)
+    (mingus-dired-file)))
 
 (defconst mingus-browse-map (copy-keymap mingus-global-map)
   "Browse keymap for `mingus'")
 
 (define-key mingus-browse-map "\r" 'mingus-down-dir-or-play-song)
 (define-key mingus-browse-map "S" 'mingus-browse-sort)
+(define-key mingus-browse-map "U" 'mingus-update-thing-at-p)
 
 (define-key mingus-browse-map
   [(down-mouse-1)]
@@ -1141,7 +1293,56 @@ Or, you might show me how to use a function/string choice in customize ;)"
        (goto-line ,line)
        (move-to-column ,col))))
 
-;; list processing
+;;;;  {{Generic Functions}}
+(defun _mingus-bol-at (pos)
+  "Return the position at beginning of line relative to POS."
+  (save-excursion (goto-char pos)
+                  (point-at-bol)))
+
+(defun _mingus-eol-at (pos)
+  "Return the position at end of line relative to POS."
+  (save-excursion (goto-char pos)
+                  (point-at-eol)))
+;; List processing
+(defun mingus-make-alist (list)
+  "Make an alist out of a flat list (plist-style list)."
+  (if (endp list)
+      nil
+    (cons (cons (car list) (cadr list))
+          (mingus-make-alist (cddr list)))))
+
+(defun mingus-make-alist-reversed (list)
+  "Make an alist out of a flat list, whereby every pair is reversed."
+  (if (endp list)
+      nil
+    (cons (cons (cadr list) (car list))
+          (mingus-make-alist-reversed (cddr list)))))
+
+(defun mingus-pretext (string)
+  "Return part of STRING before first numeric occurence or nil otherwise."
+  (if (string-match "\\(^[^[:digit:]]*\\)\\([[:digit:]]+\\)" string)
+      (match-string 1 string)
+    nil))
+
+
+(defun mingus-logically-less-p (s1 s2)
+  "Compare S1 and S2 logically, or numerically.
+
+E.g.: \"Artist 3 my beautiful song\" is logically less than \"Artist 11 blue sea\"."
+  (let ((p1 (mingus-pretext s1))
+        (end1 (match-end 1))
+        (end2 (match-end 2)))
+    (if (and p1 (string= p1 (mingus-pretext s2)))
+        (let ((n1 (string-to-number (substring s1 end1)))
+              (n2 (string-to-number (substring s2 end1))))
+          (if (= n1 n2)
+              (mingus-logically-less-p (substring s1 end2)
+                                       (substring s2 (match-end 2)))
+            (< n1 n2)))
+      (string< s1 s2))))
+
+;;(mingus-logically-less-p "Jazz" "Jazz")
+
 (defun mingus-keywordify-plist (list)
   "Turn a nasty looking plist into a nice one, with lower-cased keywords."
   (mapcar (lambda (item)
@@ -1592,7 +1793,7 @@ Argument OVERRIDE defines whether to treat the situation as new."
                   (put-text-property
                    (point-at-bol)
                    (+ 3 (point-at-bol))
-                   'face '((:foreground "orange")))
+                   'face 'mingus-song-face)
                   (unless override
                     (goto-line (1+ (mingus-get-song-pos)))
                     (beginning-of-line)
@@ -1750,14 +1951,26 @@ Actually it is just named after that great bass player."
   (mpd-shuffle-playlist mpd-inter-conn)
   (mingus-playlist 1))
 
+;; (defmacro mingus-define-mpd->mingus (name &rest body)
+;;   "Curry an mpd function as a mingus function."
+;;   (funcall
+;;    (lambda ()
+;;      `(defun ,name ()
+;;         (interactive)
+;;         (,(intern-soft
+;;            (replace-regexp-in-string "mingus-" "mpd-" (symbol-name name)))
+;;          mpd-inter-conn)
+;;         ,@body))))
+
 (defmacro mingus-define-mpd->mingus (name &rest body)
   (funcall
    (lambda ()
-     `(defun ,name ()
+     `(defun ,name (&rest args)
         (interactive)
-        (,(intern-soft
+        (apply #',(intern-soft
            (replace-regexp-in-string "mingus-" "mpd-" (symbol-name name)))
-         mpd-inter-conn)
+         mpd-inter-conn
+	 args)
         ,@body))))
 
 (mingus-define-mpd->mingus
@@ -2528,8 +2741,8 @@ If active region, add everything between BEG and END."
 (defun _mingus-string->parent-dir (child)
   (if (string-match "^https?://" child) ;URLS are illegal here
       (error "Not a local file!")
-    (string-match ".*/" child)
-    (match-string 0 child)))
+    (string-match "\\(.*\\)/" child)
+    (match-string 1 child)))
 
 (defun mingus-ls (string)
   "List songs/dirs in directory STRING in dedicated *Mingus Browser* buffer."
@@ -2540,29 +2753,31 @@ If active region, add everything between BEG and END."
 	 (sort*
 	  (loop for i in
 		(remove-if
-		 (lambda (item) (not (string-match (car item)
-                                             "file|directory|playlist")))
+		 (lambda (item) (or 
+                            (null (cdr item))
+                            (not (string-match (car item)
+                                               "file|directory|playlist"))))
 		 (cdr (mingus-exec (format "lsinfo %s"
 					   (mpd-safe-string string)))))
 		collect i)
-	  #'string<
+          #'mingus-logically-less-p 
 	  :key #'cdr)))
     (erase-buffer)
     (if (null newcontents)
         (message "No songs in database; check your mpd settings")
       (mapc (lambda (item)
-              (insert (propertize (cdr item) 'mouse-face 'highlight) "\n")
-              (put-text-property (point-at-bol 1) (point-at-eol -1)
-                                 'details (list item))
-              (put-text-property (point-at-bol 1) (point-at-eol -1)
-                                 'face
-                                 (cond
-                                  ((string= (car item) "playlist")
-                                   '((foreground-color . "yellow")))
-                                  ((string= (car item) "directory")
-                                   '((foreground-color . "orange")))
-                                  ((string= (car item) "file")
-                                   '((foreground-color . "lightgreen"))))))
+                (insert (propertize (cdr item) 'mouse-face 'highlight) "\n")
+                (put-text-property (point-at-bol 1) (point-at-eol -1)
+                                   'details (list item))
+                (put-text-property (point-at-bol 1) (point-at-eol -1)
+                                   'face
+                                   (cond
+                                    ((string= (car item) "playlist")
+                                     'mingus-playlist-face)
+                                    ((string= (car item) "directory")
+                                     'mingus-directory-face)
+                                    ((string= (car item) "file")
+                                     'mingus-song-file-face))))
             newcontents))
     (mingus-browse-invisible)))
 
@@ -2598,7 +2813,7 @@ If active region, add everything between BEG and END."
         (mingus-ls "")))
     (re-search-backward goal)))
 
-(defun* mingus-insert (&optional and-play)
+(defun mingus-insert (&optional and-play)
   "In *Mingus Browser* buffer, insert stuff under point or region into playlist.
 
  Anywhere else, call `mingus-add-read-input'.
@@ -2734,29 +2949,47 @@ INPUT is supposed to be supplied by current minibuffer contents."
                                         (replace-regexp-in-string
                                          "\\(/\\|[^/]*\\)$" "" input))))))))))
 
+(defun mingus-complete-from-minibuffer (prompt &optional predicate require-match
+					       initial-input hist def
+					       inherit-input-method)
+  (completing-read
+   prompt
+    (if (fboundp 'completion-table-dynamic)
+	(completion-table-dynamic (function mingus-complete-path))
+      (dynamic-completion-table mingus-complete-path)) 
+    predicate require-match
+    initial-input hist def
+    inherit-input-method))
 
 (defun mingus-add-read-input ()
   "Add song or dir to mpd playlist using minibuffer input.
 
 Complete in the style of the function `find-file'."
   (interactive)
-  (if (fboundp 'completion-table-dynamic)
-      (mingus-add
-       (completing-read
-	"Add to playlist: "
-	(completion-table-dynamic (function mingus-complete-path)) nil t))
-    (mingus-add
-     (completing-read
-      "Add to playlist: "
-      (with-no-warnings
-	(if (functionp 'completion-table-dynamic)
-	    (completion-table-dynamic mingus-complete-path)
-	  ;;compiler thinks `mingus-complete-path' should be a variable
-	  (dynamic-completion-table mingus-complete-path))) nil t))))
+  (mingus-add 
+   (mingus-complete-from-minibuffer "Add to playlist: " nil t)))
+
+(defun mingus-update-partially ()
+  "Update the database partially."
+  (interactive)
+  (let ((updatable 
+	 (mingus-complete-from-minibuffer 
+	  "Update database for: " nil nil)))
+    (mingus-update updatable)))
+
+(defun mingus-update-thing-at-p ()
+  "Update the database partially for song or directory at point."
+  (interactive)
+  (let ((updatable 
+	 (cdar 
+	  (mingus-get-details-for-song))))
+    (if (listp updatable)		
+	;;have to fix weird differences in details tss..
+	(setq updatable (car updatable)))
+    (mingus-update updatable)))
 
 ' (defun mingus-switch-car-and-cdr (cons)
     (cons (cdr cons) (car cons)))
-
 
 ;;; Searching section
 (defun mingus-completing-search-type (type query)
@@ -2790,7 +3023,8 @@ possible).  Optional argument TYPE predefines the type of query."
   (let* ((type (or type (mingus-completing-read-allow-spaces
                          "Search type: "
                          '("album" "artist" "genre"
-                           "filename" "title" "regexp on filename")
+			   "composer" "filename" "title"
+			   "regexp on filename")
                          nil t)))
          (buffer (buffer-name))
          (pos (point))
@@ -2842,12 +3076,14 @@ Argument POS is the current position in the buffer to revert to (?)."
                  (cdr (mingus-exec "listall"))))
           (t (insert
               (mapconcat 'identity
-                         (loop for i in (cdr (mingus-exec
+                         (sort*
+                          (loop for i in (cdr (mingus-exec
                                               (format "search %s %s"
                                                       type
                                                       (mpd-safe-string query))))
                                if (string= (car i) "file")
                                collect (cdr i))
+                          #'mingus-logically-less-p)
                          "\n"))))
     (mingus-browse-invisible)
     (goto-char (point-min))
@@ -2898,8 +3134,8 @@ Argument POS is the current position in the buffer to revert to (?)."
                 (insert (concat (cdr item) "\n")))
               (sort* list (lambda (str1 str2)
                             (if (get this-command 'reverse)
-                                (null (string< (car str1) (car str2)))
-                              (string< (car str1) (car str2))))))
+                                (null (mingus-logically-less-p (car str1) (car str2)))
+                              (mingus-logically-less-p (car str1) (car str2))))))
         (put this-command 'reverse (null (get this-command 'reverse)))
         (goto-line line))
     (message "Buffer not in mingus-browse-mode")))
@@ -2943,6 +3179,242 @@ The timer-object is referenced to by the variable `mingus-wake-up-call'"
                    "%sake sure you have a playlist set before dozing off!"
                    (if (=  0 (mingus-playlist-length)) "Playlist is empty, m"
                      "M"))))))
+
+;;;; {{Shell/Dired}}
+;;; Functions for retrieving the true filenames for interaction with a shell and
+;;; `dired'; this needs reviewing for consistency and use
+(defun _mingus-get-parent-dir ()
+  "Get parent dir of song at point."
+  (_mingus-string->parent-dir
+   (mingus-get-filename)))
+
+(defun _mingus-burner-get-filename-at-p ()
+  (plist-get (mingus-get-details-for-song) :file))
+
+(defun _mingus-make-absolute-filename (filename)
+  "Turn a filename relative to `mingus-mpd-root' into an absolute one."
+  (if (string-match "^https?://" filename) ;URLS are legal here (!)
+      filename
+    (concat mingus-mpd-root filename)))
+
+(defun _mingus-get-filename-from-playlist-relative ()
+  "In buffer *Mingus*, retrieve filename-at-p, relative to `mingus-mpd-root'."
+  (_mingus-playlist-get-filename-at-p))
+
+(defun _mingus-get-filename-from-burner-relative ()
+  "In buffer *Mingus*, retrieve filename-at-p, relative to `mingus-mpd-root'."
+  (_mingus-burner-get-filename-at-p))
+
+(defun _mingus-get-filename-from-browser-relative ()
+  "In *Mingus Browse*, retrieve filename-at-p, relative to `mingus-mpd-root'."
+  (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
+
+(defun _mingus-get-filename-relative ()
+  "Retrieve filename of song at point, relative to `mingus-mpd-root'"
+  (case major-mode
+    ('mingus-browse-mode
+     (_mingus-get-filename-from-browser-relative))
+    ('mingus-playlist-mode
+     (_mingus-get-filename-from-playlist-relative))
+    ('mingus-burn-mode
+     (_mingus-get-filename-from-burner-relative))))
+
+(defun _mingus-get-filename-absolute ()
+  "Get absolute filename for song-at-p."
+  (_mingus-make-absolute-filename (_mingus-get-filename-relative)))
+
+(defalias 'mingus-get-filename
+  '_mingus-get-filename-absolute "Get absolute filename for song-at-p.")
+
+(defun mingus-get-filename-for-shell ()
+  "Retrieve filename of song at point, and shell-quote it."
+  (shell-quote-argument (mingus-get-filename)))
+
+;; Unused, but probably useful someday:
+(defun mingus-get-filenames-from-browser-for-shell (beg end)
+  "Get everything under the region, sloppily.
+Region is between (beginning of line of) BEG and (beginning of line of) END."
+  (interactive "r")
+  (let ((beg (if mark-active (_mingus-bol-at beg) (point-at-bol)))
+        (end (if mark-active (_mingus-bol-at end) (point-at-eol))))
+    (mapcar '_mingus-make-absolute-filename
+            (split-string (buffer-substring-no-properties beg end) "\n" t))))
+
+;;;; {{Dired}}
+;; get all symlinks under mingus-mpd-root:
+(defun mingus-retrieve-symlinks ()
+  "Retrieve all symlinks under mpd root, and make an alist out of them.
+To be used for passing the right data to mpd in dired."
+  (cons
+   (cons mingus-mpd-root "")
+   (mingus-make-alist-reversed
+    (remove
+     ""
+     (split-string
+      (let  ((answer-from-shell
+	      (shell-command-to-string
+	       (format "symlinks -crv %s" mingus-mpd-root))))
+	(if (string-match "command not found" answer-from-shell)
+	    (error answer-from-shell)
+	  answer-from-shell))
+      (format
+       "\\(\\(\n*relative:\\|\n*other_fs:\\|\n*dangling:\\| ->\\) \\|%s\\|\n\\)"
+       mingus-mpd-root))))))
+
+;; TODO: TEST without mpd-safe-string
+;; DONE: DID NOT work...
+(defun mingus-abs->rel (string)
+  "In STRING, replace absolute path with symlink under `mingus-mpd-root';
+
+If found, also quote it.  Used in `mingus-dired-add'."
+  (let ((found-association
+         (assoc* string (mingus-retrieve-symlinks) :test
+                 '(lambda (place-of-file parent-dir)
+                    ;; account for relative interpretation by the shell of
+                    ;; symlinks
+                    (string-match
+                     (replace-regexp-in-string "\\.\\./" "" parent-dir)
+                     place-of-file)))))
+    (if found-association
+        (mpd-safe-string
+         (concat
+          (cdr found-association)
+          (substring string
+                     ;; account for relative interpretation by the shell of
+                     ;; symlinks
+                     (apply (if (string-match "\\.\\./"
+                                              (car found-association))
+                                '1+
+                              '+)
+                            ;; account for relative interpretation by the shell
+                            ;; of symlinks
+                            (length (replace-regexp-in-string
+                                     "\\.\\./"
+                                     ""
+                                     (car found-association)))
+                            nil)))
+)
+)))
+
+(defun mingus-dired-add ()
+  "In `dired', add marked files or file at point to the mpd playlist; ; ;
+
+If mpd is unwary of these files, ask whether to make a symlink.
+Create a symlink, and optionally update database.
+
+If updating takes too long, it might be that this does not work in one go.
+Try again at a later time if this happens."
+  (interactive)
+  (let
+      ((playlist-length (mingus-playlist-length)))
+    (mingus-add (mapconcat
+                 'mingus-abs->rel
+                 (dired-get-marked-files) "\nadd ") t)
+    ;; make sure mingus-add has indeed added the stuff:
+    (if (= playlist-length (mingus-playlist-length))
+        ;; if not, ask some questions
+        (when (y-or-n-p
+               (format "Something has gone wrong.  Possibly mpd does not know about the file.
+Do you want to symlink the parent directory? " ))
+          (shell-command-to-string
+           (format "ln -s %s %s"
+                   (shell-quote-argument (dired-current-directory))
+                   (shell-quote-argument mingus-mpd-root)))
+
+          (when (y-or-n-p "Update the database? ")
+            (mingus-update)
+            (message "This might take a while, repeat `mingus-dired-add' when that rattling sound of your harddisk has subsided")))
+      t))) ;we have to return a non-`nil' value for the success message to bbbe displayed.
+
+;; create function mingus-dired-add-and-play
+(mingus-and-play mingus-dired-add mingus-dired-add-and-play)
+
+;; make sure mingus-dired-add handles point-of-insertion and mingus-marked-list
+(mingus-insertion-advice mingus-dired-add)
+
+;; alright, a customization is in place for interfering with dired's defaults:
+(defvar mingus-dired-space-function nil)
+
+(defun mingus-dired-remove-keys ()
+  (when (symbol-value 'mingus-dired-space-function)
+    (define-key dired-mode-map " " mingus-dired-space-function))
+  (define-key dired-mode-map [menu-bar operate mingus] nil))
+
+(defun mingus-dired-add-keys ()
+
+  (when
+      (or (not (boundp 'mingus-dired-add-keys))
+          (null (symbol-value 'mingus-dired-add-keys)))
+    (setq mingus-dired-space-function (lookup-key dired-mode-map " ")))
+
+  (define-key dired-mode-map " " 'mingus-dired-add)
+
+  (define-key-after dired-mode-map [menu-bar operate mingus]
+    '("Add to Mingus"  . mingus-dired-add) 'query-replace))
+
+(defcustom mingus-dired-add-keys nil
+  "Add keys for interaction to dired-mode-map;
+
+The file \"mingus-stays-home.elc\" needs to be reloaded for a
+change here to have effect. If `mingus-dired-add-keys' has a
+non-`nil' value, \"SPC\" will add a song, play it immediately
+when invoked with a prefix. Plus an item under Operate to add
+songs to Mingus."
+  :group 'mingus
+  :type '(boolean)
+  :set (lambda (sym val)
+         (if val
+             (mingus-dired-add-keys)
+           (mingus-dired-remove-keys))
+         (set-default sym val)))
+
+(defun mingus-dired-file ()
+  "Open dired with parent dir of song at point."
+  (interactive)
+  (dired
+   (cond
+    ((mingus-directoryp)
+     (_mingus-make-absolute-filename (cdr (mingus-directoryp))))
+    ((mingus-playlistp) mingus-mpd-playlist-dir)
+    (t (_mingus-get-parent-dir))) "-al"))
+
+(defun mingus-dwim-add ()
+  "In `dired', add marked files or file at point to the mpd playlist.
+In other modes, use the minibuffer.
+
+
+If mpd is unwary of these files, ask whether to make a symlink.
+Create a symlink, and optionally update database.
+
+If updating takes too long, it might be that this does not work in one go.
+Try again at a later time if this happens."
+  (interactive)
+  (let ((old-length (mingus-playlist-length)))
+    (case major-mode
+      ('dired-mode
+       (mingus-add (mapconcat 'mingus-abs->rel (dired-get-marked-files) " ")))
+      (t
+       (mingus-add (mingus-abs->rel
+                    (expand-file-name (read-file-name "Add: "))))))
+    ;; make sure mingus-add has indeed added the stuff:
+    (if (= old-length (mingus-playlist-length))
+        ;; if not, ask some questions
+        (when (yes-or-no-p (format "Something has gone wrong. Possibly mpd does not know about the file.
+Do you want to symlink the parent directory? : " ))
+          (shell-command-to-string
+           (format "ln -s %s %s" (shell-quote-argument (dired-current-directory))
+                   (shell-quote-argument mingus-mpd-root)))
+
+          (when (yes-or-no-p "Update the database ? : ")
+            (mingus-update)
+            (message "This might take a while, repeat `mingus-dired-add' when that rattling sound of your harddisk has subsided")))
+      (case major-mode
+        ('mingus-burn-mode (with-no-warnings 
+                             ;; `mingus-burns' will be defined in
+                             ;; mingus-stays-home
+                             (mingus-burns)))))))
+
+(mingus-and-play mingus-dwim-add mingus-dwim-add-and-play)
 
 ;; (@> "development stuff")
 ' (mapconcat (lambda (list)
