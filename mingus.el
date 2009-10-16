@@ -12,10 +12,10 @@
 ;; ....................but actually named after a man so named
 ;;
 
-;; Copyright (C) 2006  Niels Giesen <nielsgiesen at ibbu dot nl>
+;; Copyright (C) 2006-2007  Niels Giesen <com dot gmail at nielsgiesen, in reversed order>
 
-;; Author: Niels Giesen <nielsgiesen at ibbu dot nl> <pft on #emacs>
-;; Version: orange was the color of her dress, or: 0.21
+;; Author: Niels Giesen <pft on #emacs>
+;; Version: Self Portrait In Three Colors, or: 0.23
 ;; Keywords: multimedia, elisp, music, mpd
 
 ;; This file is *NOT* part of GNU Emacs
@@ -152,10 +152,13 @@
 ;; names (with mingus-stays-home installed: press 0 (zero) to go to dired to do so). The
 ;; only way to insert such files is by inserting their parent directory.
 
+;; point-of-insertion only works with one file or directory at a time
+
 ;;; Code:
 
 (require 'cl)
 (require 'dired)
+(require 'time-date)
 
 (defvar *mingus-point-of-insertion* nil "Insertion point for mingus")
 (defvar *mingus-positions* nil "cursor positions to be retained in *Mingus Browser*")
@@ -165,6 +168,10 @@
   :group 'external
   :group 'multimedia
   :group 'applications)
+
+(defgroup mingus-mode-line nil
+  "Customization group to control the modeline for `mingus'"
+  :group 'mingus)
 
 (defcustom mingus-mpd-env-set-p nil
   "Whether to set environment variables from emacs.\nDo not set when nil.\nDo set when t.\nDefault: nil.\nThese variables are set when mingus.el(c) is loaded or when mingus-set-variables is called."
@@ -188,6 +195,55 @@
 (when mingus-mpd-env-set-p
   (setenv "MPD_HOST" mingus-mpd-host)
   (setenv "MPD_PORT" (number-to-string mingus-mpd-port)))
+
+(defcustom mingus-mode-always-modeline nil
+  "Behaviour of modeline: NIL shows current mpd status only in
+mingus buffers; Current mpd status is shown in all buffers when
+set to t."
+  :group 'mingus-mode-line
+  :type '(boolean))
+
+(defcustom mingus-mode-line-string "[[%artist% - ]%title%]|[%file%]"
+  "Format-string to display in modeline; see for valid syntax to
+be used the mpc manpage. See also
+`mingus-mode-line-show-elapsed-time' and
+`mingus-mode-line-show-elapsed-percentage'."
+  :group 'mingus-mode-line
+  :type '(string))
+
+(defcustom mingus-mode-line-string-max 40
+  "Maximum length for (result of) `mingus-mode-line-string'."
+  :group 'mingus-mode-line
+  :type '(integer))
+
+(defcustom mingus-mode-line-show-elapsed-time t
+  "Whether or not to display elapsed time in the mode-line."
+  :group 'mingus-mode-line
+  :type '(boolean))
+
+(defcustom mingus-mode-line-show-elapsed-percentage nil
+  "Whether or not to display elapsed time in the mode-line."
+  :group 'mingus-mode-line
+  :type '(boolean))
+
+(defcustom mingus-mode-line-show-status t
+  "Whether or not to display status information on volume, repeat and random in mode-line.
+See also the variables `mingus-mode-line-show-volume' and `mingus-mode-line-show-random-and-repeat-status'" 
+  :group 'mingus-mode-line
+  :type '(boolean))
+
+(defcustom mingus-mode-line-show-volume t
+  "Whether or not to display volume information in the mode-line.
+mingus-mode-line-show-status should also be set to t for this variable to have effect"
+  :group 'mingus-mode-line
+  :type '(boolean))
+
+(defcustom mingus-mode-line-show-random-and-repeat-status t
+  "Whether or not to display random and repeat status in the mode-line.
+If random is shown, a letter z is shown, if repeat is on, a letter r is shown too.
+mingus-mode-line-show-status should also be set to t for this variable to have effect."
+  :group 'mingus-mode-line
+  :type '(boolean))
 
 ;; some emacs21 compatibility:
 (if (not (fboundp 'read-number))
@@ -224,7 +280,7 @@
   (interactive)
   (customize-group 'mingus))
 
-(defvar mingus-version "Orange Was The Color Of Her Dress, or: 0.21")
+(defvar mingus-version "Self Portrait In Three Colors, or: 0.23")
 (defvar mingus-song-extension-regexp "\.\\([Mm][Pp]3\\|[Oo][Gg][Gg]\\|[fF][lL][aA][cC]\\|[wW][aA][vV]\\)")
 (defvar mingus-song-regexp (concat "^.+" mingus-song-extension-regexp))
 (defvar mingus-stream-regexp "http:[^<>'\"?{}() ]+\.\\([Mm][Pp]3\\|[Oo][Gg][Gg]\\|[fF][lL][aA][cC]\\|[wW][aA][vV]\\|[0-9][0-9][0-9][0-9]\\)")
@@ -234,7 +290,10 @@
 
 (make-variable-buffer-local 'mingus-last-query-results)
 
-(defvar mingus-help-text
+(defvar mingus-help-text ""
+  "Text to display in mingus-help")
+
+(setq mingus-help-text
   (format
    "           _
  _ __ ___ (_)_ __   __ _ _   _ ___
@@ -265,7 +324,7 @@ Global keys:
 p                       mingus-toggle (toggle play/pause)
 >                       mingus-next
 <                       mingus-prev
-g/q                     mingus-git-out
+q                       mingus-git-out
 s                       mingus-stop
 ?,1,H                   mingus-help
 +,right,*, C-<mouse-4>  mingus-vol-up
@@ -457,10 +516,11 @@ M                   move marked songs to point
 
 Point of insertion:
 
-with mingus-set-insertion-point you can specify where new
-insertions from the insertion commands from the *Mingus Browser*
-buffer or from minibuffer-insertion will take place. Otherwise
-the insertions will take place at the end of the playlist.
+Use mingus-set-insertion-point to specify where new insertions
+from the insertion commands from the *Mingus Browser* buffer or
+from minibuffer-insertion will take place. If
+*mingus-point-of-insertion* is unset (nil), insertions will take
+place at the end of the playlist.
 
 i                   set insertion point
 u                   unset insertion point (available from everywhere)
@@ -499,8 +559,6 @@ CONTACT: nielsgiesen at ibbu dot nl
 
 (define-key mingus-global-map "k" (lambda () (interactive) (forward-line -1)))
 (define-key mingus-global-map "q" 'mingus-git-out)
-(mapcar (lambda (key)
-	  (define-key mingus-global-map key 'mingus-git-out)) '("g" "q"))
 (define-key mingus-global-map "Q" 'mingus-query)
 (define-key mingus-global-map "\M-%" 'mingus-query-regexp)
 (define-key mingus-global-map "\\" 'mingus-last-query-results)
@@ -557,6 +615,8 @@ CONTACT: nielsgiesen at ibbu dot nl
   '(menu-item "MPD HOST" (lambda () (interactive) (customize-variable 'mingus-mpd-host)) :help "Host to connect to"))
 (define-key mingus-global-map [menu-bar mingus customization seek-amount]
   '("Seek Amount" . (lambda () (interactive) (customize-variable 'mingus-seek-amount))))
+(define-key mingus-global-map [menu-bar mingus customization mode-line]
+  '("Mode-line" . (lambda () (interactive) (customize-group 'mingus-mode-line))))
 (define-key mingus-global-map [menu-bar mingus customization stream-alist]
   '(menu-item "Streams"  (lambda () (interactive) (customize-variable 'mingus-stream-alist)) :help "Customize stream presets"))
 (define-key mingus-global-map [menu-bar mingus customization podcast-alist]
@@ -811,6 +871,7 @@ This is an exact copy of line-number-at-pos for use in emacs21."
   (switch-to-buffer "*Mingus Help*")
   (set (make-local-variable 'font-lock-defaults) '(mingus-help-font-lock-keywords))
   (font-lock-mode t)
+  (setq mode-name "Mingus-help")
   (when (string= (buffer-string) "")
     (use-local-map mingus-help-map)
     (insert mingus-help-text)
@@ -875,7 +936,7 @@ see function `mingus-help' for instructions."
 					;  (unless (boundp '*mingus-point-of-insertion*) (set (make-local-variable '*mingus-point-of-insertion*) nil))
 					; fixme check if this is ok
   (setq major-mode 'mingus-playlist-mode)
-  (setq mode-name "MINGUS-PLAYLIST")
+  (setq mode-name "Mingus-playlist")
   (font-lock-mode t)								;wip
   (setq buffer-read-only t)                                                     ;wip
   (run-hooks 'mingus-playlist-hook))
@@ -887,7 +948,7 @@ see function `mingus-help' for instructions."
     (use-local-map mingus-browse-map)
     (set (make-local-variable 'font-lock-defaults) '(mingus-browse-font-lock-keywords))
     (setq major-mode 'mingus-browse-mode)
-    (setq mode-name "MINGUS-BROWSE")
+    (setq mode-name "Mingus-browse")
     (run-hooks 'mingus-browse-hook)
     (set (make-local-variable '*mingus-positions*) nil)
     (setq buffer-read-only t)
@@ -896,14 +957,59 @@ see function `mingus-help' for instructions."
 (defvar mingus-header-height 0)
 (defvar mingus-marked-list nil)
 (defvar mingus-wake-up-call nil)
+(defvar mingus-modeline-timer nil)
+(defvar mingus-status nil)
+
+(defvar mingus-mode-line-object
+  '(:propertize
+    (t mingus-status)
+    help-echo (concat (car (split-string (shell-command-to-string "mpc --format \"[[[%artist% - [%album% - ]]%title%]|[%file%]] - %time%\"") "\n"))
+		      (if *mingus-point-of-insertion* 
+			  (concat "\nPOI: " (cadar *mingus-point-of-insertion*)))
+		      "\n mouse-1: menu or switch to mingus;\n mouse-3: toggle playing;\n mouse-4: vol-up;\n mouse-5: vol-down")
+    mouse-face mode-line-highlight local-map
+    (keymap
+     (mode-line keymap
+		(mouse-4 . mingus-vol-up) ;
+		(mouse-5 . mingus-vol-down) ;
+		(down-mouse-3 . mingus-toggle)
+		(down-mouse-1 . (lambda ()
+				  (interactive)
+				  (if (member (buffer-name) '("*Mingus Browser*" "*Mingus Help*" "*Mingus*" "*Mingus Burns*"))
+				      (mouse-major-mode-menu t)
+				    (mingus))))))))
+
 
 (defun mingus ()
   "MPD Interface by Niels Giesen, Useful and Simple, or actually just named after that great bass player"
   (interactive)
   (mingus-switch-to-playlist)
+  (cond ((boundp 'mode-line-modes)
+	 (add-to-list 'mode-line-modes mingus-mode-line-object))
+	((boundp 'global-mode-string)
+	 (add-to-list 'global-mode-string mingus-mode-line-object)))
+  (unless (timerp mingus-modeline-timer)
+    (setq mingus-modeline-timer 
+	  (run-with-timer 1 1 (lambda () 
+				(if (or mingus-mode-always-modeline
+					(member (buffer-name) '("*Mingus Browser*" "*Mingus Help*" "*Mingus*" "*Mingus Burns*")))
+				    (setq mingus-status (mingus-make-simple-info-string))
+				  (setq mingus-status nil))))))
   (let ((buffer-read-only nil))
     (mingus-playlist)
-    (goto-line (or (mingus-cur-song-number) 1))))
+    (mingus-goto-current-song)))
+
+
+(defmacro mingus-make-shell-fn (name command &optional docstring &rest body)
+  (funcall
+   (lambda ()
+     `(defun ,name ()
+        ,docstring
+        (interactive)
+        (let ((buffer-read-only nil))
+          (start-process-shell-command "mpc" nil (concat "mpc " ,command))
+          ,@body)))))
+
 
 (defmacro mingus-make-fn (name command &optional docstring &rest body)
   (funcall
@@ -912,25 +1018,29 @@ see function `mingus-help' for instructions."
         ,docstring
         (interactive)
         (let ((buffer-read-only nil))
-          (shell-command (concat "mpc " ,command))
-          ,@body)))))
+          (start-process "mpc" nil "mpc" ,command))
+          ,@body))))
+
 
 (defun mingus-start-daemon ()
   "Start mpd daemon for `mingus'."
   (interactive)
   (shell-command "mpd"))
 
+(defun mingus-show-the-status (regexp)
+  "Get a status from mpc output, where status is the first match for REGEXP in this output;"
+  (let ((output (shell-command-to-string "mpc")))
+    (if (string-match regexp output)
+	(message "Mingus: %s" (match-string 1 output)))))
+
 (mingus-make-fn mingus-shuffle "shuffle" "Shuffle mpd playlist." (save-window-excursion (mingus)))
-(mingus-make-fn mingus-update "update" "Update mpd database.")
-(mingus-make-fn mingus-repeat "repeat" "Toggle mpd repeat mode." (mingus-info))
-(mingus-make-fn mingus-random "random" "Toggle mpd random mode." (mingus-info))
-(mingus-make-fn mingus-toggle "toggle" "Toggle mpd pause/play mode." (mingus-info))
-(mingus-make-fn mingus-pause "pause" "Pause mpd." (mingus-info))
-(mingus-make-fn mingus-prev "prev" "Play previous song in mpd playlist." (mingus-info))
-(mingus-make-fn mingus-next "next" "Play next song in mpd playlist."
-                (when (string=
-                       "*Mingus*" (buffer-name))
-                  (mingus-info)))
+(mingus-make-fn mingus-update "update" "Update mpd database." (mingus-show-the-status "\\(Updating DB\\)"))
+(mingus-make-fn mingus-repeat "repeat" "Toggle mpd repeat mode." (mingus-show-the-status "\\(repeat: o[nf]+\\)"))
+(mingus-make-fn mingus-random "random" "Toggle mpd random mode." (mingus-show-the-status "\\(random: o[nf]+\\)"))
+(mingus-make-fn mingus-toggle "toggle" "Toggle mpd pause/play mode." (mingus-show-the-status "\\[\\(playing\\|paused\\)\\]"))
+(mingus-make-fn mingus-pause "pause" "Pause mpd.")
+(mingus-make-fn mingus-prev "prev" "Play previous song in mpd playlist.")
+(mingus-make-fn mingus-next "next" "Play next song in mpd playlist.")
 
 (defun mingus-info ()
   "Show mpd info."
@@ -943,9 +1053,55 @@ see function `mingus-help' for instructions."
 	    (shell-command "mpc"))))
    (shell-command "mpc")))
 
+(defun mingus-make-simple-info-string ()
+  "Make a simple informative string about current mpd status.
+Well, simple, that was my intention when I started it."
+  (let* ((output (split-string (shell-command-to-string 
+				(format "mpc --format \"%s\"" mingus-mode-line-string))
+			       "\n"))
+	 (caroutput (car output))
+	 (status (caddr output)))
+    (cond ((string-match "^volume: " caroutput)
+	   " [Sn6uIw] " )		;mingus ligt op z'n gat
+	  ((string-match "^MPD_HOST and/or" caroutput)
+	   " [unable to connect to mpd] ")
+	  (t 
+	   (setq caroutput (progn (string-match "\\([^/]*\\)\\.[^.]*$" caroutput) ;get rid of parent dirs
+				  (or (match-string 1 caroutput) caroutput)))
+	   (string-match "\\( [0-9]+:[0-9]+\\)\\( ([0-9]+%)\\)" (cadr output)) 
+	   ;; 1 = elapsed time
+	   ;; 2 = percentage 
+	   (apply 'concat (list " [" 
+				(if (> (length caroutput) mingus-mode-line-string-max) ; chomp the lot
+				    (concat  (substring caroutput 0 (- mingus-mode-line-string-max 3)) "...")
+				  caroutput)
+				(if mingus-mode-line-show-elapsed-time
+				    (match-string 1 (cadr output)))
+				(if mingus-mode-line-show-elapsed-percentage
+				    (match-string 2 (cadr output)))
+				(prog1 
+				    nil
+				  (string-match "^Volume: ?\\([0-9]+%\\)" (caddr output)))
+				(if mingus-mode-line-show-status 
+				    (concat " <"
+					    (if mingus-mode-line-show-volume
+						(match-string 1 (caddr output)))
+					    (if mingus-mode-line-show-random-and-repeat-status
+						(concat
+						 (if (string-match "Repeat: on" (caddr output)) "r")
+						 (if (string-match "Random: on" (caddr output)) "z")))
+					    (if *mingus-point-of-insertion* "i")
+					    ">"))
+				"] "))))))
+
+
 (mingus-make-fn mingus-stop "stop" "Tell mpd to stop playing.")
-(mingus-make-fn mingus-vol-up "volume +1" "Tell mpd to increase volume." (mingus-info))
-(mingus-make-fn mingus-vol-down "volume -1" "Tell mpd to decrease volume." (mingus-info))
+(mingus-make-shell-fn mingus-vol-up "volume +1" "Tell mpd to increase volume." 
+		      (setq mingus-status (mingus-make-simple-info-string))
+		      (mingus-show-the-status "\\(volume: [0-9]+%\\)"))
+(mingus-make-shell-fn mingus-vol-down "volume -1" "Tell mpd to decrease volume." 
+		      (setq mingus-status (mingus-make-simple-info-string))
+		      (mingus-show-the-status "\\(volume: [0-9]+%\\)"))
 
 (defmacro mingus-advice (func-name buffer-name &optional docstring)
 					;fixme: should make this dependent on a keyword
@@ -1051,7 +1207,8 @@ If PERCENTAGE is specified and AMOUNT is negative, seek PERCENTAGE backwards."
                                          (concat "mpc seek " (if (or (minusp amount) percentage from-start) "" "+")
                                                  (number-to-string (if (and (null from-start)(= 1 amount)) mingus-seek-amount amount)) (if percentage "%"))) 0 11))
       (message "Seek amount would seek past the end of the song")
-    (mingus-info)))
+    ;; (mingus-info)
+    ))
 
 (defun mingus-seek-percents (amount)
   "Seek song played by mpd in percentage."
@@ -1199,7 +1356,7 @@ Return nil if no song playing."
 (defun mingus-move (list pos &optional after-insert)
   "In Mingus, move LIST of songs to position POS.
 POS increments when number of a song is greater, thereby preserving order."
-  (let* ((poi (mingus-get-insertion-number))
+  (let* ((poi (mingus-get-insertion-number)) ;loose poi to make it easier?
          (less-than-poi (count-if (lambda (item) (< item poi)) list))
          (more-than-poi (- (length list) less-than-poi))
          (novy (mingus-get-insertion-number))
@@ -1237,6 +1394,9 @@ POS increments when number of a song is greater, thereby preserving order."
              (goto-line novy)
              (mingus-set-insertion-point)))
       (goto-line newpos))))
+;; there is a bug here, which *sometimes* occurs when moving songs with a greater index to a lower
+;; position. Fix this, AND in the mean time, make sure to make it faster.
+
 
 (defun mingus-move-all ()
   "In Mingus, move all marked songs to current position in buffer."
@@ -1296,7 +1456,7 @@ To mark a region, use mingus-mark-region."
 				 (push int result)))))
   (mingus))
 
-(mingus-make-fn mingus-del (format "del %s" (mingus-cur-line t)) "Delete song under line."
+(mingus-make-shell-fn mingus-del (format "del %s" (mingus-cur-line t)) "Delete song under line."
                 (let ((buffer-read-only nil))
                   (mingus-reset-point-of-insertion)
                   (mingus-delete-line)
@@ -1421,16 +1581,14 @@ Leave `mingus-marked-list' intact."
           (goto-char (point-min)))
         (message "Other songs deleted"))))
 
+
 (defun mingus-play (&optional position)
   "Start playing the mpd playlist, only if not yet playing.
 When called with argument POSITION, play playlist id POSITION."
   (interactive)
-  (shell-command
-   (concat "mpc play "
-           (or position
-               (if (string= "*Mingus*" (buffer-name))
-                   (mingus-cur-line t)))))
-  (mingus-info))
+  (start-process-shell-command "mpc" nil (concat "mpc play " (or position
+								(if (string= "*Mingus*" (buffer-name))
+								    (mingus-cur-line t) "")))))
 
 (defun mingus-play-pos (position)
   "Play song in mpd playlist at position specified by prefix argument."
@@ -1486,7 +1644,8 @@ Does prompting."
     ("radiolivre" . "http://orelha.radiolivre.org:8000/radiolivre.ogg")
     ("CRo 1 - Radiozurnal (czech)" . "http://amp1.cesnet.cz:8000/cro1-256.ogg")
     ("CRo 2 - Praha (czech)" . "http://amp1.cesnet.cz:8000/cro2-256.ogg")
-    ("CRo 3 - Vltava czech)" . "http://amp1.cesnet.cz:8000/cro3-256.ogg"))
+    ("CRo 3 - Vltava czech)" . "http://amp1.cesnet.cz:8000/cro3-256.ogg")
+    ("orgradio" . "http://hosting.puscii.nl:8000/org.ogg"))
   "Alist of radio stations to be used by the function `mingus-add-stream'"
   :group 'mingus
   :type '(alist))
@@ -1621,10 +1780,12 @@ If active region, add everything under the region, sloppily."
   "List songs/dirs in directory STRING in dedicated *Mingus Browser* buffer."
   (mingus-switch-to-browser)
   (save-excursion)
-  (let ((buffer-read-only nil))
+  (let ((buffer-read-only nil)
+	(newcontents (shell-command-to-string (concat "mpc ls "  string))))
     (erase-buffer)
-    (insert (substring (shell-command-to-string (concat "mpc ls "  string)) 0 -1))
-    (setq mode-name (if (string= "" string) "top dir" string))
+    (if (string= "" newcontents)
+	(message "No songs in database; check your mpd settings")
+      (insert (substring newcontents 0 -1))) 
     (mingus-browse-invisible)))
 
 (defun mingus-dir-up ()
@@ -1812,7 +1973,7 @@ Show results in dedicated *Mingus Browser* buffer for further selection."
          (goto-char pos)
          (message "No hits!"))
         (t
-         (setq mode-name "QUERY RESULTS")
+         (setq mode-name "Query results")
          (set (make-local-variable 'mingus-last-query-results) (buffer-string)))))
 
 (defun mingus-last-query-results ()
@@ -1823,7 +1984,7 @@ Show results in dedicated *Mingus Browser* buffer for further selection."
            (null mingus-last-query-results))
          (message "No succesful search yet"))
         (t (switch-to-buffer "*Mingus Browser*")
-           (setq mode-name "QUERY RESULTS")
+           (setq mode-name "Query results")
            (let ((buffer-read-only nil))
              (erase-buffer)
              (insert mingus-last-query-results)
@@ -1857,22 +2018,15 @@ The timer-object is referenced to by the variable `mingus-wake-up-call'"
 	(t
 	 (setq
 	  mingus-wake-up-call (run-at-time 
-			       (let ((time (mingus-date-to-sec-from-epoch (concat 
-									   (format-time-string "%Y%m%d")
-									   (mingus-pad-with-zeros (read-from-minibuffer "Hour: ") 2)
-									   (mingus-pad-with-zeros (read-from-minibuffer "Minute: ") 2) "00"))))
+			       (let ((time (mingus-date-to-sec-from-epoch 
+					    (concat 
+					     (format-time-string "%Y%m%d")
+					     (format "%02d" (read-number "Hour: "))
+					     (format "%02d" (read-number "Minute: ")) "00"))))
 				 (if (time-less-p time (current-time)) (time-add (days-to-time 1) time) time)) 
 			       nil 'mingus-play))
 	 (message (format "%sake sure you have a playlist set before dozing off!" 
 			  (if (=  0 (mingus-playlist-length)) "Playlist is empty, m" "M"))))))
-
-
-(defun mingus-pad-with-zeros (el pad-width)
-  "Pad EL up to PAD-WIDTH characters with zeros on the left"
-  (let* ((need (- pad-width (length el))))
-    (if (> need 0)
-	(concat (make-string need ?0) el)
-      el)))
 
 (provide 'mingus)
 ;;; mingus.el ends here
