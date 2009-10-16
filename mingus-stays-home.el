@@ -1,4 +1,4 @@
-;;;; mingus-stays-home.el ---
+;;;; mingus-stays-home.el --- Time-stamp: <2007-11-09 20:45:20 sharik>
 
 ;;                    _                    _
 ;;  _ __ ___      ___| |_ __ _ _   _ ___  | |__   ___  _ __ ___   ___
@@ -7,13 +7,15 @@
 ;; |_| |_| |_(_) |___/\__\__,_|\__, |___/ |_| |_|\___/|_| |_| |_|\___|
 ;;                             |___/
 
-;; Copyright (C) 2006-2007 Niels Giesen <com dot gmail at nielsgiesen, in
+;; Copyright (C) 2006-2008 Niels Giesen <com dot gmail at nielsgiesen, in
 ;; reversed order>
 
 ;; Author: Niels Giesen <pft on #emacs>
 
-;; Version: Pussy Cat Dues, or: 0.25
-;; Latest version can be found at http://niels.kicks-ass.org/mingus
+;; Version: Minor Intrusions, or: 0.26
+;; Latest version can be found at http://niels.kicks-ass.org/emacs/mingus
+
+;; For Changes, please view http://niels.kicks-ass.org/public/mingus/src/ChangeLog
 
 ;; NEW in 0.23:
 
@@ -178,7 +180,7 @@
 ;;; in this file: find it at http://dto.freeshell.org/notebook/GoLisp.html )
 
 ;;; Code:
-(load "mingus.el")
+(require 'mingus)
 
 ;;;; {{Update Help Text}}
 
@@ -309,7 +311,7 @@ Mingus buffers, M-x mingus from elsewhere.")
      (_mingus-get-filename-from-browser-relative))
     ('mingus-playlist-mode
      (_mingus-get-filename-from-playlist-relative))
-    ('mingus-burns
+    ('mingus-burn-mode
      (_mingus-get-filename-from-burner-relative))))
 
 (defun _mingus-get-filename-absolute ()
@@ -496,7 +498,7 @@ Do you want to symlink the parent directory? : " ))
             (mingus-update)
             (message "This might take a while, repeat `mingus-dired-add' when that rattling sound of your harddisk has subsided")))
       (case major-mode
-        ('mingus-burns (mingus-burns))))))
+        ('mingus-burn-mode (mingus-burns))))))
 
 (mingus-and-play mingus-dwim-add mingus-dwim-add-and-play)
 
@@ -800,8 +802,6 @@ ITEM must be one of the elements in the variable `*mingus-id3-items*'"
       result)))
 
 ;;;; {{Thumbs}}
-
-
 (eval-when (compile)
   (when (featurep 'thumbs)
     (defun mingus-thumbs ()
@@ -942,17 +942,19 @@ However, you can just as well specify it directly in this string."
 ;;           (insert (setq *mingus-buffer-contents* new-contents))
 ;;           (mingus-burns-invisible)
 ;;           (mingus-compute-buffer-length))
-;;          (t (insert "Press ? for help, 2 for Mingus Playlist, 3 for Mingus Browser and 0 for Dired\n\nPress 4 from within Mingus buffers to come back here, M-x mingus-burns from elsewhere.\n\nPlaylist is empty, please add some songs.\n\nYou can do so with either mingus-dwim-add, with mingus-browse or from within dired.")
+;;          (t (insert "Press ? for help, 2 for Mingus Playlist, 3 for Mingus Browser and 0 for Dit.red\n\nPress 4 from within Mingus buffers to come back here, M-x mingus-burns from elsewhere.\n\nPlaylist is empty, please add some songs.\n\nYou can do so with either mingus-dwim-add, with mingus-browse or from within dired.")
 ;;             (goto-char (point-min)))))))
 ;;   (setq buffer-read-only t))
 
 ;; throw me away
 (defun mingus-burns-del ()
+  "Delete song at point."
   (interactive)
-  (save-excursion
-    (let* ((buffer-read-only nil)
-           (length-of-song-at-p (getf (get-text-property (point-at-bol) 'details) :time))
-           (min:secs (mingus-sec->min:sec length-of-song-at-p)))
+  (block nil
+    (save-excursion
+      (let* ((buffer-read-only nil)
+             (length-of-song-at-p (getf (get-text-property (point-at-bol) 'details) :time))
+             (min:secs (mingus-sec->min:sec (or length-of-song-at-p (return nil)))))
       (if (null min:secs) (message "Nothing to delete")
         (mpd-delete mpd-inter-conn (1- (mingus-line-number-at-pos)))
         (mingus-reset-point-of-insertion)
@@ -961,7 +963,7 @@ However, you can just as well specify it directly in this string."
         (goto-line (- (mingus-line-number-at-pos (point-max)) 2))
         (delete-region (point) (point-max))
         (mingus-2-burns-bar (get '*mingus-b-session* :total-time))))
-    (forward-line -1)))
+    (forward-line -1))))
 
 (defun mingus-burns-play ()
   (interactive)
@@ -1072,13 +1074,18 @@ Both filename are absolute paths in the filesystem"
       (t (message "Decoding %s to %s" src dest)
          (start-process "mingdec" "*Mingus-Output*" "sox" "-V" src "-t" ".wav" dest)))))
 
+(defun mingus-burn-mode ()
+  "Mingus burning mode
+\\{mingus-burnin-map}"
+  (setq major-mode 'mingus-burn-mode)
+  (setq mode-name "Mingus-burns")
+  (use-local-map mingus-burnin-map)
+  (setq buffer-read-only t))
+
 (defun mingus-burns ()
   (interactive)
   (switch-to-buffer "*Mingus Burns*")
-  (setq major-mode 'mingus-burns)
-  (setq mode-name "Mingus-burns")
-  (use-local-map mingus-burnin-map)
-  (setq buffer-read-only t)
+  (mingus-burn-mode)
   (let* ((data (mingus-read-entire-metadata))
          (total-time 0)
          buffer-read-only
