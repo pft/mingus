@@ -16,7 +16,7 @@
 ;; reversed order>
 
 ;; Author: Niels Giesen <pft on #emacs>
-;; Version: New Now Know How, or: 0.29
+;; Version: Song With Orange, or: 0.30
 ;; Latest version can be found at http://niels.kicks-ass.org/index.php/emacs/mingus/
 ;; For Changes, please view http://niels.kicks-ass.org/public/mingus/src/ChangeLog
 
@@ -490,7 +490,7 @@ customizing these values; use `mingus-customize' for that."
   (interactive)
   (customize-group 'mingus))
 
-(defvar mingus-version "New Now Know How, or: 0.29")
+(defvar mingus-version "Song With Orange, or: 0.30")
 
 (defun mingus-version ()
   "Echo `mingus-version' in minibuffer."
@@ -868,6 +868,8 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (define-key mingus-global-map "2" 'mingus)
 (define-key mingus-global-map "3" 'mingus-browse)
 (define-key mingus-global-map "w" 'mingus-wake-up-call)
+(define-key mingus-global-map "]" 'mingus-enable-output)
+(define-key mingus-global-map "[" 'mingus-disable-output)
 (define-key mingus-global-map
   (if (featurep 'xemacs)[(control button5)][C-mouse-5]) 'mingus-vol-down)
 (define-key mingus-global-map
@@ -932,6 +934,10 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (define-key mingus-global-map [menu-bar mingus query]
   '(menu-item "Query" mingus-query
     :help "Query the mpd database"))
+
+(define-key mingus-global-map [menu-bar mingus update]
+  '(menu-item "Update" mingus-update
+    :help "Update the mpd database"))
 
 (define-key mingus-global-map [menu-bar mingus sep-above-query]
   '(menu-item "--"))
@@ -3369,7 +3375,9 @@ songs to Mingus."
          (set-default sym val)))
 
 (defun mingus-dired-file ()
-  "Open dired with parent dir of song at point."
+  "Open dired with parent dir of song at point.
+
+See also the variable `mingus-mpd-root'"
   (interactive)
   (dired
    (cond
@@ -3424,6 +3432,57 @@ Do you want to symlink the parent directory? : " ))
 
 ' (push mingus-modeline-timer timer-list)
 ' (push mingus-generic-timer timer-list)
+
+(defun mingus-outputs ()
+  (let ((output (mingus-exec "outputs")))
+    (when (car output)
+      (loop for i on (cdr output)
+	    by 'cdddr
+	    collect 
+	    (list 
+	     :id (string-to-number (cdr (nth 0 i))) 
+	     :name (cdr (nth 1 i)) 
+	     :enabled (string= (cdr (nth 2 i)) "1"))))))
+
+(defun mingus-disable-output ()
+  (interactive)
+  (let* ((outputs (mingus-outputs))
+	 (enabled 
+	 (loop for i in outputs
+	       when (plist-get i :enabled)
+	       collect i)))
+    (if (null enabled)
+	(message "No outputs to disable")
+      (let ((id
+	     (string-to-number
+	      (completing-read
+	       "Disable output: "
+	       (mapcar (lambda (output)
+			 (format "%d: %s"
+				 (plist-get output :id)
+				 (plist-get output :name))) enabled)
+	       nil t))))
+	(mingus-exec (format "disableoutput %d" id))))))
+
+(defun mingus-enable-output ()
+  (interactive)
+  (let* ((outputs (mingus-outputs))
+	 (disabled 
+	 (loop for i in outputs
+	       when (not (plist-get i :enabled))
+	       collect i)))
+    (if (null disabled)
+	(message "No outputs to enable")
+      (let ((id
+	     (string-to-number
+	      (completing-read
+	       "Enable output: "
+	       (mapcar (lambda (output)
+			 (format "%d: %s"
+				 (plist-get output :id)
+				 (plist-get output :name))) disabled)
+	       nil t))))
+	(mingus-exec (format "enableoutput %d" id))))))
 
 (provide 'mingus)
 ;;; mingus.el ends here

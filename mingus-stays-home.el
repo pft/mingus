@@ -12,7 +12,7 @@
 
 ;; Author: Niels Giesen <pft on #emacs>
 
-;; Version: New Now Know How, or: 0.29
+;; Version: Song With Orange, or: 0.30
 ;; Latest version can be found at http://niels.kicks-ass.org/emacs/mingus
 
 ;; For Changes, please view http://niels.kicks-ass.org/public/mingus/src/ChangeLog
