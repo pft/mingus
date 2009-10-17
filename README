@@ -1,0 +1,15 @@
+Description
+
+Mingus is a frontend for GNUEmacs to the Music Player daemon. The interface closely, though not strictly, resembles that of ncmpc, which I had been using before (the main drawback of ncmpc for me was its apparent lack of support for unicode). It has some advantages over other clients, mainly in the field of playlist editing. This is achieved through marking and regions as you are used too in Emacs and in Dired. Mingus also provides a point-of-insertion for inserting new songs. This can be handy to drop a song after the currently playing one. Mingus is distributed under the GPL.
+
+W3M
+Another plus is its integration with emacs-w3m , in the sense that, when bumping into a sexy podcast or radio-stream while browsing in the browser of browsers, you have the ability to add any stream at point (and play it directly, if so desired).
+
+Dired
+Mingus can integrate with dired: jump from a song in the MPD database straight to its position in the file system, and, vice versa, add any file under the MPD database from dired into a playlist.
+
+Mingus stays home
+If mingus stays home, i.e. the daemon mpd is run from the same computer as the client, mingus-stays-home.el provides tagging support for ogg, flac and mp3, an experimental cd-burning tool (mingus-burns).
+
+Prerequisites
+libmpdee.el, by R. Ramkumar. Currently mingus runs on both GNU Emacs22 and GNU Emacs 23 (and emacs-snapshot) If you also want to use mingus-stays-home.el, the programs flac, metaflac, vorbiscomment, sox, id3v2 and cdrecord (or any other command-line cd-burning tool taking files as arguments) might be needed, if you want to make use of tagging and cd-burning faculties of mingus-stays-home. 
