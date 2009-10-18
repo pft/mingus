@@ -48,7 +48,7 @@ mingus.el
 mingus-stays-home.el
 --------------------
 - add tagging for multiple files in one go (apply one field of choice to one or more files)
-   For this I am looking into [[http://developer.kde.org/~wheeler/taglib.html][LibTag]] . Best bet would be to write a
+   For this I am looking into [LibTag](http://developer.kde.org/~wheeler/taglib.html) . Best bet would be to write a
    command-line program in C++ (maybe even one spitting out lists :)
    ), so that I do not have to worry about people having this or that
    interpreter language that *has got* ffi's.
