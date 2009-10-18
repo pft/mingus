@@ -3060,6 +3060,7 @@ Optional argument AND-PLAY means start playing thereafter."
                  (mpd-remove-playlist mpd-inter-conn quoted-playlist))
                (message "Playlist %s removed" playlist)))))))
 
+
 
 ;; {{minibuffer addition of tracks/dirs}}
 (defun mingus-complete-path (input)
@@ -3069,18 +3070,22 @@ INPUT is supposed to be supplied by current minibuffer contents."
     (append
      (if (and (car res)
                                         ;let the dir itself be sufficient too
-              (not (string= "" input)))
+	      (not (string= "" input)))
                                         ;do not show empty string or single "/"
-         (list (replace-regexp-in-string "/*$" "/" input)))
+	 (list
+	  input
+	  (replace-regexp-in-string "/*$" "/" input))
                                         ;mingus-switch-car-and-cdr
-     (mapcar 'cdr
-             (cdr (mingus-exec
-                   (concat "lsinfo " (mpd-safe-string
-                                      (if (car res)
-                                          input
+       (mapcar 'cdr
+	       (cdr (mingus-exec
+		     (concat "lsinfo " (mpd-safe-string
+					(if (car res)
+					    input
                                         ;search on dir if no match found here:
-                                        (replace-regexp-in-string
-                                         "\\(/\\|[^/]*\\)$" "" input))))))))))
+					  (if (file-name-directory input)
+					      (substring (file-name-directory input) 0 -1)
+					;special case mpd root
+					    "")))))))))))
 
 (defun mingus-complete-from-minibuffer (prompt &optional predicate require-match
 					       initial-input hist def
@@ -3089,7 +3094,7 @@ INPUT is supposed to be supplied by current minibuffer contents."
    prompt
     (if (fboundp 'completion-table-dynamic)
 	(completion-table-dynamic (function mingus-complete-path))
-      (dynamic-completion-table mingus-complete-path))
+      (dynamic-completion-table 'mingus-complete-path))
     predicate require-match
     initial-input hist def
     inherit-input-method))
