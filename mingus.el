@@ -210,7 +210,6 @@ Songs are hashed by their MPD ids")
   (playlist -1)
   (song nil))
 (defvar mingus-data (make-mingus-data))
-(defvar mingus-current-song-marker ">>> ")
 (defvar *mingus-NP-mark* nil)
 (defvar *mingus-pausing-mark* nil)
 ;; (@> "faces")
@@ -237,6 +236,27 @@ Songs are hashed by their MPD ids")
     (((background light)) (:foreground "#918e2d"))
     (((background dark)) (:foreground "yellow")))
   "Face for displaying playlist files"
+  :group 'mingus-faces)
+
+(defface mingus-playing-face 
+  '((default)
+    (((background light)) (:foreground "green"))
+    (((background dark)) (:foreground "green")))
+  "Face for playing mark"
+  :group 'mingus-faces)
+
+(defface mingus-pausing-face 
+  '((default)
+    (((background light)) (:foreground "grey"))
+    (((background dark)) (:foreground "grey")))
+  "Face for playing mark"
+  :group 'mingus-faces)
+
+(defface mingus-stopped-face 
+  '((default)
+    (((background light)) (:foreground "red"))
+    (((background dark)) (:foreground "red")))
+  "Face for playing mark"
   :group 'mingus-faces)
 
 (defun mingus-exec (string)
@@ -1807,10 +1827,12 @@ Argument OVERRIDE defines whether to treat the situation as new."
 
 (defvar 
   *mingus-playing-string*
-  (propertize
-   mingus-current-song-marker
-   'display
-   '(left-fringe mingus-NP-fringe)))
+  (if window-system
+      (propertize
+       ">> "
+       'display
+       '(left-fringe mingus-NP-fringe))
+    (propertize ">> " 'face 'mingus-playing-face)))
 
 ;; 1 0 0 0 0 0 0 0
 ;; 1 1 0 0 0 0 0 0
@@ -1831,10 +1853,12 @@ Argument OVERRIDE defines whether to treat the situation as new."
 
 (defvar 
   *mingus-pausing-string*
-  (propertize
-   mingus-current-song-marker
-   'display
-   '(left-fringe mingus-pausing-fringe)))
+  (if window-system
+      (propertize
+       "|| "
+       'display
+       '(left-fringe mingus-pausing-fringe))
+    "|| "))
 
 ;; (+ 0 64 32 0 0 4 2 0)
 
@@ -1857,21 +1881,19 @@ Argument OVERRIDE defines whether to treat the situation as new."
 
 (defvar 
   *mingus-stopped-string*
-  (propertize
-   mingus-current-song-marker
-   'display
-   '(left-fringe mingus-stopped-fringe)))
+  (if window-system
+      (propertize
+       "[] "
+       'display
+       '(left-fringe mingus-stopped-fringe))
+    (propertize "[] " 'face 'mingus-stopped-face)))
 
-(set-fringe-bitmap-face 'mingus-NP-fringe 'mingus-song-file-face)
-(set-fringe-bitmap-face 'mingus-pausing-fringe 'font-lock-string-face)
-(set-fringe-bitmap-face 'mingus-stopped-fringe 'font-lock-string-face)
+(set-fringe-bitmap-face 'mingus-NP-fringe 'mingus-playing-face)
+(set-fringe-bitmap-face 'mingus-pausing-fringe 'mingus-pausing-face)
+(set-fringe-bitmap-face 'mingus-stopped-fringe 'mingus-stopped-face)
 
 (defun mingus-create-NP-mark ()
-  (let ((string
-         (propertize
-          mingus-current-song-marker
-          'display
-          '(left-fringe mingus-NP-fringe))))
+  (let ((string *mingus-playing-string*))
 
     (save-window-excursion
       (setq *mingus-NP-mark*
@@ -1881,7 +1903,7 @@ Argument OVERRIDE defines whether to treat the situation as new."
       (overlay-put *mingus-NP-mark*
                    'before-string string)
       (overlay-put *mingus-NP-mark*
-                   'face 'mingus-song-file-face)
+                   'face 'mingus-playing-face)
       (overlay-put *mingus-NP-mark*
                    'name "mingus-NP-mark"))))
 
@@ -3235,7 +3257,8 @@ Argument POS is the current position in the buffer to revert to (?)."
         (t (switch-to-buffer "*Mingus Browser*")
            (setq mode-name "Query results")
            (let ((buffer-read-only nil))
-             (goto-char (point-min))))))
+	     (erase-buffer)
+	     (insert mingus-last-query-results)))))
 
 (defalias 'mingus-search 'mingus-query)
 
