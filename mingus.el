@@ -598,6 +598,7 @@ R                       mingus-remove-playlist
 l                       mingus-load-playlist
 o                       mingus-open-playlist
 Q                       mingus-query
+e                       mingus-query-dir
 M-%%                     mingus-query-regexp
 \\                       mingus-last-query-results
 k                       forward-line -1
@@ -851,6 +852,7 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (define-key mingus-global-map "0" 'mingus-dired-file)
 (define-key mingus-global-map "q" 'mingus-git-out)
 (define-key mingus-global-map "Q" 'mingus-query)
+(define-key mingus-global-map "e" 'mingus-query-dir)
 (define-key mingus-global-map "\M-%" 'mingus-query-regexp)
 (define-key mingus-global-map "\\" 'mingus-last-query-results)
 (define-key mingus-global-map "j" 'forward-line)
@@ -954,6 +956,10 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (define-key mingus-global-map [menu-bar mingus query]
   '(menu-item "Query" mingus-query
     :help "Query the mpd database"))
+
+(define-key mingus-global-map [menu-bar mingus query-dircd ]
+  '(menu-item "Query, list dirs" mingus-query-dir
+    :help "Query the mpd database, return directories containing a match"))
 
 (define-key mingus-global-map [menu-bar mingus update]
   '(menu-item "Update" mingus-update
@@ -3153,7 +3159,7 @@ Complete in the style of the function `find-file'."
 (defvar mingus-title-query-hist nil)
 (defvar mingus-regexp\ on\ filename-query-hist nil)
 
-(defun mingus-query (&optional type)
+(defun mingus-query (&optional as-dir type)
   "Query the mpd database.
 
 Show results in dedicated *Mingus Browser* buffer for further selection.  Use
@@ -3165,7 +3171,7 @@ possible).  Optional argument TYPE predefines the type of query."
   ;; function to return a list, but that once one specifies a function, it has
   ;; got to handle all possible cases. Handling it with dynamic-completion-table
   ;; strips the list of apropos matches.
-  (interactive)
+  (interactive "P")
   (let* ((type (or type (mingus-completing-read-allow-spaces
                          "Search type: "
                          '("album" "artist" "genre"
@@ -3203,15 +3209,19 @@ possible).  Optional argument TYPE predefines the type of query."
                  nil
                  (intern-soft
                   (format "mingus-%s-query-hist" "artist")))))
-    (mingus-query-do-it type query pos buffer)))
+    (mingus-query-do-it type query pos buffer as-dir)))
 
-(defun mingus-query-regexp ()
+(defun mingus-query-dir ()
+  (interactive)
+  (mingus-query t nil))
+
+(defun mingus-query-regexp (&optional as-dir)
   "Query the filenames in the mpd database with a regular expression;
 Show results in dedicated *Mingus Browser* buffer for further selection."
-  (interactive)
-  (mingus-query "regexp on filename"))
+  (interactive "p")
+  (mingus-query as-dir "regexp on filename"))
 
-(defun mingus-query-do-it (type query pos buffer)
+(defun mingus-query-do-it (type query pos buffer &optional as-dir)
   "Perform the query provided by either `mingus-query' or `mingus-query-regexp'.
 Argument TYPE specifies the kind of query.
 Argument QUERY is a query string.
@@ -3220,22 +3230,54 @@ Argument POS is the current position in the buffer to revert to (?)."
   (let ((buffer-read-only nil)
         (prev (buffer-string)))
     (erase-buffer)
-    (cond ((string-match "regexp on filename" type)
-           (mapc (lambda (item) (and (string= (car item) "file")
-                                     (string-match query (cdr item))
-                                     (insert (cdr item) "\n")))
-                 (cdr (mingus-exec "listall"))))
-          (t (insert
-              (mapconcat 'identity
-                         (sort*
-                          (loop for i in (cdr (mingus-exec
-                                              (format "search %s %s"
-                                                      type
-                                                      (mpd-safe-string query))))
-                               if (string= (car i) "file")
-                               collect (cdr i))
-                          #'mingus-logically-less-p)
-                         "\n"))))
+    (let ((results
+	   (cond ((string-match "regexp on filename" type)
+		  (loop for i in 
+			(cdr (mingus-exec "listall"))
+			if (and (string= (car i) "file")
+				(string-match query (cdr i)))
+			if (null as-dir)
+			collect
+			(cdr i)
+			into list
+			else if
+			(not (member 
+			      (substring (file-name-directory (cdr i)) 0 -1)
+			      list))
+			collect
+			(substring (file-name-directory (cdr i)) 0 -1)
+			into list 
+			finally return list))
+		 (t
+		  (if (null as-dir)
+		      (loop for i in (cdr (mingus-exec
+					   (format "search %s %s"
+						   type
+						   (mpd-safe-string query))))
+			    if (string= (car i) "file")
+			    collect 
+			    (cdr i))
+		    (loop for i in (cdr (mingus-exec
+					 (format "search %s %s"
+						 type
+						 (mpd-safe-string query))))
+			  if (and (string= (car i) "file")
+				  (not (member 
+					(substring (file-name-directory (cdr i)) 0 -1)
+					list)))
+			  collect 
+			  (substring (file-name-directory (cdr i)) 0 -1)
+			  into list
+			  finally return list))))))
+      		  (flet ((prop (s)
+			       (propertize 
+				s
+				'face
+				(if as-dir
+				    'mingus-directory-face
+				  'mingus-song-file-face))))
+		    (insert
+		     (mapconcat #'prop (sort* results #'mingus-logically-less-p) "\n"))))
     (mingus-browse-invisible)
     (goto-char (point-min))
     (mingus-revert-from-query pos prev buffer)))
