@@ -240,22 +240,22 @@ Songs are hashed by their MPD ids")
 
 (defface mingus-playing-face 
   '((default)
-    (((background light)) (:foreground "green"))
-    (((background dark)) (:foreground "green")))
+    (((background light)) (:foreground "#c3be3d"))
+    (((background dark)) (:foreground "#cac655")))
   "Face for playing mark"
   :group 'mingus-faces)
 
 (defface mingus-pausing-face 
   '((default)
-    (((background light)) (:foreground "grey"))
-    (((background dark)) (:foreground "grey")))
+    (((background light)) (:foreground "#979797"))
+    (((background dark)) (:foreground "#d2d2d2")))
   "Face for playing mark"
   :group 'mingus-faces)
 
 (defface mingus-stopped-face 
   '((default)
-    (((background light)) (:foreground "red"))
-    (((background dark)) (:foreground "red")))
+    (((background light)) (:foreground "#902d2d"))
+    (((background dark)) (:foreground "#df9797")))
   "Face for playing mark"
   :group 'mingus-faces)
 
@@ -2137,6 +2137,7 @@ Actually it is just named after that great bass player."
   (let ((newval (abs (1- (getf (mpd-get-status mpd-inter-conn) 'random)))))
     (mpd-execute-command mpd-inter-conn (format "random %d" newval))
     (message "Mingus: random set to %S" (mingus-boolean->string newval))))
+
 
 (defun mingus-setvol (arg)
   (mpd-execute-command mpd-inter-conn
