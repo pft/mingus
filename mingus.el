@@ -598,6 +598,7 @@ R                       mingus-remove-playlist
 l                       mingus-load-playlist
 o                       mingus-open-playlist
 Q                       mingus-query
+e                       mingus-query-dir
 M-%%                     mingus-query-regexp
 \\                       mingus-last-query-results
 k                       forward-line -1
@@ -851,6 +852,7 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (define-key mingus-global-map "0" 'mingus-dired-file)
 (define-key mingus-global-map "q" 'mingus-git-out)
 (define-key mingus-global-map "Q" 'mingus-query)
+(define-key mingus-global-map "e" 'mingus-query-dir)
 (define-key mingus-global-map "\M-%" 'mingus-query-regexp)
 (define-key mingus-global-map "\\" 'mingus-last-query-results)
 (define-key mingus-global-map "j" 'forward-line)
@@ -954,6 +956,10 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (define-key mingus-global-map [menu-bar mingus query]
   '(menu-item "Query" mingus-query
     :help "Query the mpd database"))
+
+(define-key mingus-global-map [menu-bar mingus query-dircd ]
+  '(menu-item "Query, list dirs" mingus-query-dir
+    :help "Query the mpd database, return directories containing a match"))
 
 (define-key mingus-global-map [menu-bar mingus update]
   '(menu-item "Update" mingus-update
@@ -1315,6 +1321,10 @@ Or, you might show me how to use a function/string choice in customize ;)"
   (defun mingus-line-number-at-pos ()
     (line-number)))
 
+(defun mingus-goto-line (n)
+  (goto-char (point-min))
+  (forward-line (1- n)))
+
 (defmacro mingus-save-excursion (&rest body)
   "Execute BODY, and \"restore\" point to line-number and column."
   (let ((line (gensym))
@@ -1524,7 +1534,7 @@ This is an exact copy of line-number-at-pos for use in emacs21."
 (defun mingus-set-marks ()
   (let (buffer-read-only)
     (mapcar (lambda (pos)
-              (goto-line (1+ pos))
+              (mingus-goto-line (1+ pos))
               (beginning-of-line)
               (mingus-mark-line)
               (forward-line 2))
@@ -1818,7 +1828,7 @@ Argument OVERRIDE defines whether to treat the situation as new."
 	       (save-window-excursion
 		 (mingus-switch-to-playlist)
 		 (let (buffer-read-only)
-		   (goto-line (1+ pos))
+		   (mingus-goto-line (1+ pos))
 		   (mingus-move-NP-mark (point))))
 	       (mingus-set-song-pos pos))))))
 
@@ -1992,13 +2002,13 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
                   (mingus-set-marks)
                   (mingus-set-NP-mark t))
 	      (insert *mingus-header-when-empty*))
-            (goto-line pos))))
+            (mingus-goto-line pos))))
     (error err)))
 
 (defun mingus-playlist-set-detail-properties (songs)
   (mapc
    (lambda (sublist)
-     (goto-line (1+ (plist-get sublist 'Pos)))
+     (mingus-goto-line (1+ (plist-get sublist 'Pos)))
      (put-text-property (point-at-bol) (point-at-eol) 'details (list sublist)))
    songs))
 
@@ -2103,9 +2113,7 @@ Actually it is just named after that great bass player."
 			   (mingus-minibuffer-feedback 'state)
 			   (mingus-set-NP-mark t))
 
-(defalias 'mingus-toggle
-  'mingus-pause
-  (mingus-set-NP-mark t))
+(defalias 'mingus-toggle 'mingus-pause)
 
 (mingus-define-mpd->mingus
  mingus-prev
@@ -2191,7 +2199,7 @@ Actually it is just named after that great bass player."
 Switch to *Mingus* buffer if necessary."
   (interactive)
   (mingus-switch-to-playlist)
-  (goto-line (mingus-get-insertion-number)))
+  (mingus-goto-line (mingus-get-insertion-number)))
 
 (mingus-advice mingus-toggle-marked "*Mingus*")
 (mingus-advice mingus-goto-current-song "*Mingus*")
@@ -2350,7 +2358,7 @@ Switch to *Mingus* buffer if necessary."
 (defun mingus-goto-current-song ()
   "In Mingus, move point to currently playing song."
   (interactive)
-  (goto-line (or (1+ (mingus-cur-song-number)) 1)))
+  (mingus-goto-line (or (1+ (mingus-cur-song-number)) 1)))
 
 (defun mingus-playlist-length ()
   "Return length of current mpd playlist."
@@ -2371,7 +2379,7 @@ Switch to *Mingus* buffer if necessary."
  TIME is the last time the command has been invoked")
 
 (defun mingus-update-command-list (&optional inc)
-  (setcdr uplist (time-to-seconds (current-time)))
+  (setcdr uplist (float-time (current-time)))
   (if inc (incf (car uplist))
     (setcar uplist 1)))
 
@@ -2388,7 +2396,7 @@ Switch to *Mingus* buffer if necessary."
       (if (and (eq last-command this-command)
                                         ;quick repetition of keypresses,
                                         ;or holding down a key
-               (< (- (time-to-seconds (current-time))(cdr uplist)) 0.04))
+               (< (- (float-time (current-time))(cdr uplist)) 0.04))
           (progn (mingus-update-command-list t) ;increase the count of calls
                                         ;with one
                  (transpose-lines 1)    ;change positions in buffer
@@ -2439,7 +2447,7 @@ Switch to *Mingus* buffer if necessary."
         (mingus-update-command-list))   ;set the count of calls to 1
     (let ((buffer-read-only nil))
       (if (and (eq last-command this-command)
-               (< (- (time-to-seconds (current-time))(cdr uplist)) 0.04))
+               (< (- (float-time (current-time))(cdr uplist)) 0.04))
                                         ;quick repetition of keypresses, or
                                         ;holding down a key
           (progn (mingus-update-command-list t) ;increase the count of calls
@@ -2606,7 +2614,7 @@ deleted."
                  (integer (list lines)))))
     (save-excursion
       (mapc (lambda (lines)
-              (goto-line (1+ lines))
+              (mingus-goto-line (1+ lines))
               (delete-region (point-at-bol) (point-at-eol))) lines)
       (goto-char (point-min))
       (delete-matching-lines "^$"))))
@@ -2623,7 +2631,7 @@ deleted."
             (let ((mlist-as-pos (mingus-idlist->poslist mingus-marked-list)))
               (mpd-delete mpd-inter-conn mingus-marked-list t)
               (mingus-delete-lines mlist-as-pos))
-            (goto-line (- cur-line (count-if (lambda (item) (> cur-line item))
+            (mingus-goto-line (- cur-line (count-if (lambda (item) (> cur-line item))
                                              mingus-marked-list)))
             (setq mingus-marked-list nil)))
       (mingus-del)))
@@ -2677,7 +2685,8 @@ deleted."
       (with-current-buffer "*Mingus*"
         (mingus-playlist t)))))
 
-(defun mingus-crop ()
+(eval-when (eval)
+  (defun mingus-crop ()
   "Crop mpd playlist."
   (interactive)
   (condition-case err
@@ -2692,7 +2701,7 @@ deleted."
                                       (push count list))))
                 (save-window-excursion
                   (mingus))))))
-    (error "Mingus error: %s" err)))
+    (error "Mingus error: %s" err))))
 
 (defun mingus-add (string &optional mingus-url)
   "In Mingus, add a song."
@@ -2980,7 +2989,7 @@ Prefix argument shows value of *mingus-point-of-insertion*, and moves there."
                                  (buffer-substring-no-properties
                                   (point-at-bol) (point-at-eol))))))
                (*mingus-point-of-insertion*
-                (goto-line (caar *mingus-point-of-insertion*))))
+                (mingus-goto-line (caar *mingus-point-of-insertion*))))
          (message "*mingus-point-of-insertion* set at %s"
                   (or (cadar *mingus-point-of-insertion*)
                       "end of playlist (unset)")))
@@ -3095,8 +3104,10 @@ INPUT is supposed to be supplied by current minibuffer contents."
    prompt
     (if (fboundp 'completion-table-dynamic)
 	(completion-table-dynamic (function mingus-complete-path))
-      (dynamic-completion-table 'mingus-complete-path))
-    predicate require-match
+      (with-no-warnings
+	(dynamic-completion-table 'mingus-complete-path)))
+    predicate
+    require-match
     initial-input hist def
     inherit-input-method))
 
@@ -3154,7 +3165,7 @@ Complete in the style of the function `find-file'."
 (defvar mingus-title-query-hist nil)
 (defvar mingus-regexp\ on\ filename-query-hist nil)
 
-(defun mingus-query (&optional type)
+(defun mingus-query (&optional as-dir type)
   "Query the mpd database.
 
 Show results in dedicated *Mingus Browser* buffer for further selection.  Use
@@ -3166,7 +3177,7 @@ possible).  Optional argument TYPE predefines the type of query."
   ;; function to return a list, but that once one specifies a function, it has
   ;; got to handle all possible cases. Handling it with dynamic-completion-table
   ;; strips the list of apropos matches.
-  (interactive)
+  (interactive "P")
   (let* ((type (or type (mingus-completing-read-allow-spaces
                          "Search type: "
                          '("album" "artist" "genre"
@@ -3204,15 +3215,19 @@ possible).  Optional argument TYPE predefines the type of query."
                  nil
                  (intern-soft
                   (format "mingus-%s-query-hist" "artist")))))
-    (mingus-query-do-it type query pos buffer)))
+    (mingus-query-do-it type query pos buffer as-dir)))
 
-(defun mingus-query-regexp ()
+(defun mingus-query-dir ()
+  (interactive)
+  (mingus-query t nil))
+
+(defun mingus-query-regexp (&optional as-dir)
   "Query the filenames in the mpd database with a regular expression;
 Show results in dedicated *Mingus Browser* buffer for further selection."
-  (interactive)
-  (mingus-query "regexp on filename"))
+  (interactive "p")
+  (mingus-query as-dir "regexp on filename"))
 
-(defun mingus-query-do-it (type query pos buffer)
+(defun mingus-query-do-it (type query pos buffer &optional as-dir)
   "Perform the query provided by either `mingus-query' or `mingus-query-regexp'.
 Argument TYPE specifies the kind of query.
 Argument QUERY is a query string.
@@ -3221,22 +3236,54 @@ Argument POS is the current position in the buffer to revert to (?)."
   (let ((buffer-read-only nil)
         (prev (buffer-string)))
     (erase-buffer)
-    (cond ((string-match "regexp on filename" type)
-           (mapc (lambda (item) (and (string= (car item) "file")
-                                     (string-match query (cdr item))
-                                     (insert (cdr item) "\n")))
-                 (cdr (mingus-exec "listall"))))
-          (t (insert
-              (mapconcat 'identity
-                         (sort*
-                          (loop for i in (cdr (mingus-exec
-                                              (format "search %s %s"
-                                                      type
-                                                      (mpd-safe-string query))))
-                               if (string= (car i) "file")
-                               collect (cdr i))
-                          #'mingus-logically-less-p)
-                         "\n"))))
+    (let ((results
+	   (cond ((string-match "regexp on filename" type)
+		  (loop for i in 
+			(cdr (mingus-exec "listall"))
+			if (and (string= (car i) "file")
+				(string-match query (cdr i)))
+			if (null as-dir)
+			collect
+			(cdr i)
+			into list
+			else if
+			(not (member 
+			      (substring (file-name-directory (cdr i)) 0 -1)
+			      list))
+			collect
+			(substring (file-name-directory (cdr i)) 0 -1)
+			into list 
+			finally return list))
+		 (t
+		  (if (null as-dir)
+		      (loop for i in (cdr (mingus-exec
+					   (format "search %s %s"
+						   type
+						   (mpd-safe-string query))))
+			    if (string= (car i) "file")
+			    collect 
+			    (cdr i))
+		    (loop for i in (cdr (mingus-exec
+					 (format "search %s %s"
+						 type
+						 (mpd-safe-string query))))
+			  if (and (string= (car i) "file")
+				  (not (member 
+					(substring (file-name-directory (cdr i)) 0 -1)
+					list)))
+			  collect 
+			  (substring (file-name-directory (cdr i)) 0 -1)
+			  into list
+			  finally return list))))))
+      		  (flet ((prop (s)
+			       (propertize 
+				s
+				'face
+				(if as-dir
+				    'mingus-directory-face
+				  'mingus-song-file-face))))
+		    (insert
+		     (mapconcat #'prop (sort* results #'mingus-logically-less-p) "\n"))))
     (mingus-browse-invisible)
     (goto-char (point-min))
     (mingus-revert-from-query pos prev buffer)))
@@ -3290,7 +3337,7 @@ Argument POS is the current position in the buffer to revert to (?)."
                                 (null (mingus-logically-less-p (car str1) (car str2)))
                               (mingus-logically-less-p (car str1) (car str2))))))
         (put this-command 'reverse (null (get this-command 'reverse)))
-        (goto-line line))
+        (mingus-goto-line line))
     (message "Buffer not in mingus-browse-mode")))
 
 ;;;; {{Wake up call}}
@@ -3580,7 +3627,7 @@ Do you want to symlink the parent directory? : " ))
 
  ' (message "Average time: %f"
 	    (let ((total (seconds-to-time 0)))
-	      (dotimes (var 4 (/ (time-to-seconds total) var))
+	      (dotimes (var 4 (/ (float-time total) var))
 		(setq total (time-add total (time (mingus-playlist t)))))))
 
 ' (defmacro time (&rest body)

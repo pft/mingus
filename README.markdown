@@ -21,6 +21,13 @@ Dired
 Jump from Mingus to song at point in Dired, and, vice versa, add songs
 from Dired to the playlist.
 
+Autocompletion on queries
+=========================
+Mingus has kind of autocompletion on queries. The browser can show
+either the song results or their parent directories. This lets you go
+easy on the tagging, and make good use of a simple file-system
+structured song collection.
+
 Mingus stays home
 =================
 If mingus stays home, i.e. the daemon mpd is run from the same
