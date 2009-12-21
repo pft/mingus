@@ -314,6 +314,13 @@ Songs are hashed by their MPD ids")
   :group 'mingus
   :type '(string))
 
+(defcustom mingus-fold-case t
+  "Sort case-insensitive?
+
+Mingus sort functions should take this variable into account."
+  :group 'mingus
+  :type '(boolean))
+
 (defgroup mingus-mode-line nil
   "Customization group to control the modeline for `mingus'"
   :group 'mingus)
@@ -1366,7 +1373,6 @@ Or, you might show me how to use a function/string choice in customize ;)"
       (match-string 1 string)
     nil))
 
-
 (defun mingus-logically-less-p (s1 s2)
   "Compare S1 and S2 logically, or numerically.
 
@@ -1381,9 +1387,11 @@ E.g.: \"Artist 3 my beautiful song\" is logically less than \"Artist 11 blue sea
               (mingus-logically-less-p (substring s1 end2)
                                        (substring s2 (match-end 2)))
             (< n1 n2)))
-      (string< s1 s2))))
-
-;;(mingus-logically-less-p "Jazz" "Jazz")
+      (apply #'string< 
+             (let ((args (list s1 s2)))
+               (if mingus-fold-case
+                   (mapcar #'downcase args)
+                 args))))))
 
 (defun mingus-keywordify-plist (list)
   "Turn a nasty looking plist into a nice one, with lower-cased keywords."
