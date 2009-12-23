@@ -698,7 +698,7 @@ Use M-x mingus-decode-playlist if you just want to decode the files."
          (format mingus-burns-format-string mingus-burns-device mingus-burns-speed)
          (mapcar
           (lambda (item)
-            (mingus-dec-transl-src->dest (getf item :file)))
+            (shell-quote-argument (mingus-dec-transl-src->dest (getf item :file))))
           *mingus-b-session*))
   (if (get-process "mingburn")
       (set-process-sentinel (get-process "mingburn") 'mingus-b-ask-to-keep-session)))
