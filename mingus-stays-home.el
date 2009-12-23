@@ -707,8 +707,9 @@ Use M-x mingus-decode-playlist if you just want to decode the files."
   (put '*mingus-b-session* :burn nil)   ;always reset to not go burning!
   (if (y-or-n-p "Remove temporary wave files?")
       (mapc 'delete-file
-            (mapc (lambda (item)
-                    (mingus-dec-transl-src->dest (getf item :file))) *mingus-b-session*)))
+            (mapcar (lambda (item)
+                      (mingus-dec-transl-src->dest (getf item :file)))
+                    *mingus-b-session*)))
   (unless (y-or-n-p "Keep session data? ")
     (setq *mingus-b-session* nil)))
 
