@@ -859,7 +859,7 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (define-key mingus-global-map "0" 'mingus-dired-file)
 (define-key mingus-global-map "q" 'mingus-git-out)
 (define-key mingus-global-map "Q" 'mingus-query)
-(define-key mingus-global-map "e" 'mingus-query-dir)
+(define-key mingus-global-map "E" 'mingus-query-dir)
 (define-key mingus-global-map "\M-%" 'mingus-query-regexp)
 (define-key mingus-global-map "\\" 'mingus-last-query-results)
 (define-key mingus-global-map "j" 'forward-line)
