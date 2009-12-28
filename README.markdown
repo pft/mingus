@@ -28,8 +28,8 @@ either the song results or their parent directories. This lets you go
 easy on the tagging, and make good use of a simple file-system
 structured song collection.
 
-Bookmarking 
-=========== 
+Bookmarking
+===========
 Mingus with version >= 0.32 (Fleurette Africaine) has bookmarks to
 remember filename and position. This can be very useful with
 audiobooks or working with language courses.
