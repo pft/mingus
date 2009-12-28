@@ -28,6 +28,19 @@ either the song results or their parent directories. This lets you go
 easy on the tagging, and make good use of a simple file-system
 structured song collection.
 
+Bookmarking 
+=========== 
+Mingus with version >= 0.32 (Fleurette Africaine) has bookmarks to
+remember filename and position. This can be very useful with
+audiobooks or working with language courses.
+
+Global bookmarking shortcuts C-x r b and C-x r m are overwritten in
+Mingus' global map to have alike functionality, and C-x r d is set to
+mingus-bookmark-delete. The function mingus-bookmark-set (C-x r b)
+takes currently playing file + its current elapsed time. Buffer
+position is ignored. Mingus-bookmark-jump will jump to a bookmark. It
+inserts the file into the current playlist when it is not yet there.
+
 Mingus stays home
 =================
 If mingus stays home, i.e. the daemon mpd is run from the same
