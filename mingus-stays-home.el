@@ -768,7 +768,7 @@ Use M-x mingus-decode-playlist if you just want to decode the files."
 ;; translation functions
 (defun mingus-transl-mpd->realroot (file)
   "Return absolute path of FILE, which is a file in de mpd database in filesystem."
-  (format "%s%s" mingus-mpd-root file))
+  (expand-file-name (format "%s%s" mingus-mpd-root file)))
 
 (defun mingus-dec-transl-src->dest (name)
   "Return NAME, stripped of its parent and concatenated to `mingus-burns-tmp-wav-dir'"
