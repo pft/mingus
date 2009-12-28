@@ -16,7 +16,7 @@
 ;; Ratelle, "Lexa12", Marc Zonzon, Mark Taylor, Drew Adams and Alec
 ;; Heller
 
-;; Version: Jelly Roll, or: 0.31
+;; Version: Fleurette Africaine, or: 0.32
 ;; Latest version can be found at http://github.com/pft/mingus/
 ;; For Changes, please view http://github.com/pft/mingus/commits/master
 

@@ -21,7 +21,7 @@
 ;; Ratelle, "Lexa12", Marc Zonzon, Mark Taylor, Drew Adams and Alec
 ;; Heller
 
-;; Version: Jelly Roll, or: 0.31
+;; Version: Fleurette Africaine, or: 0.32
 ;; Latest version can be found at http://github.com/pft/mingus/
 ;; For Changes, please view http://github.com/pft/mingus/commits/master
 
@@ -537,7 +537,7 @@ customizing these values; use `mingus-customize' for that."
   (interactive)
   (customize-group 'mingus))
 
-(defvar mingus-version "Jelly Roll, or: 0.31")
+(defvar mingus-version "Fleurette Africaine, or: 0.32")
 
 (defun mingus-version ()
   "Echo `mingus-version' in minibuffer."
@@ -616,6 +616,9 @@ M-%%                     mingus-query-regexp
 k                       forward-line -1
 j                       forward-line
 v                       mingus-show-version
+C-x-r-b                 mingus-bookmark-jump		
+C-x-r-m                 mingus-bookmark-set
+C-x-r-d                 mingus-bookmark-delete		
 
 
 Playlist keys:
@@ -810,7 +813,7 @@ what about C-x C-s, can you memorize that?
 =================================================
 AUTHOR:  Niels Giesen
 CONTACT: nielsDINOSAURgiesen@gmailDODOcom, but with the extinct creatures replaced with dots.
-WEBSITE:  http://niels.kicks-ass.org/index.php/emacs/mingus
+WEBSITE:  http://github.com/pft/mingus
 " mingus-version))
 
 ;; regexps
@@ -874,6 +877,11 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (define-key mingus-global-map "%" 'mingus-seek-percents)
 (define-key mingus-global-map ">" 'mingus-next)
 (define-key mingus-global-map "<" 'mingus-prev)
+
+(define-key mingus-global-map "\C-xrb" 'mingus-bookmark-jump)
+(define-key mingus-global-map "\C-xrm" 'mingus-bookmark-set)
+(define-key mingus-global-map "\C-xrd" 'mingus-bookmark-delete)
+
 (mapc (lambda (key) (define-key mingus-global-map key 'mingus-vol-up))
         '("+" [(right)] "*"))
 (mapc (lambda (key) (define-key mingus-global-map key 'mingus-vol-down))
@@ -978,6 +986,21 @@ Or, you might show me how to use a function/string choice in customize ;)"
     :help "Update the mpd database"))
 
 (define-key mingus-global-map [menu-bar mingus sep-above-query]
+  '(menu-item "--"))
+
+(define-key mingus-global-map [menu-bar mingus bookmark-delete]
+  '(menu-item "Delete a bookmark"  mingus-bookmark-delete
+			  :help "Delete a saved bookmark"))
+
+(define-key mingus-global-map [menu-bar mingus bookmark-jump]
+  '(menu-item "Jump to a bookmark"  mingus-bookmark-jump
+			  :help "Jump to a bookmark"))
+
+(define-key mingus-global-map [menu-bar mingus bookmark-set]
+  '(menu-item "Set bookmark"  mingus-bookmark-set
+			  :help "Set a bookmark for current position"))
+
+(define-key mingus-global-map [menu-bar mingus sep-above-bookmarks]
   '(menu-item "--"))
 
 (define-key mingus-global-map [menu-bar mingus streams]
@@ -3698,6 +3721,89 @@ Do you want to symlink the parent directory? : " ))
 				 (plist-get output :name))) disabled)
 	       nil t))))
 	(mingus-exec (format "enableoutput %d" id))))))
+
+;; (@> "bookmarks")
+(defun mingus-play-or-add-and-play (filestring)
+  (let ((song (mingus-find-in-playlist filestring)))
+	(if (null song)
+		(and (mingus-add filestring)
+			 (mingus-play-or-add-and-play filestring))
+	  (mingus-play (getf song 'Pos)))))
+
+(defun mingus-find-in-playlist (file)
+  (find 
+   file
+   (mingus-get-songs "playlistinfo")
+   :test 
+   (lambda (f d)
+	 (string= file (getf d 'file)))))
+
+(defcustom mingus-bookmarks nil
+  "Alist of mingus bookmarks.
+
+A bookmark is a plist in the form of (file FILENAME position POSITION-IN-SECONDS)."
+  :group 'mingus
+  :type '(alist))
+
+(defun mingus-bookmark-jump (bkmk-name)
+  "Jump to bookmark in `mingus-bookmarks' list"
+  (interactive 
+   (or 
+	(and (null mingus-bookmarks)
+		 (error "No bookmarks have been set yet"))
+	(list 
+	 (completing-read 
+	  "Bookmark: " 
+	  mingus-bookmarks
+	  nil t))))
+  (let ((bkmk (cadr (assoc bkmk-name mingus-bookmarks))))
+   (mingus-play-or-add-and-play 
+	(getf bkmk 'file))
+   (mingus-seek 
+	(getf bkmk 'position)
+	nil t)))
+
+(defun mingus-bookmark-create ()
+  "Create a Mingus bookmark."
+  (let* ((file (getf 
+				(car (mingus-get-songs "currentsong"))
+				'file))
+		 (status (mpd-get-status mpd-inter-conn))
+		 (position (getf status 'time-elapsed)))
+	(list 'file file 'position position)))
+
+(defun mingus-bookmark-set (bkmk name)
+  "Add bookmark BKMK to `mingus-bookmarks' list identified by NAME.
+
+This function adds a bookmark for current song AND position in
+playlist.  Useful e.g. in audiobooks or language courses."
+  (interactive
+   (list 
+	(mingus-bookmark-create)
+	(completing-read 
+		  "Name for bookmark: " 
+		  mingus-bookmarks
+		  nil
+		  nil
+		  (getf 
+		   (car (mingus-get-songs "currentsong"))
+		   'Title))))
+  (let ((match (assoc name mingus-bookmarks)))
+	(if match 
+		(setf (cadr match) bkmk)
+	  (push (list name bkmk)
+			mingus-bookmarks))
+	(customize-save-variable 'mingus-bookmarks mingus-bookmarks)))
+
+(defun mingus-bookmark-delete (name)
+  "Delete bookmark from `mingus-bookmarks' list"
+  (interactive
+   (list (completing-read 
+		  "Delete bookmark: " 
+		  mingus-bookmarks)))
+  (let ((match (assoc name mingus-bookmarks)))
+	(delete match mingus-bookmarks)
+	(customize-save-variable 'mingus-bookmarks mingus-bookmarks)))
 
 (provide 'mingus)
 ;;; mingus.el ends here
