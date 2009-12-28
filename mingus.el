@@ -16,9 +16,14 @@
 ;; reversed order>
 
 ;; Author: Niels Giesen <pft on #emacs>
+
+;; Contributors (with patches and bug reports): Jeremie Lasalle
+;; Ratelle, "Lexa12", Marc Zonzon, Mark Taylor, Drew Adams and Alec
+;; Heller
+
 ;; Version: Jelly Roll, or: 0.31
-;; Latest version can be found at http://niels.kicks-ass.org/index.php/emacs/mingus/
-;; For Changes, please view http://niels.kicks-ass.org/public/mingus/src/ChangeLog
+;; Latest version can be found at http://github.com/pft/mingus/
+;; For Changes, please view http://github.com/pft/mingus/commits/master
 
 ;; Keywords: multimedia, elisp, music, mpd
 

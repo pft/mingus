@@ -1,4 +1,4 @@
-;;; mingus-stays-home.el --- Time-stamp: <2009-07-06 20:20:04 sharik>
+p;;; mingus-stays-home.el --- Time-stamp: <2009-07-06 20:20:04 sharik>
 
 ;;                    _                    _
 ;;  _ __ ___      ___| |_ __ _ _   _ ___  | |__   ___  _ __ ___   ___
@@ -12,10 +12,13 @@
 
 ;; Author: Niels Giesen <pft on #emacs>
 
-;; Version: Jelly Roll, or: 0.31
-;; Latest version can be found at http://niels.kicks-ass.org/emacs/mingus
+;; Contributors (with patches and bug reports): Jeremie Lasalle
+;; Ratelle, "Lexa12", Marc Zonzon, Mark Taylor, Drew Adams and Alec
+;; Heller
 
-;; For Changes, please view http://niels.kicks-ass.org/public/mingus/src/ChangeLog
+;; Version: Jelly Roll, or: 0.31
+;; Latest version can be found at http://github.com/pft/mingus/
+;; For Changes, please view http://github.com/pft/mingus/commits/master
 
 ;; NEW in 0.23:
 
