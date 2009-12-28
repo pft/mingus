@@ -696,16 +696,22 @@ However, you can just as well specify it directly in this string."
   "Perfom the act of burning a cd from mpd playlist
 Use M-x mingus-decode-playlist if you just want to decode the files."
   (message "Mingus-a-Burning... C-x b *Mingus-Output* to watch the process.")
-  (apply 'start-process-shell-command "mingburn" "*Mingus-Output*"
+  (set-process-sentinel
+   (apply 'start-process-shell-command "mingburn" "*Mingus-Output*"
          (format mingus-burns-format-string mingus-burns-device mingus-burns-speed)
          (mapcar
           (lambda (item)
             (shell-quote-argument (mingus-dec-transl-src->dest (getf item :file))))
           *mingus-b-session*))
-  (if (get-process "mingburn")
-      (set-process-sentinel (get-process "mingburn") 'mingus-b-ask-to-keep-session)))
+   'mingus-b-ask-to-keep-session))
 
-(defun mingus-b-ask-to-keep-session (&optional process event) ;a sentinel
+(defun mingus-b-ask-to-keep-session (&optional process event) ;a sentinel     
+  (when 
+	  (string-match "^exited abnormally with code " event)
+	(switch-to-buffer "*Mingus-Output*")
+	(and (not (eq (process-status process) 'exit))
+		 (stop-process process))
+	(error "Something happened that should not have. Inspect *Mingus-Output* buffer for any hints"))
   (put '*mingus-b-session* :burn nil)   ;always reset to not go burning!
   (if (y-or-n-p "Remove temporary wave files?")
       (mapc 'delete-file
@@ -733,6 +739,11 @@ Use M-x mingus-decode-playlist if you just want to decode the files."
 
 (defun mingus-dec-list (&optional process event)
   "Decode contents referred to by *mingus-b-session* and put the resulting wave files in the directory `mingus-tmp-wav-dir'."
+  (when 
+	  (and event
+		   (string-match "^exited abnormally with code " event))
+	(switch-to-buffer "*Mingus-Output*")
+	(error "Something happened that should not have. Inspect *Mingus-Output* buffer for any hints"))
   (let* ((data *mingus-b-session*)
          (file (mingus-cdr-down-sessiondata data)))
     (message "Abort with M-x mingus-dec-abort")
