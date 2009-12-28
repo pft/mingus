@@ -1,4 +1,4 @@
-p;;; mingus-stays-home.el --- Time-stamp: <2009-07-06 20:20:04 sharik>
+;;; mingus-stays-home.el --- Time-stamp: <2009-07-06 20:20:04 sharik>
 
 ;;                    _                    _
 ;;  _ __ ___      ___| |_ __ _ _   _ ___  | |__   ___  _ __ ___   ___
