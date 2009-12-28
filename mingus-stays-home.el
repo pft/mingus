@@ -536,7 +536,9 @@ ITEM must be one of the elements in the variable `*mingus-id3-items*'"
   :group 'mingus)
 
 (defcustom mingus-burns-tmp-wav-dir "~/.mingus/tmp"
-  "Directory to hold temporary .wav files for a recording session."
+  "Directory to hold temporary .wav files for a recording session. 
+
+This directory will be created when it does not exist."
   :group 'mingus-burns
   :type '(file))
 
@@ -784,6 +786,8 @@ Use M-x mingus-decode-playlist if you just want to decode the files."
   "Decode music file SRC to DEST.
 Both filename are absolute paths in the filesystem"
   (interactive p)
+  (when (not (file-exists-p mingus-burns-tmp-wav-dir))
+	(make-directory mingus-burns-tmp-wav-dir t))
   (unless (and (not p)(file-exists-p dest))
     (case (mingus-what-type src)
       (flac (message "Decoding %s to %s" src dest)
