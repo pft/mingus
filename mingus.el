@@ -3780,9 +3780,15 @@ playlist.  Useful e.g. in audiobooks or language courses."
   (interactive
    (list 
 	(mingus-bookmark-create)
-	(let ((name (getf 
-				 (car (mingus-get-songs "currentsong"))
-				 'Title)))
+	(let* ((songdata (car (mingus-get-songs "currentsong")))
+		   (name (or (getf 
+					  songdata
+					  'Title)
+					 (file-name-sans-extension
+					  (file-name-nondirectory
+					   (getf 
+						songdata
+						'file))))))
 	  (completing-read 
 	   (format "Name for bookmark (default: %s) : " name) 
 	   mingus-bookmarks
