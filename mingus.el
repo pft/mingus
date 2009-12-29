@@ -3780,14 +3780,17 @@ playlist.  Useful e.g. in audiobooks or language courses."
   (interactive
    (list 
 	(mingus-bookmark-create)
-	(completing-read 
-		  "Name for bookmark: " 
-		  mingus-bookmarks
-		  nil
-		  nil
-		  (getf 
-		   (car (mingus-get-songs "currentsong"))
-		   'Title))))
+	(let ((name (getf 
+				 (car (mingus-get-songs "currentsong"))
+				 'Title)))
+	  (completing-read 
+	   (format "Name for bookmark (default: %s) : " name) 
+	   mingus-bookmarks
+	   nil
+	   nil
+	   nil
+	   nil
+	   name))))
   (let ((match (assoc name mingus-bookmarks)))
 	(if match 
 		(setf (cadr match) bkmk)
