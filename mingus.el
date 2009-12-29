@@ -3802,8 +3802,8 @@ playlist.  Useful e.g. in audiobooks or language courses."
 		  "Delete bookmark: " 
 		  mingus-bookmarks)))
   (let ((match (assoc name mingus-bookmarks)))
-	(delete match mingus-bookmarks)
-	(customize-save-variable 'mingus-bookmarks mingus-bookmarks)))
+	(customize-save-variable 'mingus-bookmarks
+							 (delete match mingus-bookmarks))))
 
 (provide 'mingus)
 ;;; mingus.el ends here
