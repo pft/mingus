@@ -3250,7 +3250,7 @@ possible).  Optional argument TYPE predefines the type of query."
                  nil
                  nil
                  (intern-soft
-                  (format "mingus-%s-query-hist" "artist")))))
+                  (format "mingus-%s-query-hist" type)))))
     (mingus-query-do-it type query pos buffer as-dir)))
 
 (defun mingus-query-dir ()
