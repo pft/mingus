@@ -1706,8 +1706,12 @@ see function `mingus-help' for instructions.
   "Execute BODY with KEYS from PLIST bound to VALUES; downcase KEYS in the act."
   (let* ((plist (eval plist)))
     `(multiple-value-bind
-         ,(loop for i in plist by #'cddr collect
-                (intern-soft (downcase (symbol-name i))))
+         ,(loop for i in plist by #'cddr 
+		;; or: use simply intern (e.g. MUSIC_BRAINZ tags won't come through now)
+		when
+		(intern-soft (downcase (symbol-name i)))
+		collect
+		(intern-soft (downcase (symbol-name i))))
          (quote ,(loop for i in (cdr plist) by #'cddr collect i))
        ,@body)))
 
