@@ -12,10 +12,13 @@
 
 ;; Author: Niels Giesen <pft on #emacs>
 
-;; Version: Jelly Roll, or: 0.31
-;; Latest version can be found at http://niels.kicks-ass.org/emacs/mingus
+;; Contributors (with patches and bug reports): Jeremie Lasalle
+;; Ratelle, "Lexa12", Marc Zonzon, Mark Taylor, Drew Adams and Alec
+;; Heller
 
-;; For Changes, please view http://niels.kicks-ass.org/public/mingus/src/ChangeLog
+;; Version: Fleurette Africaine, or: 0.32
+;; Latest version can be found at http://github.com/pft/mingus/
+;; For Changes, please view http://github.com/pft/mingus/commits/master
 
 ;; NEW in 0.23:
 
@@ -536,7 +539,9 @@ ITEM must be one of the elements in the variable `*mingus-id3-items*'"
   :group 'mingus)
 
 (defcustom mingus-burns-tmp-wav-dir "~/.mingus/tmp"
-  "Directory to hold temporary .wav files for a recording session."
+  "Directory to hold temporary .wav files for a recording session. 
+
+This directory will be created when it does not exist."
   :group 'mingus-burns
   :type '(file))
 
@@ -694,21 +699,28 @@ However, you can just as well specify it directly in this string."
   "Perfom the act of burning a cd from mpd playlist
 Use M-x mingus-decode-playlist if you just want to decode the files."
   (message "Mingus-a-Burning... C-x b *Mingus-Output* to watch the process.")
-  (apply 'start-process-shell-command "mingburn" "*Mingus-Output*"
+  (set-process-sentinel
+   (apply 'start-process-shell-command "mingburn" "*Mingus-Output*"
          (format mingus-burns-format-string mingus-burns-device mingus-burns-speed)
          (mapcar
           (lambda (item)
-            (mingus-dec-transl-src->dest (getf item :file)))
+            (shell-quote-argument (mingus-dec-transl-src->dest (getf item :file))))
           *mingus-b-session*))
-  (if (get-process "mingburn")
-      (set-process-sentinel (get-process "mingburn") 'mingus-b-ask-to-keep-session)))
+   'mingus-b-ask-to-keep-session))
 
-(defun mingus-b-ask-to-keep-session (&optional process event) ;a sentinel
+(defun mingus-b-ask-to-keep-session (&optional process event) ;a sentinel     
+  (when 
+	  (string-match "^exited abnormally with code " event)
+	(switch-to-buffer "*Mingus-Output*")
+	(and (not (eq (process-status process) 'exit))
+		 (stop-process process))
+	(error "Something happened that should not have. Inspect *Mingus-Output* buffer for any hints"))
   (put '*mingus-b-session* :burn nil)   ;always reset to not go burning!
   (if (y-or-n-p "Remove temporary wave files?")
       (mapc 'delete-file
-            (mapc (lambda (item)
-                    (mingus-dec-transl-src->dest (getf item :file))) *mingus-b-session*)))
+            (mapcar (lambda (item)
+                      (mingus-dec-transl-src->dest (getf item :file)))
+                    *mingus-b-session*)))
   (unless (y-or-n-p "Keep session data? ")
     (setq *mingus-b-session* nil)))
 
@@ -730,6 +742,11 @@ Use M-x mingus-decode-playlist if you just want to decode the files."
 
 (defun mingus-dec-list (&optional process event)
   "Decode contents referred to by *mingus-b-session* and put the resulting wave files in the directory `mingus-tmp-wav-dir'."
+  (when 
+	  (and event
+		   (string-match "^exited abnormally with code " event))
+	(switch-to-buffer "*Mingus-Output*")
+	(error "Something happened that should not have. Inspect *Mingus-Output* buffer for any hints"))
   (let* ((data *mingus-b-session*)
          (file (mingus-cdr-down-sessiondata data)))
     (message "Abort with M-x mingus-dec-abort")
@@ -765,7 +782,7 @@ Use M-x mingus-decode-playlist if you just want to decode the files."
 ;; translation functions
 (defun mingus-transl-mpd->realroot (file)
   "Return absolute path of FILE, which is a file in de mpd database in filesystem."
-  (format "%s%s" mingus-mpd-root file))
+  (expand-file-name (format "%s%s" mingus-mpd-root file)))
 
 (defun mingus-dec-transl-src->dest (name)
   "Return NAME, stripped of its parent and concatenated to `mingus-burns-tmp-wav-dir'"
@@ -783,6 +800,8 @@ Use M-x mingus-decode-playlist if you just want to decode the files."
   "Decode music file SRC to DEST.
 Both filename are absolute paths in the filesystem"
   (interactive p)
+  (when (not (file-exists-p mingus-burns-tmp-wav-dir))
+	(make-directory mingus-burns-tmp-wav-dir t))
   (unless (and (not p)(file-exists-p dest))
     (case (mingus-what-type src)
       (flac (message "Decoding %s to %s" src dest)
