@@ -12,7 +12,7 @@
 ;; ....................but actually named after a man so named
 ;;
 
-;; Copyright (C) 2006-2009 Niels Giesen <com dot gmail at niels dot giesen, in
+;; Copyright (C) 2006-2010 Niels Giesen <com dot gmail at niels dot giesen, in
 ;; reversed order>
 
 ;; Author: Niels Giesen <pft on #emacs>
@@ -211,6 +211,15 @@ Songs are hashed by their MPD ids.")
   "Cache for song strings according to `mingus-playlist-format',
 
 Songs are hashed by their MPD ids")
+
+(defun mingus-clear-cache ()
+  "Clear Mingus' caches."
+  (interactive)
+  (mapcar 
+   #'clrhash
+   (list mingus-propertized-song-strings
+		 mingus-song-strings)))
+
 (defstruct (mingus-data)
   (playlist -1)
   (song nil))
@@ -351,6 +360,7 @@ These variables are set when loading mingus or callinge `mingus-set-variables'."
                10.0)))
     (when (processp (aref mpd-inter-conn 1))
       (stop-process (aref mpd-inter-conn 1)))
+	(mingus-clear-cache)
     (setq mpd-inter-conn
           (apply 'mpd-conn-new `(,@(mpd-connection-tidy
                                     mpd-interactive-connection-parameters)
@@ -372,6 +382,7 @@ These variables are set when loading mingus or callinge `mingus-set-variables'."
           port 10.0)))
     (when (processp (aref mpd-inter-conn 1))
       (stop-process (aref mpd-inter-conn 1)))
+	(mingus-clear-cache)
     (setq mpd-inter-conn
           (apply 'mpd-conn-new `(,@(mpd-connection-tidy
                                     mpd-interactive-connection-parameters)
@@ -522,15 +533,20 @@ customizing these values; use `mingus-customize' for that."
                (read-number "MPD_PORT: " mingus-mpd-port)
                (read-number "Timeout: " 10.0))))
     ;; clean up for new connection - bit too low level actually
-    (stop-process (aref mpd-inter-conn 1))
+	(when (processp (aref mpd-inter-conn 1))
+      (stop-process (aref mpd-inter-conn 1)))
+	(mingus-clear-cache)
     ;; make new connection and process
     (setq mpd-inter-conn
           (apply 'mpd-conn-new `(,@(mpd-connection-tidy
                                     mpd-interactive-connection-parameters)
-                                 nil))))
-  "The global mpd connection used for interactive queries.")
-
-
+                                 nil)))
+	;; update views immediately
+	(save-window-excursion
+    (when (get-buffer "*Mingus*")
+      (mingus))
+    (when (get-buffer "*Mingus Browser*")
+      (mingus-ls "")))))
 
 (defun mingus-customize ()
   "Call the customize function with mingus as argument."
