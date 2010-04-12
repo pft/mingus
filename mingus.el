@@ -1757,15 +1757,15 @@ see function `mingus-help' for instructions.
 (defmacro mingus-bind-plist (plist &rest body)
   "Execute BODY with KEYS from PLIST bound to VALUES; downcase KEYS in the act."
   (let* ((plist (eval plist)))
-    `(multiple-value-bind
-         ,(loop for i in plist by #'cddr 
-		;; or: use simply intern (e.g. MUSIC_BRAINZ tags won't come through now)
-		when
-		(intern-soft (downcase (symbol-name i)))
-		collect
-		(intern-soft (downcase (symbol-name i))))
-         (quote ,(loop for i in (cdr plist) by #'cddr collect i))
-       ,@body)))
+    (multiple-value-bind (key-vars values)
+        (loop for (key value) on plist by #'cddr
+              for key-var = (intern-soft (downcase (symbol-name key)))
+              when key-var
+              collect key-var into key-vars
+              and collect value into values
+              finally (return (values key-vars values)))
+      `(multiple-value-bind ,key-vars ',values
+         ,@body))))
 
 (defun mingus-make-status-string ()
   "Make status string of elapsed time, volume, repeat and random status etc."
