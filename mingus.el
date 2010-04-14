@@ -18,8 +18,8 @@
 ;; Author: Niels Giesen <pft on #emacs>
 
 ;; Contributors (with patches and bug reports): Jeremie Lasalle
-;; Ratelle, "Lexa12", Marc Zonzon, Mark Taylor, Drew Adams and Alec
-;; Heller
+;; Ratelle, "Lexa12", Marc Zonzon, Mark Taylor, Drew Adams, Alec
+;; Heller, "death" (github.com/death) and Александр Цамутали.
 
 ;; Version: Fleurette Africaine, or: 0.32
 ;; Latest version can be found at http://github.com/pft/mingus/
@@ -304,9 +304,11 @@ Songs are hashed by their MPD ids")
   (if (file-exists-p file)
       (with-temp-buffer
         (insert-file-contents file)
-        (re-search-forward (format "%s[[:blank:]]+" option))
-        (goto-char (re-search-forward "\""))
-        (buffer-substring-no-properties (point) (1- (re-search-forward "\""))))
+        (or 
+         (and 
+          (re-search-forward (format "^[[:blank:]]*%s[[:blank:]]+\"?\\(.+?\\)\"?[[:blank:]]*$" option) nil t)
+          (match-string 1))
+         ))
     nil))
 
 (defgroup mingus nil "Group customization for mingus mpd interface"
