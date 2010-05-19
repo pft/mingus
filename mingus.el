@@ -19,9 +19,10 @@
 
 ;; Contributors (with patches and bug reports): Jeremie Lasalle
 ;; Ratelle, "Lexa12", Marc Zonzon, Mark Taylor, Drew Adams, Alec
-;; Heller, "death" (github.com/death) and Александр Цамутали.
+;; Heller, "death" (github.com/death), Александр Цамутали and
+;; Maximilian Gass.
 
-;; Version: Fleurette Africaine, or: 0.32
+;; Version: Open Letter to Duke, or: 0.33
 ;; Latest version can be found at http://github.com/pft/mingus/
 ;; For Changes, please view http://github.com/pft/mingus/commits/master
 
@@ -487,6 +488,17 @@ this variable to have effect."
   :group 'mingus-mode-line
   :type '(boolean))
 
+(defcustom mingus-mode-line-show-consume-and-single-status t
+  "Display consume and single status in the mode-line?
+
+If single is shown, the letter s is shown, if consume is on, the letter c is shown.
+Set the variable `mingus-mode-line-show-status' to a non-`nil' value for
+this variable to have effect.
+
+Note: consume and single statuses are available with MPD versions > 0.16"
+  :group 'mingus-mode-line
+  :type '(boolean))
+
 ;; (@> "emacs21") some emacs21 compatibility:
 (if (not (fboundp 'read-number))
     (defun read-number (prompt &optional default)
@@ -555,7 +567,7 @@ customizing these values; use `mingus-customize' for that."
   (interactive)
   (customize-group 'mingus))
 
-(defvar mingus-version "Fleurette Africaine, or: 0.32")
+(defvar mingus-version "Open Letter to Duke, or: 0.33")
 
 (defun mingus-version ()
   "Echo `mingus-version' in minibuffer."
@@ -623,6 +635,8 @@ L                       mingus-load-all
 z                       mingus-random
 Z                       mingus-shuffle
 r                       mingus-repeat
+.                       mingus-single
+,                       mingus-consume
 C-x C-s                 mingus-save-playlist
 R                       mingus-remove-playlist
 l                       mingus-load-playlist
@@ -884,6 +898,8 @@ Or, you might show me how to use a function/string choice in customize ;)"
 ;; add some keys to the various modes for dired look-ups
 (define-key mingus-global-map "0" 'mingus-dired-file)
 (define-key mingus-global-map "q" 'mingus-git-out)
+(define-key mingus-global-map "." 'mingus-single)
+(define-key mingus-global-map "," 'mingus-consume)
 (define-key mingus-global-map "Q" 'mingus-query)
 (define-key mingus-global-map "E" 'mingus-query-dir)
 (define-key mingus-global-map "\M-%" 'mingus-query-regexp)
@@ -963,8 +979,8 @@ Or, you might show me how to use a function/string choice in customize ;)"
 
 (define-key mingus-global-map [menu-bar mingus customization mode-line]
   '("Mode-line" . (lambda ()
-                    (interactive)
-                    (customize-group 'mingus-mode-line))))
+					 (interactive)
+					 (customize-group 'mingus-mode-line))))
 
 (define-key mingus-global-map [menu-bar mingus customization stream-alist]
   '(menu-item "Streams"
@@ -1077,6 +1093,12 @@ Or, you might show me how to use a function/string choice in customize ;)"
 
 (define-key mingus-global-map [menu-bar mingus sep-above-playlists-and-streams]
   '(menu-item "--"))
+
+(define-key mingus-global-map [menu-bar mingus consume]
+  '("Toggle consume mode"          . mingus-consume))
+
+(define-key mingus-global-map [menu-bar mingus single]
+  '("Toggle single mode"          . mingus-single))
 
 (define-key mingus-global-map [menu-bar mingus repeat]
   '("Repeat (toggle)"          . mingus-repeat))
@@ -1789,7 +1811,7 @@ see function `mingus-help' for instructions.
                  percentage
                  (and volume
                       (format
-                       " <%d%%%s> "
+                       " <%d%%%s%s> "
                        volume
                        (or (and mingus-mode-line-show-random-and-repeat-status
                                 (format "%s%s%s"
@@ -1797,7 +1819,11 @@ see function `mingus-help' for instructions.
                                         (if (eq random 1) "z" "")
                                         (if (< 0 xfade)
                                             (format "#%d" xfade)
-                                          ""))) "")))))))))
+                                          ""))) "")
+					  (or (and mingus-mode-line-show-consume-and-single-status 
+							   (concat (if (and (boundp 'single) (string= single "1")) "s" "")
+									   (if (and (boundp 'consume) (string= consume "1")) "c" ""))) "")))))))))
+
 (defun mingus-make-cond-exp-aux (item)
   (cond ((atom item) (mingus-make-cond-exp-aux (list item)))
         ((listp (car item))
@@ -2131,7 +2157,11 @@ Actually it is just named after that great bass player."
                                               "*Mingus Burns*")))
                                     (setq mingus-status
                                           (mingus-make-mode-line-string))
-                                  (setq mingus-status nil))))))
+							  (setq mingus-status nil))
+							(when 
+								(< (mingus-get-old-playlist-version)
+								   (mingus-get-new-playlist-version))
+							  (mingus-playlist))))))
           (mingus-playlist))
 
 (defun mingus-start-daemon ()
@@ -3836,5 +3866,37 @@ playlist.  Useful e.g. in audiobooks or language courses."
 	(customize-save-variable 'mingus-bookmarks
 							 (delete match mingus-bookmarks))))
 
+
+(defun mingus-get-a-state (state)
+  "Get a certain status."
+  (let ((status (mpd-get-status mpd-inter-conn)))
+	(plist-get status state)))
+
+(defun mingus-single ()
+  (interactive)
+  (let ((state (mingus-get-a-state 'single)))
+	(if (not state)
+		(message "Single mode seems to be unsupported")
+	  (mingus-exec 
+	   (format "single %d" 
+			   (abs (- (string-to-number state) 1))))
+	  (message "Single mode is %s" 
+			   (if (string= "1" state)
+				   "off"
+				 "on")))))
+
+(defun mingus-consume ()
+  (interactive)
+  (let ((state (mingus-get-a-state 'consume)))
+	(if (not state)
+		(message "Consume mode seems to be unsupported")
+	  (mingus-exec 
+	   (format "consume %d" 
+			   (abs (- (string-to-number state) 1))))
+	  (message "Consume mode is %s" 
+			   (if (string= "1" state)
+				   "off"
+				 "on")))))
+
 (provide 'mingus)
-;;; mingus.el ends here
+;;; mingus.el ends herep
