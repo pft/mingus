@@ -194,6 +194,7 @@
 (defvar mingus-wake-up-call nil)
 (defvar mingus-modeline-timer nil)
 (defvar mingus-status nil)
+(defvar mingus-playlist-hooks nil "Hooks run at the end of `mingus-playlist'")
 (defvar mingus-marked-list nil
   "List of marked songs, identified by songid")
 (defvar *mingus-point-of-insertion* nil "Insertion point for mingus")
@@ -955,6 +956,26 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (define-key mingus-global-map
   (if (featurep 'xemacs)[(shift button4)][S-mouse-4]) 'mingus-seek)
 
+(define-key mingus-global-map "A" 
+  (lambda ()
+	(interactive)
+	(mingus-query-dir "artist")))
+
+(define-key mingus-global-map "B" 
+  (lambda ()
+	(interactive)
+	(mingus-query-dir "album")))
+
+(define-key mingus-global-map "F" 
+  (lambda ()
+	(interactive)
+	(mingus-query-dir "filename")))
+
+(define-key mingus-global-map "T" 
+  (lambda ()
+	(interactive)
+	(mingus-query-dir "title")))
+
 ;; build the menu
 (define-key mingus-global-map [menu-bar mingus]
   (cons "Mingus" (make-sparse-keymap "mingus")))
@@ -1146,7 +1167,7 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (defconst mingus-help-map (copy-keymap mingus-global-map)
   "Help keymap for `mingus'")
 
-(define-key mingus-help-map "0" #'(lambda ()
+(define-key mingus-help-map "0" (lambda ()
                                     (interactive)
                                     (dired mingus-mpd-root)))
 
@@ -1712,7 +1733,7 @@ see function `mingus-help' for instructions.
   (font-lock-mode -1)
   (setq buffer-read-only t)
   (setq left-fringe-width 16)
-  (run-hooks 'mingus-playlist-hook))
+  (run-hooks 'mingus-playlist-hooks))
 
 (defun mingus-browse-mode ()
   "Mingus browse mode.
@@ -1866,6 +1887,7 @@ ATOM10))) for (mingus-make-cond-exp '((ATOM1 ATOM2)(ATOM8 ATOM10))).
 (defconst mingus-playlist-format
   '((time genre album title comment)
     (time artist album title comment)
+    (time artist album title)
     (time artist title)
     (time file)
     (file)))
@@ -2086,7 +2108,8 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
                   (mingus-set-marks)
                   (mingus-set-NP-mark t))
 	      (insert *mingus-header-when-empty*))
-            (mingus-goto-line pos))))
+            (mingus-goto-line pos))
+		  (run-hooks 'mingus-make-playlist-hook)))
     (error err)))
 
 (defun mingus-playlist-set-detail-properties (songs)
@@ -3305,9 +3328,9 @@ possible).  Optional argument TYPE predefines the type of query."
                   (format "mingus-%s-query-hist" type)))))
     (mingus-query-do-it type query pos buffer as-dir)))
 
-(defun mingus-query-dir ()
+(defun mingus-query-dir (&optional type)
   (interactive)
-  (mingus-query t nil))
+  (mingus-query t type))
 
 (defun mingus-query-regexp (&optional as-dir)
   "Query the filenames in the mpd database with a regular expression;
