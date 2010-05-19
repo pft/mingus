@@ -2158,11 +2158,13 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
 
 (defvar mingus-generic-timer nil)
 
-(defun mingus ()
+(defun mingus (&optional set-variables)
   "MPD Interface by Niels Giesen, Useful and Simple.
 
 Actually it is just named after that great bass player."
-  (interactive)
+  (interactive "P")
+  (when set-variables
+	(call-interactively 'mingus-set-variables-interactively))
   (mingus-switch-to-playlist)
   (cond ((boundp 'mode-line-modes)
          (add-to-list 'mode-line-modes mingus-mode-line-object))
