@@ -7,7 +7,7 @@
 ;; |_| |_| |_(_) |___/\__\__,_|\__, |___/ |_| |_|\___/|_| |_| |_|\___|
 ;;                             |___/
 
-;; Copyright (C) 2006-2009 Niels Giesen <com dot gmail at niels dot giesen, in
+;; Copyright (C) 2006-2010 Niels Giesen <com dot gmail at niels dot giesen, in
 ;; reversed order>
 
 ;; Author: Niels Giesen <pft on #emacs>
@@ -16,9 +16,14 @@
 ;; Ratelle, "Lexa12", Marc Zonzon, Mark Taylor, Drew Adams and Alec
 ;; Heller
 
-;; Version: Fleurette Africaine, or: 0.32
+;; Version: Open Letter to Duke, or: 0.33
 ;; Latest version can be found at http://github.com/pft/mingus/
 ;; For Changes, please view http://github.com/pft/mingus/commits/master
+
+;; In version 0.33 id3-related stuff has been removed, in favour if
+;; the more general taggit.el to be found at
+;; http://github.com/ft/taggit. When taggit has been loaded before  
+;; will be require'd and some keys bound to it.
 
 ;; NEW in 0.23:
 
@@ -93,11 +98,6 @@
 ;;; mingus-insert previously did. This is done with the function
 ;;; `mingus-dwim-add'. `mingus-insert' keeps its old behaviour.
 
-;;; ** ID3-TAGGING:
-
-;;; see `mingus-id3-set' and `mingus-id3-erase' (only to be called from within
-;;; `mingus')
-
 ;;; ** BURNING CD'S with `mingus-burns'! In DEVELOPMENT stage, but nonetheless
 ;;; ** usable.
 
@@ -131,16 +131,6 @@
 ;;; version 0.22 required too much, glad to be able to trim it down again in
 ;;; version 0.23 after having read some documentation:
 
-;;; TAGGING
-
-;;; metaflac -- for flac files
-
-;;; id3v2 -- for mp3s
-
-;;; vorbiscomment -- for oggs
-
-;;; (does anyone know of a good NONinteractive multitagger?)
-
 ;;; decoding:
 
 ;;; sox -- for decoding songs to the .wav format.
@@ -173,7 +163,8 @@
 (require 'cl)
 (eval-when-compile (load "cl-macs"))
 (require 'url)
-
+(when (featurep 'taggit) 
+	  (progn (require 'taggit)))
 ;;;; {{Update Help Text}}
 
 (setq mingus-help-text
@@ -188,9 +179,12 @@ E                       mingus-blank-disk
 MORE ELABORATE INSTRUCTIONS:"
        (replace-regexp-in-string
         "U                       mingus-unmark-all"
-        "U                       mingus-unmark-all
-#                       mingus-id3-set
-e                       mingus-id3-erase"
+		(format 
+		 "U                       mingus-unmark-all%s"
+		 (if (featurep 'taggit)
+		  "
+#                       taggit-interactive
+e                       taggit (edit buffer)" ""))
         (replace-regexp-in-string
          "mingus-browser:    3"
          "mingus-browser:    3
@@ -198,8 +192,6 @@ mingus-burns:      4\n" mingus-help-text t) t) t))
 
 
 ;;;; {{Update *mingus-header-when-empty*}}
-
-
 (setq *mingus-header-when-empty* "Press ? for help, 3 for Mingus Browser, 4
 for Mingus Burns and 0 for dired\n\nPress 2 to come back here from within
 Mingus buffers, M-x mingus from elsewhere.")
@@ -209,318 +201,16 @@ Mingus buffers, M-x mingus from elsewhere.")
         the same computer as mingus"
   :group 'mingus)
 
-;;; ((Tagging))
-(define-key mingus-playlist-map "#" 'mingus-id3-set)
-(define-key mingus-playlist-map "e" 'mingus-id3-erase)
-
 (eval-when (load)
-  (unless (string-match "GNU Emacs 21" (version)) ;fixme: make this work in emacs21 too
-    ;; (define-key-after mingus-playlist-map [menu-bar mingus dired]
-    ;;   '("Dired file" . mingus-dired-file) 'repeat)
-    (define-key-after mingus-playlist-map [menu-bar mingus id3-set]
-      '("Set ID3 tag" . mingus-id3-set) 'dired)
-    (define-key-after mingus-playlist-map [menu-bar mingus id3-erase]
-      '("Erase ID3 tag" . mingus-id3-erase) 'id3-set)))
-
-;;;; {{Minibuffer}}
-
-
-
-;;;; {{Id3}}
-;; Get metadata directly from mpd, unambiguously.
-;; (defun mingus-read-entire-metadata ()
-;;   (read
-;;    (concat "("
-;;         (replace-regexp-in-string  "#\\([0-9]+\\))" '(lambda (item)
-;;                                                        (format "(:number %s" (match-string 1 item)))
-;;                                    (shell-command-to-string
-;;                                     (concat "mpc --format \""
-;;                                             "[:name \\\"%name%\\\"]"
-;;                                             "[:artist \\\"%artist%\\\"]"
-;;                                             "[:title \\\"%title%\\\"]"
-;;                                             "[:file \\\"%file%\\\"]"
-;;                                             "[:album \\\"%album%\\\"]"
-;;                                             "[:time \\\"%time%\\\"]"
-;;                                             "[:track \\\"%track%\\\"]"
-;;                                             "[:name \\\"%name%\\\"]"
-;;                                             ")\" playlist"))) ")")))
-
-;; Replace with: (?)
-(defun mingus-read-entire-metadata ()
-  (mapcar (lambda (sublist)
-            (mapcar (lambda (item)
-                      (cond
-                       ((eq item 'Pos) :pos)
-                       ((symbolp item)
-                        (intern-soft (concat ":" (downcase (symbol-name item)))))
-                       (t item)))
-                    sublist))
-          (mpd-get-songs mpd-inter-conn "playlistinfo")))
-
-;;;; {{Id3 - Datastructures}}
-(defvar *mingus-id3-items*
-  '(artist album song track             ; year
-           comment genre)
-  "A list for storing information on handling id3-related functions and data for `mingus-id3-set';
-its property list is of great importance.")
-
-;; create a structure for use in the plist of `*mingus-id3-items*'
-(defstruct (id3-item)
-  (minibuffer-string nil)
-  (option-string nil)
-  (vorbiscomment nil)
-  (lltag-string nil)
-  (list-or-list-function)
-  (history-list nil))
-
-(defun mingus-id3-get-item (item)
-  "Shortcut function to get at an item in the plist of `*mingus-id3-items*'"
-  (get '*mingus-id3-items* item))
-
-;; fill up the plist of `*mingus-id3-items*'
-(progn
-  (put '*mingus-id3-items* 'track
-       (make-id3-item
-        :minibuffer-string "Track number/(optional: total tracks): "
-        :option-string "-T"
-        :lltag-string "-n"
-        :vorbiscomment "TRACKNUMBER"
-        :list-or-list-function
-        '(lambda ()
-           (save-excursion
-             (beginning-of-line)
-             (let (list)
-               (while
-                   (re-search-forward "[0-9]+" (- (point-at-eol) 1) t)
-                 (push (match-string-no-properties 0) list)) list)))
-        :history-list '*mingus-id3-track-history*))
-
-  (put '*mingus-id3-items* 'genre
-       (make-id3-item
-        :minibuffer-string "Genre: "
-        :option-string "-g"
-        :lltag-string "-g"
-        :vorbiscomment "GENRE"
-        :list-or-list-function
-        'mingus-make-genre-alist
-        :history-list '*mingus-id3-genre-history*))
-
-  (put '*mingus-id3-items* 'artist
-       (make-id3-item
-        :minibuffer-string "Artist: "
-        :option-string "-a"
-        :lltag-string "-a"
-        :vorbiscomment "ARTIST"
-        :list-or-list-function
-        '(lambda ()
-           (save-excursion
-             (widen)
-             (end-of-line)
-             (let ((beg (or (and (re-search-backward "/" (point-at-bol) t) (1+ (point)))
-                            (progn (beginning-of-line) (point)))))
-               (list
-                (if (re-search-forward " *- *" (point-at-eol) t)
-                    (buffer-substring-no-properties beg (match-beginning 0)) "")))))
-        :history-list '*mingus-id3-artist-history*))
-
-  (put '*mingus-id3-items* 'song
-       (make-id3-item
-        :minibuffer-string "Songtitle: "
-        :option-string "-t"
-        :lltag-string "-t"
-        :vorbiscomment "TITLE"
-        :list-or-list-function
-        '(lambda ()
-           (save-excursion
-             (end-of-line)
-             (or (re-search-backward "\\." (- (point-at-eol) 5) t)
-                 (re-search-backward " ([0-9]+)" (point-at-bol) t))
-             (let ((pos (point)))
-               (list
-                (buffer-substring-no-properties
-                 (if (re-search-backward  " *- *" (point-at-bol) t)
-                     (progn
-                       (re-search-forward "[0-9]+ " (point-at-eol) t)
-                       (match-end 0))
-                   (point-at-bol)) pos)))))
-        :history-list '*mingus-id3-song-history*))
-
-  (put '*mingus-id3-items* 'year
-       (make-id3-item
-        :minibuffer-string "Year: "
-        :option-string "-y"
-        :lltag-string "-d"
-        :vorbiscomment "YEAR"
-        :list-or-list-function
-        '(lambda ()
-           (save-excursion
-             (beginning-of-line)
-             (if (re-search-forward "[0-9]\\{4\\}" (point-at-eol) t)
-                 (list (match-string-no-properties 0)))))
-        :history-list '*mingus-id3-year-history*))
-
-  (put '*mingus-id3-items* 'comment
-       (make-id3-item
-        :minibuffer-string "Comment: "
-        :option-string "-c"
-        :vorbiscomment "COMMENT"
-        :list-or-list-function
-        '(lambda ()
-           (list))
-        :history-list '*mingus-id3-comment-history*))
-
-  (put '*mingus-id3-items* 'album
-       (make-id3-item
-        :minibuffer-string "Album: "
-        :option-string "-A"
-        :vorbiscomment "ALBUM"
-        :list-or-list-function
-        '(lambda ()
-           (save-excursion
-             (beginning-of-line)
-             (re-search-forward " *- *" (- (point-at-eol) 5) t)
-             (let ((pos (point)))
-               (list
-                (buffer-substring-no-properties
-                 (or (and (re-search-forward  " *- *" (point-at-eol) t) (match-beginning 0)) pos)
-                 pos)))))
-        :history-list '*mingus-id3-album-history*)))
-
-;; id3-history variables (as completing-read needs them to be referred to as a symbol, I cannot hide them)
-(defvar *mingus-id3-song-history* nil
-  "History of id3-songs for use in Mingus")
-(defvar *mingus-id3-artist-history* nil
-  "History of id3-artists for use in Mingus")
-(defvar *mingus-id3-album-history* nil
-  "History of id3-albums for use in Mingus")
-(defvar *mingus-id3-genre-history* nil
-  "History of id3-genres for use in Mingus")
-(defvar *mingus-id3-year-history* nil
-  "History of id3-years for use in Mingus")
-(defvar *mingus-id3-comment-history* nil
-  "History of id3-comments for use in Mingus")
-
-;;;; {{Id3 - Functions}}
-(defun mingus-make-genre-alist (&rest args)
-  "Make an alist of all known id3 genres with their respective canonical numbers."
-  (let ((count -1))
-    (mapcar (lambda (genre)
-              (incf count)
-              (cons (downcase genre) count))
-            (split-string (shell-command-to-string "id3v2 -L") "\\([ \n0-9]+: \\|[\f\t\n\r\v]+\\)"))))
-
-;; needs a split for different types of file
-(defun mingus-id3-erase ()
-  "Erase id3 contents from song at point, in either `mingus' or `mingus-browse'"
-  (interactive)
-  (let* ((name (mingus-get-filename-for-shell))
-         (type (mingus-what-type name)))
-    (case type
-      (flac (shell-command (format "metaflac --remove-all-tags %s" (shell-quote-argument name))))
-      (mp3 (shell-command (format "id3v2 -D %s" (shell-quote-argument name))))
-      (t (message "Don't know how to strip tag of type %s; notify me if you do know." type)))))
-
-(defun mingus-what-type (string)
-  "Return symbol, based on extension"
-  (string-match "\\.\\([^.]*\\)$" string)
-  (intern-soft (downcase (match-string 1 string))))
-
-(defcustom mingus-id3-format 'downcase
-  "Format used by `mingus-id3-set' for formatting id3-tags;
-
-valid options are:
-downcase,
-upcase,
-capitalize"
-  :group 'mingus
-  :type '(choice
-          (const :tag "downcase" downcase)
-          (const :tag "upcase" upcase)
-          (const :tag "capitalize" capitalize)))
-
-(defun mingus-id3-set (&optional list)
-  "Set id3 or other metadata tags in `mingus' or `mingus-browse'.
-This will remove preexisting tags, also when an empty string is
-provided.  If LIST is given, all tags in LIST will be asked; the
-tags in LIST must be a subset of *mingus-id3-items*. Currently,
-the ogg-implementation is the most annoying, as vorbiscomment
-even removes unprovided tags with the -w option.
-
-If LIST is not provided, tags in *mingus-id3-items* will be used.
-
-The effect will only be shown after a `mingus-update'"
-  (interactive)
-  (let* ((name (mingus-get-filename-for-shell))
-         (type (mingus-what-type name))
-         (well-quoted-name (shell-quote-argument name))
-         (taglist (or list *mingus-id3-items*)))
-    (case type
-      (mp3
-       (shell-command
-        (format
-         "id3v2 %s %s"
-         (mapconcat #'(lambda (item) item)
-                    (mapcar (lambda (option)
-                              (concat (id3-item-option-string
-                                       (mingus-id3-get-item option))
-                                      " \'"
-                                      (apply
-                                       mingus-id3-format
-                                       (list (mingus-read-id3-elt option)))
-                                      "\'"))
-                            taglist) " ")
-         well-quoted-name)))
-      (ogg
-       (shell-command
-        (format
-         "vorbiscomment -w %s %s"
-         (mapconcat #'(lambda (item) item)
-                    (mapcar (lambda (option)
-                              (concat "-t \""
-                                      (id3-item-vorbiscomment
-                                       (mingus-id3-get-item option))
-                                      "="
-                                      (apply
-                                       mingus-id3-format
-                                       (list (mingus-read-id3-elt option)))
-                                      "\""))
-                            taglist) " ")
-         well-quoted-name)))
-      (flac
-       (shell-command
-        (format
-         "metaflac %s %s"
-         (mapconcat #'(lambda (item) item)
-                    (mapcar (lambda (option)
-                              (concat "--remove-tag="
-                                      (id3-item-vorbiscomment (mingus-id3-get-item option))
-                                      " --set-tag=\""
-                                      (id3-item-vorbiscomment (mingus-id3-get-item option))
-                                      "="
-                                      (apply mingus-id3-format (list (mingus-read-id3-elt option)))
-                                      "\""))
-                            taglist) " ")
-         well-quoted-name)))
-      (t (message "Don't know how to set tag for type %s" type)))))
-
-(defun mingus-read-id3-elt (item)       ;optional args are a test
-  "Try to retrieve info of type ITEM of song at point for `mingus-id3-set'; ;
-
-ITEM must be one of the elements in the variable `*mingus-id3-items*'"
-  (let* ((list (funcall (id3-item-list-or-list-function
-                         (mingus-id3-get-item item))))
-         (result (mingus-completing-read-allow-spaces
-                  (id3-item-minibuffer-string (mingus-id3-get-item item))
-                  list
-                  nil nil (car list)
-                  (id3-item-history-list (mingus-id3-get-item item)))))
-    (if (eq item 'genre)    ;one special case for genres. Otherwise, I'd have to
-                                        ;make this whole function a method
-        (case (mingus-what-type (mingus-get-filename-for-shell))
-          (mp3 (number-to-string
-                (or (cdr (assoc result (mingus-make-genre-alist))) 0)))
-          (t result))
-      result)))
+  (unless (string-match "GNU Emacs 21" (version))
+	;;fixme: make this work in emacs21 too
+	(when (featurep 'taggit)
+	  (define-key-after mingus-playlist-map [menu-bar mingus taggit-interactive]
+		'("Set tags" . taggit-interactive) 'dired)
+	  (define-key-after mingus-playlist-map [menu-bar mingus taggit]
+		'("Visit edit buffer for tags" . taggit) 'taggit-interactive)
+	  (define-key mingus-playlist-map "#" 'taggit-interactive)
+	  (define-key mingus-playlist-map "e" 'taggit))))
 
 ;;;; {{Thumbs}}
 (eval-when (compile)
@@ -625,6 +315,22 @@ However, you can just as well specify it directly in this string."
   '(menu-item "Burner" mingus-burns))
 
 ;;;; {{Generic Functions}}
+;; Replace with: (?)
+(defun mingus-read-entire-metadata ()
+  (mapcar (lambda (sublist)
+            (mapcar (lambda (item)
+                      (cond
+                       ((eq item 'Pos) :pos)
+                       ((symbolp item)
+                        (intern-soft (concat ":" (downcase (symbol-name item)))))
+                       (t item)))
+                    sublist))
+          (mpd-get-songs mpd-inter-conn "playlistinfo")))
+
+(defun mingus-what-type (string)
+  "Return symbol, based on extension"
+  (string-match "\\.\\([^.]*\\)$" string)
+  (intern-soft (downcase (match-string 1 string))))
 
 (defun mingus-burns-get-name-for-shell ()
   (shell-quote-argument
@@ -803,7 +509,7 @@ Both filename are absolute paths in the filesystem"
   (when (not (file-exists-p mingus-burns-tmp-wav-dir))
 	(make-directory mingus-burns-tmp-wav-dir t))
   (unless (and (not p)(file-exists-p dest))
-    (case (mingus-what-type src)
+    (case (mingus-hat-type src)
       (flac (message "Decoding %s to %s" src dest)
             (start-process "mingdec" "*Mingus-Output*" "flac" "-sd" src "-o" dest))
       (wav  (make-symbolic-link src dest)

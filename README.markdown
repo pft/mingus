@@ -51,8 +51,7 @@ support for ogg, flac and mp3, an experimental cd-burning tool
 Prerequisites
 =============
 libmpdee.el by R. Ramkumar. Currently mingus runs on GNU Emacs22 and
-GNU Emacs 23. If you also want to use mingus-stays-home.el, the
-programs flac, metaflac, vorbiscomment, sox, id3v2 and cdrecord (or
+GNU Emacs 23. If you also want to use mingus-stays-home.el, cdrecord (or
 any other command-line cd-burning tool taking files as arguments) might
 be needed.
 
