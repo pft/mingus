@@ -2844,6 +2844,12 @@ deleted."
   :group 'mingus
   :type '(alist))
 
+(defcustom mingus-wait-for-update-interval 1
+  "Seconds to wait after sending and update command to MPD, if
+  subsequent commands depend upon that update being finalized."
+  :group 'mingus
+  :type '(number))
+
 (defun mingus-add-stream (&optional and-play)
   "Add a url-stream to the mpd playlist.
 When point is at the beginning of a url, add that url;
@@ -3625,15 +3631,9 @@ If found, also quote it.  Used in `mingus-dired-add'."
 		   (file-truename sym))
 		  return file)))
 
-(defun mingus-dired-add ()
-  "In `dired', add marked files or file at point to the mpd playlist;
-
-If these files do not exist in the mpd database, ask whether to
-make a symlink. Create a symlink, and update the database for its
-path."
-  (interactive)
-  (let* ((files (dired-get-marked-files))
-		 (root (expand-file-name mingus-mpd-root))
+(defun mingus-resolve-files (files)
+  "Resolve files in the filesystem to they can be found in the MPD database"
+  (let* ((root (expand-file-name mingus-mpd-root))
 		 (rootlen (length root))
 		 not-under-root
 		 unfindables)
@@ -3683,29 +3683,62 @@ path."
 		  (setq files (nconc files found))
 		  (setq unfindables notfound))))
 
-	(when unfindables 
-	  (mapc (lambda (file)
-			  (let ((symlink (concat
-							  (file-name-as-directory 
-							   (expand-file-name mingus-mpd-root))
-							  (file-name-nondirectory file))))
-				(when (y-or-n-p (format "Not in database. Link %S to %S? " symlink file))
-				 (make-symbolic-link (expand-file-name file) symlink)
-				 ;; do only partial update
-				 (mingus-update (substring symlink rootlen))))) 
-			unfindables)
+	(values files unfindables)))
 
-	  ;; Yes, error out, so found files will be added just once
-	  (error "Please run this command again now some files have been symlinked. Updating may take some time"))
+(defun mingus-dired-add ()
+  "In `dired', add marked files or file at point to the mpd playlist;
 
-	;; Bake a command for mingus-add
-	(when files
-	 (let ((fmt (concat "%S" (mapconcat 'identity (make-list (length files) "") "\nadd %S"))))
-	   ;; And do the final call
-	   (mingus-add (apply #'format fmt files) t)))
+If these files do not exist in the mpd database, ask whether to
+make a symlink. Create a symlink, and update the database for its
+path."
+  (interactive)
+  (let ((rootlen (length (expand-file-name mingus-mpd-root))))
+   (destructuring-bind (files unfindables)
+	   (mingus-resolve-files (dired-get-marked-files))
+
+	 (when unfindables 
+	   (let (linked)
+		 (mapc (lambda (file)
+				 ;; ToDo: currently links files to root. Which is not good.
+				 (let ((src (expand-file-name
+							 (if (file-directory-p file)
+								 file
+							   (substring (file-name-directory file) 0 -1))))
+					   (symlink (expand-file-name
+								 (concat
+								  (file-name-as-directory 
+								   mingus-mpd-root)
+								  (if (file-directory-p file)
+									  (file-name-nondirectory file)
+									(file-name-nondirectory
+									 (substring (file-name-directory file) 0 -1)))))))
+				   (when
+					   (and (not (member (substring symlink rootlen) linked))
+							(or (y-or-n-p (format "Not in database. Link %S to %S? " symlink src))
+								(error "Cannot add while some songs are not in the database")))
+					 (make-symbolic-link src symlink)
+					 (push (substring symlink rootlen) linked)
+					 ;; do only partial update
+					 (mingus-update (substring symlink rootlen))))) 
+			   unfindables))
+
+	   ;; Wait a moment for the forced update to complete
+	   (sit-for mingus-wait-for-update-interval)
+
+	   ;; Try to resolve again:
+	   (destructuring-bind (found notfound) (mingus-resolve-files unfindables)
+		 ;; If update has not completed, error out, so found files will be added just once
+		 (if notfound
+			 (error "Please run this command again now some files have been symlinked. Updating may take some time")		   (setq files (append found files)))))
+
+	 ;; Bake a command for mingus-add
+	 (when files
+	   (let ((fmt (concat "%S" (mapconcat 'identity (make-list (length files) "") "\nadd %S"))))
+		 ;; And do the final call
+		(mingus-add (apply #'format fmt files) t)))
 	
-	;; finally, return a non-`nil' value for the success message to be displayed.
-	t)) 
+	 ;; finally, return a non-`nil' value for the success message to be displayed.
+	 t))) 
 
 ;; create function mingus-dired-add-and-play
 (mingus-and-play mingus-dired-add mingus-dired-add-and-play)
