@@ -509,7 +509,7 @@ Both filename are absolute paths in the filesystem"
   (when (not (file-exists-p mingus-burns-tmp-wav-dir))
 	(make-directory mingus-burns-tmp-wav-dir t))
   (unless (and (not p)(file-exists-p dest))
-    (case (mingus-hat-type src)
+    (case (mingus-what-type src)
       (flac (message "Decoding %s to %s" src dest)
             (start-process "mingdec" "*Mingus-Output*" "flac" "-sd" src "-o" dest))
       (wav  (make-symbolic-link src dest)
