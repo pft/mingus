@@ -3563,59 +3563,6 @@ Region is between (beginning of line of) BEG and (beginning of line of) END."
             (split-string (buffer-substring-no-properties beg end) "\n" t))))
 
 ;;;; {{Dired}}
-;; get all symlinks under mingus-mpd-root:
-(defun mingus-retrieve-symlinks ()
-  "Retrieve all symlinks under mpd root, and make an alist out of them.
-To be used for passing the right data to mpd in dired."
-  (cons
-   (cons (expand-file-name mingus-mpd-root) "")
-   (mingus-make-alist-reversed
-    (remove
-     ""
-     (split-string
-      (let  ((answer-from-shell
-	      (shell-command-to-string
-	       (format "symlinks -crv %s" mingus-mpd-root))))
-	(if (string-match "command not found" answer-from-shell)
-	    (error answer-from-shell)
-	  answer-from-shell))
-      (format
-       "\\(\\(\n*relative:\\|\n*other_fs:\\|\n*dangling:\\| ->\\) \\|%s\\|\n\\)"
-       mingus-mpd-root))))))
-
-;; TODO: TEST without mpd-safe-string
-;; DONE: DID NOT work...
-(defun mingus-abs->rel (string)
-  "In STRING, replace absolute path with symlink under `mingus-mpd-root';
-
-If found, also quote it.  Used in `mingus-dired-add'."
-  (let ((found-association
-         (assoc* string (mingus-retrieve-symlinks) :test
-                 '(lambda (place-of-file parent-dir)
-                    ;; account for relative interpretation by the shell of
-                    ;; symlinks
-                    (string-match
-                     (replace-regexp-in-string "\\.\\./" "" parent-dir)
-                     place-of-file)))))
-    (if found-association
-        (mpd-safe-string
-         (concat
-          (cdr found-association)
-          (substring string
-                     ;; account for relative interpretation by the shell of
-                     ;; symlinks
-                     (apply (if (string-match "\\.\\./"
-                                              (car found-association))
-                                '1+
-                              '+)
-                            ;; account for relative interpretation by the shell
-                            ;; of symlinks
-                            (length (replace-regexp-in-string
-                                     "\\.\\./"
-                                     ""
-                                     (car found-association)))
-                            nil)))))))
-
 (defun mingus-test-if-external-file-is-symlinked-in-list (sym l)
   (if (file-directory-p sym)
 	  (loop for file in l
@@ -3685,6 +3632,12 @@ If found, also quote it.  Used in `mingus-dired-add'."
 
 	(values files unfindables)))
 
+(defun mingus-abs->rel (string)
+  "Resolve a single file as relative to `mingus-mpd-root'."
+  (destructuring-bind (found notfound) 
+	  (mingus-resolve-files (list string))
+	(car found)))
+
 (defun mingus-dired-add ()
   "In `dired', add marked files or file at point to the mpd playlist;
 
@@ -3692,53 +3645,59 @@ If these files do not exist in the mpd database, ask whether to
 make a symlink. Create a symlink, and update the database for its
 path."
   (interactive)
+  (mingus-add-files (dired-get-marked-files)))
+
+(defun mingus-add-files (files)
+  "Add files to the mpd playlist.
+
+If MPD is unwary of these files, ask whether to make a symlink.
+Create a symlink, update database and try to resolve those files again."
   (let ((rootlen (length (expand-file-name mingus-mpd-root))))
-   (destructuring-bind (files unfindables)
-	   (mingus-resolve-files (dired-get-marked-files))
+	(destructuring-bind (files unfindables)
+		(mingus-resolve-files files)
 
-	 (when unfindables 
-	   (let (linked)
-		 (mapc (lambda (file)
-				 ;; ToDo: currently links files to root. Which is not good.
-				 (let ((src (expand-file-name
-							 (if (file-directory-p file)
-								 file
-							   (substring (file-name-directory file) 0 -1))))
-					   (symlink (expand-file-name
-								 (concat
-								  (file-name-as-directory 
-								   mingus-mpd-root)
-								  (if (file-directory-p file)
-									  (file-name-nondirectory file)
-									(file-name-nondirectory
-									 (substring (file-name-directory file) 0 -1)))))))
-				   (when
-					   (and (not (member (substring symlink rootlen) linked))
-							(or (y-or-n-p (format "Not in database. Link %S to %S? " symlink src))
-								(error "Cannot add while some songs are not in the database")))
-					 (make-symbolic-link src symlink)
-					 (push (substring symlink rootlen) linked)
-					 ;; do only partial update
-					 (mingus-update (substring symlink rootlen))))) 
-			   unfindables))
+	  (when unfindables 
+		(let (linked)
+		  (mapc (lambda (file)
+				  ;; ToDo: currently links files to root. Which is not good.
+				  (let ((src (expand-file-name
+							  (if (file-directory-p file)
+								  file
+								(substring (file-name-directory file) 0 -1))))
+						(symlink (expand-file-name
+								  (concat
+								   (file-name-as-directory 
+									mingus-mpd-root)
+								   (if (file-directory-p file)
+									   (file-name-nondirectory file)
+									 (file-name-nondirectory
+									  (substring (file-name-directory file) 0 -1)))))))
+					(when
+						(and (not (member (substring symlink rootlen) linked))
+							 (or (y-or-n-p (format "Not in database. Link %S to %S? " symlink src))
+								 (error "Cannot add while some songs are not in the database")))
+					  (make-symbolic-link src symlink)
+					  (push (substring symlink rootlen) linked)
+					  ;; do only partial update
+					  (mingus-update (substring symlink rootlen))))) 
+				unfindables))
 
-	   ;; Wait a moment for the forced update to complete
-	   (sit-for mingus-wait-for-update-interval)
+		;; Wait a moment for the forced update to complete
+		(sit-for mingus-wait-for-update-interval)
 
-	   ;; Try to resolve again:
-	   (destructuring-bind (found notfound) (mingus-resolve-files unfindables)
-		 ;; If update has not completed, error out, so found files will be added just once
-		 (if notfound
-			 (error "Please run this command again now some files have been symlinked. Updating may take some time")		   (setq files (append found files)))))
+		;; Try to resolve again:
+		(destructuring-bind (found notfound) (mingus-resolve-files unfindables)
+		  ;; If update has not completed, error out, so found files will be added just once
+		  (if notfound
+			  (error "Please run this command again now some files have been symlinked. Updating may take some time")		   (setq files (append found files)))))
 
-	 ;; Bake a command for mingus-add
-	 (when files
-	   (let ((fmt (concat "%S" (mapconcat 'identity (make-list (length files) "") "\nadd %S"))))
-		 ;; And do the final call
-		(mingus-add (apply #'format fmt files) t)))
-	
-	 ;; finally, return a non-`nil' value for the success message to be displayed.
-	 t))) 
+	  ;; Bake a command for mingus-add
+	  (if files
+		(let ((fmt (concat "%S" (mapconcat 'identity (make-list (length files) "") "\nadd %S"))))
+		  ;; And do the final call
+		  (mingus-add (apply #'format fmt files) t))
+		;; Return a non-`nil' value to indicate success
+		t)))) 
 
 ;; create function mingus-dired-add-and-play
 (mingus-and-play mingus-dired-add mingus-dired-add-and-play)
@@ -3793,39 +3752,16 @@ songs to Mingus."
     (t (_mingus-get-parent-dir))) "-al"))
 
 (defun mingus-dwim-add ()
-  "In `dired', add marked files or file at point to the mpd playlist.
-In other modes, use the minibuffer.
+  "Add files to the MPD database.
 
-
-If mpd is unwary of these files, ask whether to make a symlink.
-Create a symlink, and optionally update database.
-
-If updating takes too long, it might be that this does not work in one go.
-Try again at a later time if this happens."
+In Dired, use `mingus-dired-add', elsewhere read a filename from
+the minibuffer."
   (interactive)
-  (let ((old-length (mingus-playlist-length)))
-    (case major-mode
-      ('dired-mode
-       (mingus-dired-add))
-      (t
-       (mingus-add (mingus-abs->rel (expand-file-name (read-file-name "Add: "))))))
-    ;; make sure mingus-add has indeed added the stuff:
-    (if (= old-length (mingus-playlist-length))
-        ;; if not, ask some questions
-        (when (yes-or-no-p (format "Something has gone wrong. Possibly mpd does not know about the file.
-Do you want to symlink the parent directory? : " ))
-          (shell-command-to-string
-           (format "ln -s %s %s" (shell-quote-argument (dired-current-directory))
-                   (shell-quote-argument mingus-mpd-root)))
-
-          (when (yes-or-no-p "Update the database ? : ")
-            (mingus-update)
-            (message "This might take a while, repeat `mingus-dired-add' when that rattling sound of your harddisk has subsided")))
-      (case major-mode
-        ('mingus-burn-mode (with-no-warnings
-                             ;; `mingus-burns' will be defined in
-                             ;; mingus-stays-home
-                             (mingus-burns)))))))
+  (case major-mode
+	('dired-mode
+	 (mingus-dired-add))
+	(t
+	 (mingus-add-files (list (read-file-name "Add: "))))))
 
 (mingus-and-play mingus-dwim-add mingus-dwim-add-and-play)
 
