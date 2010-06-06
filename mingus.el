@@ -3363,48 +3363,40 @@ Argument POS is the current position in the buffer to revert to (?)."
 			(cdr (mingus-exec "listall"))
 			if (and (string= (car i) "file")
 				(string-match query (cdr i)))
-			if (null as-dir)
-			collect
-			(cdr i)
-			into list
-			else if
-			(not (member 
-			      (substring (file-name-directory (cdr i)) 0 -1)
-			      list))
-			collect
-			(substring (file-name-directory (cdr i)) 0 -1)
-			into list 
+			if (or (null as-dir) (null (file-name-directory (cdr i))))
+			collect i into list
+			else do (add-to-list 'list                 
+                                 (cons "directory"
+                                       (substring (file-name-directory (cdr i)) 0 -1)))
 			finally return list))
 		 (t
 		  (if (null as-dir)
 		      (loop for i in (cdr (mingus-exec
-					   (format "search %s %s"
-						   type
-						   (mpd-safe-string query))))
-			    if (string= (car i) "file")
-			    collect 
-			    (cdr i))
+                                   (format "search %s %S" type query)))
+                    if (string= (car i) "file")
+                    collect 
+                    i)
 		    (loop for i in (cdr (mingus-exec
-					 (format "search %s %s"
-						 type
-						 (mpd-safe-string query))))
-			  if (and (string= (car i) "file")
-				  (not (member 
-					(substring (file-name-directory (cdr i)) 0 -1)
-					list)))
-			  collect 
-			  (substring (file-name-directory (cdr i)) 0 -1)
-			  into list
-			  finally return list))))))
-      		  (flet ((prop (s)
-			       (propertize 
-				s
-				'face
-				(if as-dir
-				    'mingus-directory-face
-				  'mingus-song-file-face))))
-		    (insert
-		     (mapconcat #'prop (sort* results #'mingus-logically-less-p) "\n"))))
+                                 (format "search %s %S" type query)))
+                  when 
+                  (and (string= (car i) "file"))
+                  if (file-name-directory (cdr i))
+                  do (add-to-list 'list
+                      (cons "directory" (substring (file-name-directory (cdr i)) 0 -1)))
+                  else 
+                  collect i into list
+                  finally return list))))))
+      		  (flet ((prop (i)
+                           (propertize 
+                            (cdr i)
+                            'face
+                            (if (string= (car i) "file")
+                                'mingus-song-file-face
+                              'mingus-directory-face))))
+                (insert 
+                 (mapconcat #'identity
+                            (sort* (mapcar #'prop results)
+                                   #'mingus-logically-less-p) "\n"))))
     (mingus-browse-invisible)
     (goto-char (point-min))
     (mingus-revert-from-query pos prev buffer)))
