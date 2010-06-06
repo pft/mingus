@@ -22,7 +22,7 @@
 
 ;; In version 0.33 id3-related stuff has been removed, in favour if
 ;; the more general taggit.el to be found at
-;; http://github.com/ft/taggit. When taggit has been loaded before  
+;; http://github.com/pft/elisp-assorted. When taggit has been loaded before  
 ;; will be require'd and some keys bound to it.
 
 ;; NEW in 0.23:
