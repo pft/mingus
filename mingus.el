@@ -2174,23 +2174,23 @@ Actually it is just named after that great bass player."
         ((boundp 'global-mode-string)
          (add-to-list 'global-mode-string mingus-mode-line-object)))
   (unless (timerp mingus-modeline-timer)
-    (setq mingus-modeline-timer
-          (run-with-timer 1 1
-                          (lambda ()
-                            (if (or mingus-mode-always-modeline
-                                    (member (buffer-name)
-                                            '("*Mingus Browser*"
-                                              "*Mingus Help*"
-                                              "*Mingus*"
-                                              "*Mingus Burns*")))
-                                    (setq mingus-status
-                                          (mingus-make-mode-line-string))
-							  (setq mingus-status nil))
-							(when 
-								(< (mingus-get-old-playlist-version)
-								   (mingus-get-new-playlist-version))
-							  (mingus-playlist))))))
-          (mingus-playlist))
+    (setq mingus-modeline-timer (run-with-timer 0 1 'mingus-timer-handler)))
+  (mingus-playlist))
+
+(defun mingus-timer-handler ()
+  (if (or mingus-mode-always-modeline
+          (member (buffer-name)
+                  '("*Mingus Browser*"
+                    "*Mingus Help*"
+                    "*Mingus*"
+                    "*Mingus Burns*")))
+      (setq mingus-status
+            (mingus-make-mode-line-string))
+    (setq mingus-status nil))
+  (when 
+      (< (mingus-get-old-playlist-version)
+         (mingus-get-new-playlist-version))
+    (mingus-playlist)))
 
 (defun mingus-start-daemon ()
   "Start mpd daemon for `mingus'."
