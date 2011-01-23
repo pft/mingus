@@ -1635,13 +1635,17 @@ This is an exact copy of line-number-at-pos for use in emacs21."
 
 (defun mingus-mark-regexp (re)
   "In Mingus, mark all songs containing regexp RE."
-  (interactive "sMark containing regexp: ")
-  (save-excursion
-    (let (buffer-read-only)
-      (goto-char (point-min))
-      (while (re-search-forward re nil t)
-        (mingus-pos->mlist (1- (mingus-line-number-at-pos)))
-        (mingus-mark-line)))))
+  (interactive
+   (list
+    (when (null current-prefix-arg)
+     (read-string "Mark containing regexp: "))))
+  (if (null re) (call-interactively 'mingus-unmark-regexp)
+   (save-excursion
+     (let (buffer-read-only)
+       (goto-char (point-min))
+       (while (re-search-forward re nil t)
+         (mingus-pos->mlist (1- (mingus-line-number-at-pos)))
+         (mingus-mark-line))))))
 
 (defun mingus-unmark-regexp (re)
   "In Mingus, mark all songs containing regexp RE."
