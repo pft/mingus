@@ -22,8 +22,8 @@
 
 ;; In version 0.33 id3-related stuff has been removed, in favour if
 ;; the more general taggit.el to be found at
-;; http://github.com/pft/elisp-assorted. When taggit has been loaded before  
-;; will be require'd and some keys bound to it.
+;; http://github.com/pft/elisp-assorted. When taggit has been loaded
+;; before will be require'd and some keys bound to it.
 
 ;; NEW in 0.23:
 
@@ -110,21 +110,22 @@
 ;;; this. The green-redness if the indication bar displays just what is usually
 ;;; encountered.
 
-;;; INFO: mingus-burns records cd's with the contents of the current playlist of
-;;; mpd. It can also just be used to see what the duration of a playlist and its
-;;; respective songs (ONLY if in ogg- or mp3 format) is. Currently the
-;;; playlist-editing functions are *not* as wide as in the normal playlist
-;;; buffer (tagged `*Mingus*'). However, basic support for deletion of song at
-;;; point and of songs in region does exist, with respect for the variables
-;;; `*mingus-point-of-insertion*' and `*mingus-marked-list*'. You can add songs
-;;; without leaving the *Mingus Burns* buffer as well, by use of
-;;; mingus-dwim-add. Adding songs leads to a complete recomputation of song
-;;; duration, which may take a while, so the fastest way to achieve nice
-;;; contents for your CD is to first add a bunch of songs (but not way to much
-;;; of course), and then delete the ones you can do without. It looks more
-;;; attractive than the default playlist buffer, but because of the slowness
-;;; inherent in computing duration, it is not planned to be a full substitute
-;;; for it, at least not in the near future.
+;;; INFO: mingus-burns records cd's with the contents of the current
+;;; playlist of mpd. It can also just be used to see what the duration
+;;; of a playlist and its respective songs is. The playlist-editing
+;;; functions are *not* as wide as in the normal playlist buffer
+;;; (tagged `*Mingus*'). However, basic support for deletion of song
+;;; at point and of songs in region does exist, with respect for the
+;;; variables `*mingus-point-of-insertion*' and
+;;; `*mingus-marked-list*'. You can add songs without leaving the
+;;; *Mingus Burns* buffer as well, by use of `mingus-dwim-add'. Adding
+;;; songs leads to a complete recomputation of song duration, which
+;;; may take a while, so the fastest way to achieve nice contents for
+;;; your CD is to first add a bunch of songs (but not way to much of
+;;; course), and then delete the ones you can do without. It looks
+;;; more attractive than the default playlist buffer, but because of
+;;; the slowness inherent in computing duration, it is not planned to
+;;; be a full substitute for it, at least not in the near future.
 
 ;;; REQUIREMENTS:
 
