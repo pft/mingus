@@ -674,9 +674,10 @@ C-k                     mingus-move-up
 C-j                     mingus-move-down
 RET,[mouse-3]           mingus-play
 SPC,m,[mouse-2]         mingus-mark
-y                       mingus-mark-regexp
-Y                       mingus-unmark-regexp
-U                       mingus-unmark-all
+* %%, y                  mingus-mark-regexp
+C-u * %%, Y              mingus-unmark-regexp
+*!                      mingus-unmark-all
+* *                     mingus-vol-up
 !                       run a command on the marked songs
 
 Browser keys:
@@ -926,9 +927,9 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (define-key mingus-global-map "\C-xrd" 'mingus-bookmark-delete)
 
 (mapc (lambda (key) (define-key mingus-global-map key 'mingus-vol-up))
-        '("+" [(right)] "*"))
+        '("+" [(right)] "="))
 (mapc (lambda (key) (define-key mingus-global-map key 'mingus-vol-down))
-        '("-" [(left)] "/"))
+        '("-" [(left)] "/" "_"))
 (define-key mingus-global-map "b" 'mingus-seek-backward)
 (define-key mingus-global-map "f" 'mingus-seek)
 (define-key mingus-global-map "$" 'mingus-seek-from-start)
@@ -1230,7 +1231,17 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (define-key mingus-playlist-map "\C-j" 'mingus-move-down)
 
 ;;marking keys
-(define-key mingus-playlist-map "U" 'mingus-unmark-all)
+(define-key mingus-playlist-map "*!" 'mingus-unmark-all)
+
+(defvar mingus-*-map 
+  (let ((m (make-sparse-keymap)))
+    (define-key m "!" 'mingus-unmark-all)
+    (define-key m "%" 'mingus-mark-regexp)
+    (define-key m "*" 'mingus-vol-up)
+    (define-key m "(" 'mingus-mark-sexp)
+    m))
+
+(define-key mingus-playlist-map "*" mingus-*-map)
 
 (mapc (lambda (key)
           (define-key mingus-playlist-map key
@@ -1397,7 +1408,7 @@ Or, you might show me how to use a function/string choice in customize ;)"
 
 (mapc (lambda (key)
           (define-key mingus-browse-map key 'mingus-dir-up))
-        '(":" "^"))
+        '(":" "^" "\C-x\C-j"))
 
 (define-key mingus-browse-map
   [menu-bar mingus sep-playlist-editing]
@@ -1641,6 +1652,70 @@ This is an exact copy of line-number-at-pos for use in emacs21."
       (while (re-search-forward re nil t)
         (mingus-unmark-line)
         (mingus-pos-mlist-> (1- (mingus-line-number-at-pos)))))))
+
+(defun mingus-merge-maps (map1 map2)
+  "Merge keymaps MAP1 and MAP2
+
+Merge all keybindings of MAP2 that aren't yet bound in MAP1
+plus all bound keys of MAP1 in a fresh keymap."
+  (let ((m (copy-keymap map1)))
+    (dolist (key (copy-keymap map2) m)
+      (when (and (consp key)
+                 (not (assoc (car key) m)))
+        (set 'm
+         (append m (list key)))))))
+
+(if (featurep 'paredit)
+    (defvar mingus-sexp-map (mingus-merge-maps minibuffer-local-map paredit-mode-map))
+  (defalias 'mingus-sexp-map minibuffer-local-map))
+
+(defun mingus-mark-sexp (predicate)
+  "In Mingus, mark all songs matching PREDICATE.
+
+The following symbols are bound during the evaluation of PREDICATE:
+
+file
+title
+artist
+album 
+date 
+genre
+track
+last-modified
+
+These probably speak for themselves.
+
+details : the car of the `details' text property.
+"
+  (interactive
+   (list (read-from-minibuffer 
+          (if current-prefix-arg
+              "Unmark if (lisp expr): "
+            "Mark if (lisp expr): ") nil mingus-sexp-map t)))
+  (save-excursion
+    (let (buffer-read-only any)
+      (goto-char (point-min))
+      (while (not (eobp))
+        (let* ((details (car (get-text-property (point) 'details)))
+               (file (getf details 'file))
+               (title (getf details 'Title))
+               (artist (getf details 'Artist))
+               (album (getf details 'Album))
+               (date (getf details 'Date))
+               (genre (getf details 'Genre))
+               (track (getf details 'Track))
+               (last-modified (getf details 'Last-Modified)))
+          (when (eval predicate)
+            (setq any t)
+            (if current-prefix-arg
+                (progn
+                  (mingus-unmark-line)
+                  (mingus-pos-mlist-> (1- (mingus-line-number-at-pos))))
+              (mingus-pos->mlist (1- (mingus-line-number-at-pos)))
+              (mingus-mark-line)))
+          (forward-line)))
+      (unless any
+        (message "No match for sexp: %S" predicate)))))
 
 (defun mingus-set-marks ()
   (let (buffer-read-only)
