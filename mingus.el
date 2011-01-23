@@ -12,7 +12,7 @@
 ;; ....................but actually named after a man so named
 ;;
 
-;; Copyright (C) 2006-2010 Niels Giesen <com dot gmail at niels dot giesen, in
+;; Copyright (C) 2006-2011 Niels Giesen <com dot gmail at niels dot giesen, in
 ;; reversed order>
 
 ;; Author: Niels Giesen <pft on #emacs>
