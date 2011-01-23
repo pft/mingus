@@ -2579,49 +2579,49 @@ Switch to *Mingus* buffer if necessary."
   (mpd-move mpd-inter-conn from to use-id))
 
 ;; now for my little pearls:
-(defvar uplist `(1 . ,(current-time))
+(defvar mingus-uplist `(1 . ,(current-time))
   "Cons of the form (COUNT . TIME) for checking repeating commands;
  COUNT is the number of repeated commands;
  TIME is the last time the command has been invoked")
 
 (defun mingus-update-command-list (&optional inc)
-  (setcdr uplist (float-time (current-time)))
-  (if inc (incf (car uplist))
-    (setcar uplist 1)))
+  (setcdr mingus-uplist (float-time (current-time)))
+  (if inc (incf (car mingus-uplist))
+    (setcar mingus-uplist 1)))
 
 (defun mingus-move-up ()
   "In Mingus, move song at point up one position, visually."
   (interactive)
   (if (= (mingus-line-number-at-pos) 1)
       (progn
-        (and (> (car uplist) 1)         ;there were previous calls so do
+        (and (> (car mingus-uplist) 1)         ;there were previous calls so do
                                         ;something
-             (mingus-move (1- (car uplist)) 0))
+             (mingus-move (1- (car mingus-uplist)) 0))
         (mingus-update-command-list))   ;set the count of calls to 1
     (let ((buffer-read-only nil))
       (if (and (eq last-command this-command)
                                         ;quick repetition of keypresses,
                                         ;or holding down a key
-               (< (- (float-time (current-time))(cdr uplist)) 0.04))
+               (< (- (float-time (current-time))(cdr mingus-uplist)) 0.04))
           (progn (mingus-update-command-list t) ;increase the count of calls
                                         ;with one
                  (transpose-lines 1)    ;change positions in buffer
                  (forward-line -2)
-                 (lexical-let ((count (car uplist)))
+                 (lexical-let ((count (car mingus-uplist)))
                    (run-with-timer
                     0.05 nil
                     (lambda ()
                                         ;check if this was the last call
-                      (if (= count (car uplist))
+                      (if (= count (car mingus-uplist))
                           (progn
                                         ;move the song to its new position
                             (mingus-move
-                             (- (+ (car uplist)
+                             (- (+ (car mingus-uplist)
                                    (mingus-line-number-at-pos)) 2)
                              (max 0 (- (mingus-line-number-at-pos) 1)))
                             (message
                              "Pos %d moved to pos %d"
-                             (max 0 (- (+ (car uplist)
+                             (max 0 (- (+ (car mingus-uplist)
                                           (mingus-line-number-at-pos)) 2))
                              (- (mingus-line-number-at-pos) 1))
                                         ;reset the count
@@ -2632,7 +2632,7 @@ Switch to *Mingus* buffer if necessary."
                (and
                 (mingus-move
                  (1- (mingus-line-number-at-pos))
-                 (max (-  (mingus-line-number-at-pos) 1 (car uplist)) 0))
+                 (max (-  (mingus-line-number-at-pos) 1 (car mingus-uplist)) 0))
                 (transpose-lines 1)
                 (mingus-update-command-list)
                 (mingus-set-song-pos)
@@ -2645,15 +2645,15 @@ Switch to *Mingus* buffer if necessary."
   (interactive)
   (if (= (mingus-line-number-at-pos) (count-lines (point-min) (point-max)))
       (progn
-        (and (> (car uplist) 1)         ;there were previous calls so do
+        (and (> (car mingus-uplist) 1)         ;there were previous calls so do
                                         ;something
              (mingus-move
-              (- (mingus-line-number-at-pos) (car uplist))
+              (- (mingus-line-number-at-pos) (car mingus-uplist))
               (1- (mingus-line-number-at-pos))))
         (mingus-update-command-list))   ;set the count of calls to 1
     (let ((buffer-read-only nil))
       (if (and (eq last-command this-command)
-               (< (- (float-time (current-time))(cdr uplist)) 0.04))
+               (< (- (float-time (current-time))(cdr mingus-uplist)) 0.04))
                                         ;quick repetition of keypresses, or
                                         ;holding down a key
           (progn (mingus-update-command-list t) ;increase the count of calls
@@ -2661,21 +2661,21 @@ Switch to *Mingus* buffer if necessary."
                  (forward-line 1)       ;change positions in buffer
                  (transpose-lines 1)
                  (forward-line -1)
-                 (lexical-let ((count (car uplist)))
+                 (lexical-let ((count (car mingus-uplist)))
                    (run-with-timer
                     0.05 nil
                     (lambda ()
-                      (if (= count (car uplist))
+                      (if (= count (car mingus-uplist))
                                         ;check if this was the last call
                           (progn
                             (mingus-move
-                             (max (- (mingus-line-number-at-pos)(car uplist)) 0)
+                             (max (- (mingus-line-number-at-pos)(car mingus-uplist)) 0)
                              (- (mingus-line-number-at-pos) 1)) ;move the song
                                                                 ;to its new
                                                                 ;position
                             (message "Pos %d moved to pos %d"
                                      (max (- (mingus-line-number-at-pos)
-                                             (car uplist)) 0)
+                                             (car mingus-uplist)) 0)
                                      (- (mingus-line-number-at-pos) 1))
                             (mingus-update-command-list) ;reset the count
 			    (mingus-set-NP-mark t)
