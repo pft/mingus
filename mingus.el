@@ -581,6 +581,8 @@ customizing these values; use `mingus-customize' for that."
 (defvar mingus-last-query-results nil
   "Variable to hold last results of mingus-query")
 
+(defvar mingus-last-query nil)
+
 (make-variable-buffer-local 'mingus-last-query-results)
 
 (defvar mingus-help-text ""
@@ -3043,7 +3045,8 @@ If active region, add everything between BEG and END."
                                     ((string= (car item) "file")
                                      'mingus-song-file-face))))
             newcontents))
-    (mingus-browse-invisible)))
+    (mingus-browse-invisible)
+    (setq header-line-format string)))
 
 (defun mingus-browse-to-song-at-p ()
   (interactive)
@@ -3354,6 +3357,7 @@ Argument TYPE specifies the kind of query.
 Argument QUERY is a query string.
 Argument POS is the current position in the buffer to revert to (?)."
   (mingus-switch-to-browser)
+  (setq mingus-last-query (list type query pos buffer as-dir))
   (let ((buffer-read-only nil)
         (prev (buffer-string)))
     (erase-buffer)
@@ -3386,17 +3390,18 @@ Argument POS is the current position in the buffer to revert to (?)."
                   else 
                   collect i into list
                   finally return list))))))
-      		  (flet ((prop (i)
-                           (propertize 
-                            (cdr i)
-                            'face
-                            (if (string= (car i) "file")
-                                'mingus-song-file-face
-                              'mingus-directory-face))))
-                (insert 
-                 (mapconcat #'identity
-                            (sort* (mapcar #'prop results)
-                                   #'mingus-logically-less-p) "\n"))))
+      (flet ((prop (i)
+                   (propertize 
+                    (cdr i)
+                    'face
+                    (if (string= (car i) "file")
+                        'mingus-song-file-face
+                      'mingus-directory-face))))
+        (insert 
+         (mapconcat #'identity
+                    (sort* (mapcar #'prop results)
+                           #'mingus-logically-less-p) "\n")))
+      (setq header-line-format (list type ": " query)))
     (mingus-browse-invisible)
     (goto-char (point-min))
     (mingus-revert-from-query pos prev buffer)))
@@ -3424,7 +3429,11 @@ Argument POS is the current position in the buffer to revert to (?)."
            (setq mode-name "Query results")
            (let ((buffer-read-only nil))
 	     (erase-buffer)
-	     (insert mingus-last-query-results)))))
+	     (insert mingus-last-query-results)
+         (setq header-line-format
+               (list (car mingus-last-query)
+                     ": "
+                     (cadr mingus-last-query)))))))
 
 (defalias 'mingus-search 'mingus-query)
 
