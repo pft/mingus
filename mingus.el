@@ -194,6 +194,10 @@
 (defvar mingus-wake-up-call nil)
 (defvar mingus-modeline-timer nil)
 (defvar mingus-status nil)
+(defvar mingus-browse-last-cmd nil "Last command issued to obtain a listing in Mingus Browse buffer.
+
+This is used by `mingus-refresh'.")
+(make-variable-buffer-local 'mingus-browse-last-cmd)
 (defvar mingus-playlist-hooks nil "Hooks run at the end of `mingus-playlist'")
 (defvar mingus-marked-list nil
   "List of marked songs, identified by songid")
@@ -3013,21 +3017,22 @@ If active region, add everything between BEG and END."
 (defun mingus-ls (string)
   "List songs/dirs in directory STRING in dedicated *Mingus Browser* buffer."
   (mingus-switch-to-browser)
+  (setq mingus-browse-last-cmd `(mingus-ls ,string))
   (save-excursion)
   (let ((buffer-read-only nil)
         (newcontents
-	 (sort*
-	  (loop for i in
-		(remove-if
-		 (lambda (item) (or
+     (sort*
+      (loop for i in
+        (remove-if
+         (lambda (item) (or
                             (null (cdr item))
                             (not (string-match (car item)
                                                "file|directory|playlist"))))
-		 (cdr (mingus-exec (format "lsinfo %s"
-					   (mpd-safe-string string)))))
-		collect i)
+         (cdr (mingus-exec (format "lsinfo %s"
+                       (mpd-safe-string string)))))
+        collect i)
           #'mingus-logically-less-p
-	  :key #'cdr)))
+      :key #'cdr)))
     (erase-buffer)
     (if (null newcontents)
         (message "No songs in database; check your mpd settings")
@@ -3079,6 +3084,20 @@ If active region, add everything between BEG and END."
       (progn
         (mingus-ls "")))
     (re-search-backward goal)))
+
+(defun mingus-refresh ()
+  "Refresh view."
+  (interactive)
+  (end-of-line)
+  (case major-mode
+    (mingus-browse-mode
+     (mingus-save-excursion
+       (eval mingus-browse-last-cmd))
+     (goto-char (point-at-bol)))
+    (mingus-playlist-mode
+     (mingus-playlist t))
+    (t
+     (message "No refreshing action for mode: %S" major-mode))))
 
 (defun mingus-insert (&optional and-play)
   "In *Mingus Browser* buffer, insert stuff under point or region into playlist.
@@ -3357,7 +3376,8 @@ Argument TYPE specifies the kind of query.
 Argument QUERY is a query string.
 Argument POS is the current position in the buffer to revert to (?)."
   (mingus-switch-to-browser)
-  (setq mingus-last-query (list type query pos buffer as-dir))
+  (setq mingus-browse-last-cmd `(mingus-query-do-it ,type ,pos ,buffer ,as-dir)
+        mingus-last-query (list type query pos buffer as-dir))
   (let ((buffer-read-only nil)
         (prev (buffer-string)))
     (erase-buffer)
