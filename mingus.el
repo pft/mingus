@@ -657,8 +657,10 @@ j                       forward-line
 v                       mingus-show-version
 C-x-r-b                 mingus-bookmark-jump		
 C-x-r-m                 mingus-bookmark-set
-C-x-r-d                 mingus-bookmark-delete		
-
+C-x-r-d                 mingus-bookmark-delete
+@                       mingus-update
+U                       mingus-update-thing-at-p
+g                       mingus-refresh
 
 Playlist keys:
 
@@ -1250,6 +1252,8 @@ Or, you might show me how to use a function/string choice in customize ;)"
 
 (define-key mingus-playlist-map "U" 'mingus-update-thing-at-p)
 
+(define-key mingus-playlist-map "g" 'mingus-refresh)
+
 (define-key mingus-playlist-map "!"
   (lambda ()
     (interactive)
@@ -1372,6 +1376,7 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (define-key mingus-browse-map "\r" 'mingus-down-dir-or-play-song)
 (define-key mingus-browse-map "S" 'mingus-browse-sort)
 (define-key mingus-browse-map "U" 'mingus-update-thing-at-p)
+(define-key mingus-browse-map "g" 'mingus-refresh)
 
 (define-key mingus-browse-map
   [(down-mouse-1)]
@@ -3279,7 +3284,10 @@ Complete in the style of the function `find-file'."
     (if (listp updatable)
 	;;have to fix weird differences in details tss..
 	(setq updatable (car updatable)))
-    (mingus-update updatable)))
+    (mingus-update updatable)
+    (case major-mode
+      ((mingus-playlist-mode mingus-browse-mode)
+       (message "Press [%c] to update buffer" ?g)))))
 
 ' (defun mingus-switch-car-and-cdr (cons)
     (cons (cdr cons) (car cons)))
