@@ -3141,7 +3141,7 @@ If active region, add everything between BEG and END."
 (defun mingus-browse-to-file (file)
   (mingus-ls (_mingus-string->parent-dir file))
   (goto-char (point-min))
-  (re-search-forward (file-name-nondirectory file) nil t)
+  (search-forward (file-name-nondirectory file) nil t)
   (beginning-of-line))
 
 (defun mingus-browse-to-dir (dir)
@@ -3163,7 +3163,7 @@ If active region, add everything between BEG and END."
            (buffer-substring-no-properties (point-at-bol) (point))))
       (progn
         (mingus-ls "")))
-    (re-search-backward goal)))
+    (search-backward goal)))
 
 (defun mingus-refresh ()
   "Refresh view."
