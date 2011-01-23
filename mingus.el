@@ -1996,7 +1996,7 @@ ATOM10))) for (mingus-make-cond-exp '((ATOM1 ATOM2)(ATOM8 ATOM10))).
                             (mingus-make-song-string
                              data
                              mingus-mode-line-format-to-use
-                             " -*- ")))
+                             mingus-playlist-separator)))
                       ;; a small (?) side effect, but only if playlist buffer is
                       ;; shown:
                       (and (get-buffer-window-list "*Mingus*")
