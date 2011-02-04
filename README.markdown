@@ -45,9 +45,12 @@ inserts the file into the current playlist when it is not yet there.
 Mingus stays home
 =================
 If mingus stays home, i.e. the daemon mpd is run from the same
-computer as the client, mingus-stays-home.el provides some tagging
-support for ogg, flac and mp3, an experimental cd-burning tool
-(mingus-burns).
+computer as the client, mingus-stays-home.el provides an experimental
+cd-burning tool (mingus-burns). When you have
+[taggit.el](https://github.com/pft/elisp-assorted/blob/master/taggit.el)
+and the command-line [taggit program](https://github.com/ft/taggit)
+mingus can call that with a selection of songs to perform (batch) tag
+editing.
 
 Prerequisites
 =============
@@ -64,15 +67,3 @@ mingus.el
 - Add a search buffer In this search buffer, you would be able to
    filter songs by their attributes. It would have a tabular layout,
    and you could safe-sort the songs. Maybe as-you-type, maybe not.
-
-mingus-stays-home.el
---------------------
-- add tagging for multiple files in one go (apply one field of choice to one or more files)
-   For this I am looking into [LibTag](http://developer.kde.org/~wheeler/taglib.html) . Best bet would be to write a
-   command-line program in C++ (maybe even one spitting out lists :)
-   ), so that I do not have to worry about people having this or that
-   interpreter language that *has got* ffi's.
-
-   So now I am learning C++...
-
-
