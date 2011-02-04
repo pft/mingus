@@ -1608,8 +1608,43 @@ This is an exact copy of line-number-at-pos for use in emacs21."
 
 ;; {{basic mpd functions}}
 
+(defun mingus-get-last-db-update ()
+  (string-to-number (cdr (assoc "db_update" (cdr (mingus-exec "stats"))))))
+
 (defun mingus-get-songs (cmd &optional foreach)
+  "Get songs for CMD.
+
+Call function FOREACH as in `mpd-get-songs'."
   (mpd-get-songs mpd-inter-conn cmd foreach))
+
+(defun mingus-get-songs-with-smart-cache (cmd &optional foreach)
+  "Get songs for CMD.
+
+Call function FOREACH as in `mpd-get-songs'.
+
+This differs from `mingus-get-songs' in that it only requests MPD
+for the information when the database has another version number.
+
+If versions differ, the cached response is used.
+
+NOTE that the playlist may differ while the database may not, so
+do not use this function for stuff concerning the playlist.
+
+This function may fail on the off chance servers are switched and
+their latest update time happen to be exactly the same. In that
+rare case, running a single `mingus-update' to regenerate the
+database may work."
+  (let* ((last-update (mingus-get-last-db-update))
+         (old-results (get 'mingus-get-songs (intern cmd))))
+   (or (and old-results
+            (= (car old-results) last-update)
+            (cdr old-results))
+       (let ((new-results
+              (mpd-get-songs mpd-inter-conn cmd foreach)))
+        (put 'mingus-get-songs (intern cmd)
+             (cons
+              last-update
+              new-results))))))
 
 (defun mingus-pos->id (pos)
   (getf (car (mingus-get-songs (format "playlistinfo %d" pos))) 'Id))
@@ -3450,7 +3485,7 @@ possible).  Optional argument TYPE predefines the type of query."
                             (mapcar
                              (lambda (metadata)
                                (plist-get metadata (intern (capitalize type))))
-                             (mingus-get-songs "listallinfo"))))
+                             (mingus-get-songs-with-smart-cache "listallinfo"))))
                    (lambda (string predicate mode)
                      (with-current-buffer
                          (let ((window (minibuffer-selected-window)))
