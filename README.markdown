@@ -26,7 +26,8 @@ Autocompletion on queries
 Mingus has kind of autocompletion on queries. The browser can show
 either the song results or their parent directories. This lets you go
 easy on the tagging, and make good use of a simple file-system
-structured song collection.
+structured song collection. Mingus can be configured to use ido-mode
+completion.
 
 Bookmarking
 ===========
