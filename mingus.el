@@ -1,4 +1,4 @@
-;; mingus.el --- Time-stamp: <2009-07-06 20:22:26 sharik>
+;; mingus.el --- Time-stamp: <2011-02-04 10:12:13 sharik>
 
 ;;            _
 ;;  _ __ ___ (_)_ __   __ _ _   _ ___
@@ -19,8 +19,8 @@
 
 ;; Contributors (with patches and bug reports): Jeremie Lasalle
 ;; Ratelle, "Lexa12", Marc Zonzon, Mark Taylor, Drew Adams, Alec
-;; Heller, "death" (github.com/death), Александр Цамутали and
-;; Maximilian Gass.
+;; Heller, "death" (github.com/death), Александр Цамутали, Maximilian
+;; Gass and Dan King.
 
 ;; Version: Open Letter to Duke, or: 0.33
 ;; Latest version can be found at http://github.com/pft/mingus/
