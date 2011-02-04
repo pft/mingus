@@ -3445,13 +3445,12 @@ possible).  Optional argument TYPE predefines the type of query."
                  (format "%s query: " (capitalize type))
                  (if (and mingus-use-ido-mode-p
                           (fboundp 'ido-completing-read))
-                     (remove-duplicates
+                     (mingus-remove-dupes
                       (delq nil
                             (mapcar
                              (lambda (metadata)
                                (plist-get metadata (intern (capitalize type))))
-                             (mingus-get-songs "listallinfo")))
-                      :test 'equal)
+                             (mingus-get-songs "listallinfo"))))
                    (lambda (string predicate mode)
                      (with-current-buffer
                          (let ((window (minibuffer-selected-window)))
