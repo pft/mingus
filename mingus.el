@@ -347,6 +347,14 @@ Mingus sort functions should take this variable into account."
   "Customization group to control the modeline for `mingus'"
   :group 'mingus)
 
+(defcustom mingus-use-ido-mode-p nil
+  "Whether to use ido-mode fuzzy completion when searching artists, tracks, etc.
+Do not use ido-mode completion when nil.
+Do use ido-mode completion when t.
+Default: nil."
+  :group 'mingus
+  :type '(boolean))
+
 (defcustom mingus-mpd-env-set-p nil
   "Whether to set environment variables from emacs.
 Do not set when nil.
@@ -1561,9 +1569,18 @@ This is an exact copy of line-number-at-pos for use in emacs21."
                                         ; change space character to simply
                                         ; insert a space
     (unwind-protect
-        (completing-read prompt table predicate
-                         require-match initial-input
-                         hist def inherit-input-method)
+        (if (and mingus-use-ido-mode-p
+                 (fboundp 'ido-completing-read)
+                 (listp table))
+            (ido-completing-read prompt
+                                 ; this lists every song in the song db
+                                 table
+                                 predicate
+                                 require-match initial-input
+                                 hist def)
+          (completing-read prompt table predicate
+                           require-match initial-input
+                           hist def inherit-input-method))
       (setcdr (assoc 32 minibuffer-local-completion-map) former-function))))
                                         ;change back the space character to its
                                         ;former value
@@ -3418,28 +3435,38 @@ possible).  Optional argument TYPE predefines the type of query."
          (pos (point))
          (query (mingus-completing-read-allow-spaces
                  (format "%s query: " (capitalize type))
-                 (lambda (string predicate mode)
-                   (with-current-buffer
-                       (let ((window (minibuffer-selected-window)))
-                         (if (window-live-p window)
-                             (window-buffer window)
-                           (current-buffer)))
-                     (cond ((eq mode t)
-                            (mingus-completing-search-type type string))
-                           ((not mode)
-                            (let ((hits
-                                   (mingus-completing-search-type type string)))
-                              (if hits
-                                  (if (= 1 (length hits))
-                                      (car hits)
-                                    (if (fboundp 'icicle-expanded-common-match) ;changed from icicle-longest-common-match
-                                        (icicle-expanded-common-match
-                                         string hits)
-                                      (try-completion string hits))))))
-                           (t (test-completion
-                               string
-                               (mingus-completing-search-type type string)
-                               predicate)))))
+                 (if (and mingus-use-ido-mode-p
+                          (fboundp 'ido-completing-read))
+                     (remove-duplicates
+                      (delq nil
+                            (mapcar
+                             (lambda (metadata)
+                               (plist-get metadata (intern (capitalize type))))
+                             (mingus-get-songs "listallinfo")))
+                      :test 'equal)
+                   (lambda (string predicate mode)
+                     (with-current-buffer
+                         (let ((window (minibuffer-selected-window)))
+                           (if (window-live-p window)
+                               (window-buffer window)
+                             (current-buffer)))
+                       (cond ((eq mode t)
+                              (mingus-completing-search-type type string))
+                             ((not mode)
+                              (let ((hits
+                                     (mingus-completing-search-type type
+                                                                    string)))
+                                (if hits
+                                    (if (= 1 (length hits))
+                                        (car hits)
+                                      (if (fboundp 'icicle-expanded-common-match)
+                                          (icicle-expanded-common-match
+                                           string hits)
+                                        (try-completion string hits))))))
+                             (t (test-completion
+                                 string
+                                 (mingus-completing-search-type type string)
+                                 predicate))))))
                  nil
                  nil
                  nil
