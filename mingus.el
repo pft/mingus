@@ -1447,6 +1447,14 @@ Or, you might show me how to use a function/string choice in customize ;)"
   (defun mingus-line-number-at-pos ()
     (line-number)))
 
+(defun mingus-remove-dupes (list)
+  (let (tmp-list head)
+    (while list
+      (setq head (pop list))
+      (unless (member head tmp-list)
+        (push head tmp-list)))
+    tmp-list))
+
 (defun mingus-goto-line (n)
   (goto-char (point-min))
   (forward-line (1- n)))
