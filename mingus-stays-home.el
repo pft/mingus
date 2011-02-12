@@ -77,7 +77,7 @@
 ;; Then put the following in your .emacs:
 
 ;; (add-to-list 'load-path "/path/where/mingus-and-mingus-stays-home-reside")
-;; (autoload 'mingus "mingus-stays-home")
+;; (autoload 'mingus "mingus-stays-home" nil t)
 
 ;; Make sure you have a version of mingus.el of the same version number
 ;; available in your load-path.

@@ -71,7 +71,7 @@
 ;; Add the following to your .emacs:
 
 ;; (add-to-list 'load-path "/path/where/mingus-and-mingus-stays-home-reside")
-;; (autoload 'mingus "mingus-stays-home")
+;; (autoload 'mingus "mingus-stays-home" nil t)
 
 ;; 2. Mingus only (so NO mingus-stays-home) :
 
@@ -80,7 +80,7 @@
 ;; Add the following to your .emacs:
 
 ;; (add-to-list 'load-path "/path/where/mingus/resides")
-;; (autoload 'mingus "mingus")
+;; (autoload 'mingus "mingus" nil t)
 
 ;; Design issues:
 
