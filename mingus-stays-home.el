@@ -390,7 +390,7 @@ However, you can just as well specify it directly in this string."
         (mingus-reset-point-of-insertion)
         (delete-region (point-at-bol) (point-at-bol 2))
         (decf (get '*mingus-b-session* :total-time) length-of-song-at-p)
-        (goto-line (- (mingus-line-number-at-pos (point-max)) 2))
+        (mingus-goto-line (- (mingus-line-number-at-pos (point-max)) 2))
         (delete-region (point) (point-max))
         (mingus-2-burns-bar (get '*mingus-b-session* :total-time))))
     (forward-line -1))))
@@ -584,7 +584,7 @@ Both filename are absolute paths in the filesystem"
                          (make-string (- window-width 1) ?\-))))
                                         ;bar representing total cd time
     (insert string)
-    (goto-line (- (mingus-line-number-at-pos (point-max)) 2))
+    (mingus-goto-line (- (mingus-line-number-at-pos (point-max)) 2))
     ;;(goto-line (+ (mingus-playlist-length) 1))
     (dotimes (foo 3)
       (mingus-burns-color-bar 0 35 "darkgreen")

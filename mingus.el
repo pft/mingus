@@ -1466,7 +1466,7 @@ Or, you might show me how to use a function/string choice in customize ;)"
     `(let ((,line (mingus-line-number-at-pos))
            (,col (- (point) (point-at-bol))))
        ,@body
-       (goto-line ,line)
+       (mingus-goto-line ,line)
        (move-to-column ,col))))
 
 ;;;;  {{Generic Functions}}
