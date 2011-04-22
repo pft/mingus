@@ -192,7 +192,7 @@
 (defvar mingus-header-height 0)
 (defvar mingus-marked-list nil)
 (defvar mingus-wake-up-call nil)
-(defvar mingus-modeline-timer nil)
+(defvar mingus-timer nil)
 (defvar mingus-status nil)
 (defvar mingus-browse-last-cmd nil "Last command issued to obtain a listing in Mingus Browse buffer.
 
@@ -1902,7 +1902,7 @@ see function `mingus-help' for instructions.
 
 (defun mingus-mode-line-kill ()
   (interactive)
-  (cancel-timer mingus-modeline-timer))
+  (cancel-timer mingus-timer))
 
 (defvar mingus-mode-line-object
   '(:propertize
@@ -2051,25 +2051,21 @@ ATOM10))) for (mingus-make-cond-exp '((ATOM1 ATOM2)(ATOM8 ATOM10))).
 
 (defun mingus-make-mode-line-string ()
   "Make a string to use in the mode-line for Mingus."
-  (condition-case nil
-      (concat (if (member (getf (mpd-get-status mpd-inter-conn) 'state)
-                          '(play pause))
-                   (concat
-                    (let* ((data (car (mingus-get-songs "currentsong")))
-                           (str
-                            (mingus-make-song-string
-                             data
-                             mingus-mode-line-format-to-use
-                             mingus-playlist-separator)))
-                      ;; a small (?) side effect, but only if playlist buffer is
-                      ;; shown:
-                      (and (get-buffer-window-list "*Mingus*")
-                           (mingus-set-NP-mark nil (getf data 'Pos)))
-                      (mingus-ldots str mingus-mode-line-string-max))
-                    (mingus-make-status-string))))
-    ;; (error (cancel-timer mingus-modeline-timer)
-    ;;     (cancel-timer mingus-generic-timer))
-    ))
+  (concat (if (member (getf (mpd-get-status mpd-inter-conn) 'state)
+                      '(play pause))
+              (concat
+               (let* ((data (car (mingus-get-songs "currentsong")))
+                      (str
+                       (mingus-make-song-string
+                        data
+                        mingus-mode-line-format-to-use
+                        mingus-playlist-separator)))
+                 ;; a small (?) side effect, but only if playlist buffer is
+                 ;; shown:
+                 (and (get-buffer-window-list "*Mingus*")
+                      (mingus-set-NP-mark nil (getf data 'Pos)))
+                 (mingus-ldots str mingus-mode-line-string-max))
+               (mingus-make-status-string)))))
 
 (defun mingus-set-NP-mark (override &optional pos)
   "Mark song 'now playing'.
@@ -2309,8 +2305,6 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
 	  val)
 	mingus-song-strings)))
 
-(defvar mingus-generic-timer nil)
-
 (defun mingus (&optional set-variables)
   "MPD Interface by Niels Giesen, Useful and Simple.
 
@@ -2323,24 +2317,31 @@ Actually it is just named after that great bass player."
          (add-to-list 'mode-line-modes mingus-mode-line-object))
         ((boundp 'global-mode-string)
          (add-to-list 'global-mode-string mingus-mode-line-object)))
-  (unless (timerp mingus-modeline-timer)
-    (setq mingus-modeline-timer (run-with-timer 0 1 'mingus-timer-handler)))
+  (if (timerp mingus-timer)
+      (timer-activate mingus-timer)
+    (setq mingus-timer (run-with-timer 0 1 'mingus-timer-handler)))
   (mingus-playlist))
 
 (defun mingus-timer-handler ()
-  (if (or mingus-mode-always-modeline
-          (member (buffer-name)
-                  '("*Mingus Browser*"
-                    "*Mingus Help*"
-                    "*Mingus*"
-                    "*Mingus Burns*")))
-      (setq mingus-status
-            (mingus-make-mode-line-string))
-    (setq mingus-status nil))
-  (when 
-      (< (mingus-get-old-playlist-version)
-         (mingus-get-new-playlist-version))
-    (mingus-playlist)))
+  (condition-case nil
+      (with-local-quit
+        (if (or mingus-mode-always-modeline
+                (member (buffer-name)
+                        '("*Mingus Browser*"
+                          "*Mingus Help*"
+                          "*Mingus*"
+                          "*Mingus Burns*")))
+            (setq mingus-status
+                  (mingus-make-mode-line-string))
+          (setq mingus-status nil))
+        (when mingus-status
+         (when 
+             (< (mingus-get-old-playlist-version)
+                (mingus-get-new-playlist-version))
+           (mingus-playlist))
+         (mingus-set-NP-mark t)))
+    (error
+     (cancel-timer mingus-timer))))
 
 (defun mingus-start-daemon ()
   "Start mpd daemon for `mingus'."
@@ -3947,8 +3948,9 @@ the minibuffer."
                                         mingus-playlist-separator))
              (mingus-get-songs "playlistinfo") "\n")
 
-' (push mingus-modeline-timer timer-list)
-' (push mingus-generic-timer timer-list)
+(defun mingus-activate-timers ()
+  (interactive)
+  (timer-activate mingus-timer))
 
  ' (message "Average time: %f"
 	    (let ((total (seconds-to-time 0)))
