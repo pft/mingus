@@ -2319,8 +2319,27 @@ Actually it is just named after that great bass player."
          (add-to-list 'global-mode-string mingus-mode-line-object)))
   (if (timerp mingus-timer)
       (timer-activate mingus-timer)
-    (setq mingus-timer (run-with-timer 0 1 'mingus-timer-handler)))
+    (setq mingus-timer (run-with-idle-timer 0 1 'mingus-timer-handler)))
   (mingus-playlist))
+
+
+(defun mingus-buffer-visible-p (buffer)
+  (and (member (get-buffer buffer)
+               (mingus-all-visible-buffers))
+      t))
+
+(defun mingus-all-visible-buffers ()
+  (let (l)
+    (mapc
+     (lambda (f)
+       (when (frame-visible-p f)
+        (setq l (append (mingus-frame-buffer-list f) l))))
+     (frame-list))
+    l))
+
+(defun mingus-frame-buffer-list (frame)
+  (mapcar #'window-buffer
+   (window-list frame)))
 
 (defun mingus-timer-handler ()
   (condition-case nil
@@ -2334,7 +2353,13 @@ Actually it is just named after that great bass player."
             (setq mingus-status
                   (mingus-make-mode-line-string))
           (setq mingus-status nil))
-        (when mingus-status
+
+        (when (and mingus-use-ido-mode-p
+                   (fboundp 'ido-completing-read))
+          (mingus-get-songs-with-smart-cache "listallinfo"))
+        
+        (when
+            (mingus-buffer-visible-p "*Mingus*")
          (when 
              (< (mingus-get-old-playlist-version)
                 (mingus-get-new-playlist-version))
