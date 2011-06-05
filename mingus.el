@@ -2956,18 +2956,19 @@ deleted."
   "Crop mpd playlist."
   (interactive)
   (condition-case err
-	  (let (song)					;silence the compiler
-		(mingus-bind-plist
-		 (mpd-get-status mpd-inter-conn)
-		 (let (list)
-		   (and (> playlistlength 1)
-				(mpd-delete mpd-inter-conn
-							(remove song
-									(dotimes (count playlistlength list)
-									  (push count list))))
-				(save-window-excursion
-				  (mingus))))))
-	(error "Mingus error: %s" err)))
+      (let*
+          ((status (mpd-get-status mpd-inter-conn))
+           (playlistlength (plist-get status 'playlistlength))
+           (song (plist-get status 'song))
+           list)
+        (and (> playlistlength 1)
+             (mpd-delete mpd-inter-conn
+                         (remove song
+                                 (dotimes (count playlistlength list)
+                                   (push count list))))
+             (save-window-excursion
+               (mingus))))
+    (error "Mingus error: %s" err)))
 
 (defun mingus-add (string &optional mingus-url)
   "In Mingus, add a song."
