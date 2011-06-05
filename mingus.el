@@ -1729,9 +1729,11 @@ plus all bound keys of MAP1 in a fresh keymap."
         (set 'm
          (append m (list key)))))))
 
-(if (featurep 'paredit)
-    (defvar mingus-sexp-map (mingus-merge-maps minibuffer-local-map paredit-mode-map))
-  (defalias 'mingus-sexp-map minibuffer-local-map))
+(defvar mingus-sexp-map ()
+  "Keymap for editing sexp expressions in the minibuffer.")
+
+(when (featurep 'paredit)
+  (setq mingus-sexp-map (mingus-merge-maps minibuffer-local-map paredit-mode-map)))
 
 (defun mingus-mark-sexp (predicate)
   "In Mingus, mark all songs matching PREDICATE.
