@@ -315,7 +315,7 @@ Songs are hashed by their MPD ids")
         (insert-file-contents file)
         (or 
          (and 
-          (re-search-forward (format "^[[:blank:]]*%s[[:blank:]]+\\(.+?\\)[[:blank:]]*$" option) nil t)
+          (re-search-forward (format "^[[:blank:]]*%s[[:blank:]]+\"\\(.+?\\)\"[[:blank:]]*$" option) nil t)
           (match-string 1))
          ))
     nil))
