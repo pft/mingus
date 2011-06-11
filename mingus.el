@@ -193,7 +193,10 @@
 (defvar mingus-marked-list nil)
 (defvar mingus-wake-up-call nil)
 (defvar mingus-timer nil)
-(defvar mingus-status nil)
+(defvar mingus-status nil
+  "Current status of the connection to MPD (nil or t).")
+(defvar mingus-status-line ""
+  "Current status line for use in modeline in mingus")
 (defvar mingus-browse-last-cmd nil "Last command issued to obtain a listing in Mingus Browse buffer.
 
 This is used by `mingus-refresh'.")
@@ -1907,30 +1910,38 @@ see function `mingus-help' for instructions.
   (cancel-timer mingus-timer))
 
 (defvar mingus-mode-line-object
-  '(:propertize
-    (t mingus-status)
-    help-echo (concat
-               (mingus-make-mode-line-help-echo)
-               (if *mingus-point-of-insertion*
-                   (concat "\nPOI: " (cadar
-                                      *mingus-point-of-insertion*)))
-               "mouse-1: menu or switch to mingus;
+  '(:eval
+    (or
+     (and mingus-status
+          (or mingus-mode-always-modeline
+              (member (buffer-name)
+                      '("*Mingus Browser*"
+                        "*Mingus Help*"
+                        "*Mingus*"
+                        "*Mingus Burns*")))
+          (propertize
+           mingus-status-line
+           'help-echo (concat
+                       (mingus-make-mode-line-help-echo)
+                       (if *mingus-point-of-insertion*
+                           (concat "\nPOI: " (cadar
+                                              *mingus-point-of-insertion*)))
+                       "mouse-1: menu or switch to mingus;
  mouse-3: toggle playing;
  mouse-4: vol-up;
  mouse-5: vol-down")
-    mouse-face mode-line-highlight local-map
-    (keymap
-     (mode-line keymap
-                (mouse-4 . mingus-vol-up)   ;
-                (mouse-5 . mingus-vol-down) ;
-                (down-mouse-3 . mingus-toggle)
-                (down-mouse-1 . (lambda ()
-                                  (interactive)
-                                  (if (mingus-buffer-p)
-                                      (mouse-major-mode-menu t)
-                                    (mingus))))))))
-
-
+           'mouse-face 'mode-line-highlight
+           'local-map '(keymap
+                        (mode-line keymap
+                                   (mouse-4 . mingus-vol-up) ;
+                                   (mouse-5 . mingus-vol-down) ;
+                                   (down-mouse-3 . mingus-toggle)
+                                   (down-mouse-1 . (lambda ()
+                                                     (interactive)
+                                                     (if (mingus-buffer-p)
+                                                         (mouse-major-mode-menu t)
+                                                       (mingus))))))))
+     "")))
 
 (defconst mingus-mode-line-song-format '((artist album title)(file)(id))
   "Format for showing current song data in modeline")
@@ -2324,7 +2335,6 @@ Actually it is just named after that great bass player."
     (setq mingus-timer (run-with-idle-timer 0 1 'mingus-timer-handler)))
   (mingus-playlist))
 
-
 (defun mingus-buffer-visible-p (buffer)
   (and (member (get-buffer buffer)
                (mingus-all-visible-buffers))
@@ -2344,31 +2354,26 @@ Actually it is just named after that great bass player."
    (window-list frame)))
 
 (defun mingus-timer-handler ()
-  (condition-case nil
-      (with-local-quit
-        (if (or mingus-mode-always-modeline
-                (member (buffer-name)
-                        '("*Mingus Browser*"
-                          "*Mingus Help*"
-                          "*Mingus*"
-                          "*Mingus Burns*")))
-            (setq mingus-status
-                  (mingus-make-mode-line-string))
-          (setq mingus-status nil))
-
-        (when (and mingus-use-ido-mode-p
-                   (fboundp 'ido-completing-read))
-          (mingus-get-songs-with-smart-cache "listallinfo"))
-        
-        (when
-            (mingus-buffer-visible-p "*Mingus*")
+  (condition-case err
+      (progn
+       (setq mingus-status-line
+             (mingus-make-mode-line-string)
+             mingus-status t)
+       (when (and mingus-use-ido-mode-p
+                  (fboundp 'ido-completing-read))
+         (mingus-get-songs-with-smart-cache "listallinfo"))
+       (when
+           (mingus-buffer-visible-p "*Mingus*")
          (when 
              (< (mingus-get-old-playlist-version)
                 (mingus-get-new-playlist-version))
            (mingus-playlist))
          (mingus-set-NP-mark t)))
     (error
-     (cancel-timer mingus-timer))))
+     "Something wrong in Mingus' connection: %s"
+     err
+     ;; (cancel-timer mingus-timer)
+     (setq mingus-status nil))))
 
 (defun mingus-start-daemon ()
   "Start mpd daemon for `mingus'."
@@ -2451,7 +2456,7 @@ Actually it is just named after that great bass player."
                                     (- '1-))
                                   (getf (mpd-get-status mpd-inter-conn)
                                         'volume)))))
-  (setq mingus-status (mingus-make-mode-line-string))
+  (setq mingus-status-line (mingus-make-mode-line-string))
   (mingus-minibuffer-feedback 'volume))
 
 (defun mingus-vol-up ()
