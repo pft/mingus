@@ -2657,7 +2657,7 @@ Switch to *Mingus* buffer if necessary."
 (defun mingus-goto-current-song ()
   "In Mingus, move point to currently playing song."
   (interactive)
-  (mingus-goto-line (or (1+ (mingus-cur-song-number)) 1)))
+  (mingus-goto-line (1+ (or (mingus-cur-song-number) 0))))
 
 (defun mingus-playlist-length ()
   "Return length of current mpd playlist."
