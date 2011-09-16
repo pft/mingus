@@ -358,6 +358,11 @@ Default: nil."
   :group 'mingus
   :type '(boolean))
 
+(defcustom mingus-use-mouse-p t
+  "Use mouse to play/insert/pause etc. songs in Playlist and Browser buffer?"
+  :group 'mingus
+  :type '(boolean))
+
 (defcustom mingus-mpd-env-set-p nil
   "Whether to set environment variables from emacs.
 Do not set when nil.
@@ -1373,24 +1378,27 @@ Or, you might show me how to use a function/string choice in customize ;)"
   (if (featurep 'xemacs) [button1] [mouse-1])
   (lambda (ev)
     (interactive "e")
-    (mouse-set-point ev)
-    (mingus-play)))
+    (when mingus-use-mouse-p
+     (mouse-set-point ev)
+     (mingus-play))))
 
 (define-key mingus-playlist-map
   (if (featurep 'xemacs) [button2] [mouse-2])
   (lambda (ev)
     (interactive "e")
-    (if (mingus-mark-active)
-        (call-interactively (quote mingus-mark-region))
-      (mouse-set-point ev)
-      (mingus-mark))))
+    (when mingus-use-mouse-p
+     (if (mingus-mark-active)
+         (call-interactively (quote mingus-mark-region))
+       (mouse-set-point ev)
+       (mingus-mark)))))
 
 (define-key mingus-playlist-map
   (if (featurep 'xemacs) [button3] [mouse-3])
   (lambda (ev)
     (interactive "e")
-    (mouse-set-point ev)
-    (mingus-dired-file)))
+    (when mingus-use-mouse-p
+     (mouse-set-point ev)
+     (mingus-dired-file))))
 
 (defconst mingus-browse-map (copy-keymap mingus-global-map)
   "Browse keymap for `mingus'")
@@ -1404,10 +1412,11 @@ Or, you might show me how to use a function/string choice in customize ;)"
   [(down-mouse-1)]
   (lambda (event)
     (interactive "e")
-    (mouse-set-point event)
-    (if (cddr event)
-	(mingus-insert)
-      (mingus-down-dir-or-play-song))))
+    (when mingus-use-mouse-p
+     (mouse-set-point event)
+     (if (cddr event)
+         (mingus-insert)
+       (mingus-down-dir-or-play-song)))))
 
 (define-key mingus-browse-map
   (if (featurep 'xemacs) [button2] [mouse-2])
@@ -1818,16 +1827,18 @@ details : the car of the `details' text property.
 (defun mingus-insert-at-mouse (ev)
   "Insert song or dir at mouse."
   (interactive "e")
-  (mouse-set-point ev)
-  (mingus-insert))
+  (when mingus-use-mouse-p
+   (mouse-set-point ev)
+   (mingus-insert)))
 
 (defun mingus-down-at-mouse (ev)
   "Insert song or dir at mouse."
   (interactive "e")
-  (mouse-set-point ev)
-  (if (cddr ev)
-      (mingus-insert)
-    (mingus-down-dir-or-play-song)))
+  (when mingus-use-mouse-p
+   (mouse-set-point ev)
+   (if (cddr ev)
+       (mingus-insert)
+     (mingus-down-dir-or-play-song))))
 
 (defun mingus-show-version ()
   (interactive)
@@ -2262,7 +2273,7 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
 				      list
 				      mingus-playlist-format-to-use
 				      mingus-playlist-separator)
-				     'mouse-face 'highlight
+				     'mouse-face (when mingus-use-mouse-p 'highlight nil)
 				     'details (list list))))
 			       (puthash id val mingus-propertized-song-strings)
 			       val))))
@@ -2362,18 +2373,13 @@ Actually it is just named after that great bass player."
   (condition-case err
       (progn
         (setq mingus-status t)
-        ;; (when (and mingus-use-ido-mode-p
-        ;;            (fboundp 'ido-completing-read))
-        ;;   (mingus-get-songs-with-smart-cache "listallinfo"))
-        ;; (push (format-time-string "%S" (current-time)) foo)
         (when
             (and
              (mingus-buffer-visible-p "*Mingus*")
              (< (mingus-get-old-playlist-version)
                 (mingus-get-new-playlist-version)))
           (mingus-playlist)
-          (mingus-set-NP-mark t)
-          ))
+          (mingus-set-NP-mark t)))
     (error
      "Something wrong in Mingus' connection: %s"
      err
@@ -3220,7 +3226,9 @@ If active region, add everything between BEG and END."
     (if (null newcontents)
         (message "No songs in database; check your mpd settings")
       (mapc (lambda (item)
-                (insert (propertize (cdr item) 'mouse-face 'highlight) "\n")
+              (if mingus-use-mouse-p              
+                  (insert (propertize (cdr item) 'mouse-face 'highlight) "\n")
+                (insert (cdr item) "\n"))
                 (put-text-property (point-at-bol 1) (point-at-eol -1)
                                    'details (list item))
                 (put-text-property (point-at-bol 1) (point-at-eol -1)
