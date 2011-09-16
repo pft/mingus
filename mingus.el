@@ -1920,7 +1920,7 @@ see function `mingus-help' for instructions.
                         "*Mingus*"
                         "*Mingus Burns*")))
           (propertize
-           mingus-status-line
+           (mingus-make-mode-line-string)
            'help-echo (concat
                        (mingus-make-mode-line-help-echo)
                        (if *mingus-point-of-insertion*
@@ -2225,8 +2225,8 @@ Argument OVERRIDE defines whether to treat the situation as new."
                      str)
                    (mingus-make-status-string))))))
 ;; filling the buffer:
-(defun mingus-playlist (&optional refresh)
-  "Fill the playlist buffer so as to reflect current status in most proper way.
+(defun mingus-playlist (&optional refresh) 
+ "Fill the playlist buffer so as to reflect current status in most proper way.
 Optional argument REFRESH means not matter what is the status, do a refresh"
   (interactive)
   (condition-case err
@@ -2332,8 +2332,13 @@ Actually it is just named after that great bass player."
          (add-to-list 'global-mode-string mingus-mode-line-object)))
   (if (timerp mingus-timer)
       (timer-activate mingus-timer)
-    (setq mingus-timer (run-with-idle-timer 0 1 'mingus-timer-handler)))
+    (setq mingus-timer (run-with-timer 1 1 'mingus-timer-handler)))
   (mingus-playlist))
+
+(defun mingus-cancel-timer ()
+  (interactive)
+  (when (timerp mingus-timer)
+    (cancel-timer mingus-timer)))
 
 (defun mingus-buffer-visible-p (buffer)
   (and (member (get-buffer buffer)
@@ -2356,23 +2361,23 @@ Actually it is just named after that great bass player."
 (defun mingus-timer-handler ()
   (condition-case err
       (progn
-       (setq mingus-status-line
-             (mingus-make-mode-line-string)
-             mingus-status t)
-       (when (and mingus-use-ido-mode-p
-                  (fboundp 'ido-completing-read))
-         (mingus-get-songs-with-smart-cache "listallinfo"))
-       (when
-           (mingus-buffer-visible-p "*Mingus*")
-         (when 
+        (setq mingus-status t)
+        ;; (when (and mingus-use-ido-mode-p
+        ;;            (fboundp 'ido-completing-read))
+        ;;   (mingus-get-songs-with-smart-cache "listallinfo"))
+        ;; (push (format-time-string "%S" (current-time)) foo)
+        (when
+            (and
+             (mingus-buffer-visible-p "*Mingus*")
              (< (mingus-get-old-playlist-version)
-                (mingus-get-new-playlist-version))
-           (mingus-playlist))
-         (mingus-set-NP-mark t)))
+                (mingus-get-new-playlist-version)))
+          (mingus-playlist)
+          (mingus-set-NP-mark t)
+          ))
     (error
      "Something wrong in Mingus' connection: %s"
      err
-     ;; (cancel-timer mingus-timer)
+     (mingus-cancel-timer)
      (setq mingus-status nil))))
 
 (defun mingus-start-daemon ()
