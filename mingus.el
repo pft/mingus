@@ -3101,24 +3101,32 @@ Actually it tries to retrieve any stream from a given url.
  With prefix argument, play directly."
   (interactive "P")
   (if and-play (mingus-add-podcast-and-play)
-    (do*  ((item nil (substring (match-string 0 xml) 0))
-          (res nil (if (not (member item res)) (push item res) res))
-          (xml (or (mingus-site-to-string)
-                   (mingus-site-to-string
-                    (let ((url (completing-read "Add a podcast: "
-                                                mingus-podcast-alist)))
-                      (or (cdr (assoc url mingus-podcast-alist))
-                          (assoc url mingus-podcast-alist)
-                          url)))))
-          (count 0 nil))
-        ;; get out of loop when no match is found
-        ((not (string-match mingus-stream-regexp xml (or count (match-end 0))))
-         (if (null res) (message "No valid podcast or empty podcast")
-           (do ((end-result (car res) (concat end-result '(? ) (cadr res)))
-                (res res (cdr res)))
-               ((null res)
-                (mapcar 'mingus-add (split-string end-result)))
-             nil))))))
+    (let* ((xml (or (mingus-site-to-string)
+                    (mingus-site-to-string
+                     (let ((url (completing-read "Add a podcast: "
+                                                 mingus-podcast-alist)))
+                       (or (cdr (assoc url mingus-podcast-alist))
+                           (assoc url mingus-podcast-alist)
+                           url)))))
+           (streams (mingus-streams-from-podcast-with-regexp xml)))
+      (mingus-remove-dupes (mapcar 'mingus-add streams)))))
+
+;; (defun mingus-streams-from-podcast (xmlstring)
+;;   (let ((xml
+;;          (with-temp-buffer 
+;;            (insert xmlstring)
+;;            (xml-parse-region (point-min)
+;;                              (point-max)))))
+;;     (mapcar 'cdr (s-query xml '(rss channel item enclosure :url)))))
+
+(defun mingus-streams-from-podcast-with-regexp (xmlstring)
+  (let (streams)
+    (with-temp-buffer
+      (insert xmlstring)
+      (goto-char (point-min))
+      (while (re-search-forward "url=\"\\([^\"]+\\)\"" nil t)
+        (push (match-string 1) streams))
+      streams)))
 
 (defun mingus-browse ()
   "Switch to buffer *Mingus Browser* and start the Mingus browsing experience."
