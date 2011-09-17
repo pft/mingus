@@ -3071,7 +3071,9 @@ If no url at point, return nil."
   (let ((url (and (not (member major-mode
                                '(mingus-playlist-mode mingus-browse-mode)))
                   (or (plist-get (text-properties-at (point)) 'w3m-href-anchor)
-                      (thing-at-point-url-at-point)))))
+                      (and 
+                          (thing-at-point-bounds-of-url-at-point)
+                        (thing-at-point-url-at-point))))))
     (when (not (null url))
       (if (string-match "\?" url)
           (replace-match "\\?" nil t url)
