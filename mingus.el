@@ -3108,8 +3108,8 @@ Actually it tries to retrieve any stream from a given url.
                        (or (cdr (assoc url mingus-podcast-alist))
                            (assoc url mingus-podcast-alist)
                            url)))))
-           (streams (mingus-streams-from-podcast-with-regexp xml)))
-      (mingus-remove-dupes (mapcar 'mingus-add streams)))))
+           (streams (mingus-remove-dupes (mingus-streams-from-podcast-with-regexp xml))))
+      (mapcar 'mingus-add streams))))
 
 ;; (defun mingus-streams-from-podcast (xmlstring)
 ;;   (let ((xml
