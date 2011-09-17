@@ -3076,9 +3076,10 @@ If no url at point, return nil."
 (defun mingus-site-to-string (&optional url)
   "Return contents of URL as string."
   (let ((url (or url (mingus-extract-url))))
-    (with-current-buffer
-        (url-retrieve-synchronously url)
-      (buffer-string))))
+    (when url
+     (with-current-buffer
+         (url-retrieve-synchronously url)
+       (buffer-string)))))
 
 (defun mingus-add-podcast (&optional and-play)
   "Add all streams in podcast at point.
