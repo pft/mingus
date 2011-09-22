@@ -213,7 +213,7 @@ This is used by `mingus-refresh'.")
 		   :size 1000)
     "Cache for song strings according to `mingus-playlist-format' and propertized for use in playlist.
 
-Songs are hashed by their MPD ids.")
+Songs are hashed by their file names.")
 (defvar mingus-song-strings 
   (make-hash-table :test 'eq
 		   :size 1000)
@@ -1650,7 +1650,7 @@ database may work."
               new-results))))))
 
 (defun mingus-pos->id (pos)
-  (getf (car (mingus-get-songs (format "playlistinfo %d" pos))) 'Id))
+  (getf (car (mingus-get-songs (format "playlistinfo %d" pos))) 'file))
 
 (defun mingus-id->pos (id)
   (getf (car (mingus-get-songs (format "playlistid %d" id))) 'Pos))
@@ -2254,7 +2254,7 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
                                         ;non-unique vorbiscomment tags
                     (mapconcat
                      (lambda (list)
-		       (let ((id (plist-get list 'Id)))
+		       (let ((id (plist-get list 'file)))
 			 (or (gethash id mingus-propertized-song-strings)
 			     (let ((val
 				    (propertize
@@ -2289,7 +2289,7 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
 
  See the documentation for the variable `mingus-mode-line-format' for the
  syntax of EXPRESSION."
-  (let ((id (plist-get plist 'Id)))
+  (let ((id (plist-get plist 'file)))
     (or (gethash id mingus-song-strings)
 	(let ((val
 	       (let (artist album title albumartist
@@ -2842,7 +2842,7 @@ Switch to *Mingus* buffer if necessary."
         (nset-difference
          (mapcar
           (lambda (song-item)
-            (getf song-item 'Id))
+            (getf song-item 'file))
           (mingus-get-songs "playlistinfo")) mingus-marked-list))
   (mingus-playlist t)
   )
@@ -2945,7 +2945,7 @@ deleted."
     (mpd-delete mpd-inter-conn (set-difference
                                 (loop for i in
                                       (mingus-get-songs "playlistinfo")
-                                      collect (getf i 'Id))
+                                      collect (getf i 'file))
                                 mingus-marked-list) t)
     (mingus-playlist)
     (message "Other songs deleted")))
