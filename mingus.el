@@ -3282,9 +3282,12 @@ If active region, add everything between BEG and END."
          (lambda (item) (or
                             (null (cdr item))
                             (not (string-match (car item)
-                                               "file|directory|playlist"))))
-         (cdr (mingus-exec (format "lsinfo %s"
-                       (mpd-safe-string string)))))
+                                              "file|directory|playlist"))))
+         (cdr (if (string= (car item) "playlist")
+                  (mingus-exec "listplaylists")
+                (mingus-exec (format "lsinfo %s"
+                                     (mpd-safe-string string))))))
+
         collect i)
           #'mingus-logically-less-p
       :key #'cdr)))
@@ -3417,7 +3420,7 @@ Prefix argument shows value of *mingus-point-of-insertion*, and moves there."
 (defun mingus-list-playlists ()
   (remove nil (mapcar (lambda (item)
                         (if (string= (car item) "playlist") (cdr item)))
-                      (cdr (mpd-execute-command mpd-inter-conn "lsinfo")))))
+                      (cdr (mpd-execute-command mpd-inter-conn "listplaylists")))))
 
 (defun mingus-load-playlist (&optional and-play)
   "Load an mpd playlist.
