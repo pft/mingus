@@ -3667,11 +3667,21 @@ Argument POS is the current position in the buffer to revert to (?)."
                         finally return list))
                  (t
                   (if (null as-dir)
-                      (loop for i in (cdr (mingus-exec
-                                   (format "search %s %S" type query)))
-                    if (string= (car i) "file")
-                    collect
-                    i)
+                      (let ((results (cdr (mingus-exec
+                                           (format "search %s %S" type query)))))
+                        (flet ((filter-results (key)
+                                       (loop for i in results
+                                             if (string= (car i) key)
+                                             collect
+                                             i)))
+                          (let ((items
+                                 (loop for f in (filter-results "file")
+                                       for s in (filter-results "Title")
+                                       collect (cons f s))))
+                            (mapcar (lambda (item)
+                                    (if (string-match "^spotify:track.*$" (cdar item))
+                                        (cdr item)
+                                      (car item))) items))))
                     (loop for i in (cdr (mingus-exec
                                  (format "search %s %S" type query)))
                   when
