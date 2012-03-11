@@ -3283,7 +3283,7 @@ If active region, add everything between BEG and END."
                             (null (cdr item))
                             (not (string-match (car item)
                                               "file|directory|playlist"))))
-         (cdr (if (string= (car item) "playlist")
+         (cdr (if (string= string "")
                   (mingus-exec "listplaylists")
                 (mingus-exec (format "lsinfo %s"
                                      (mpd-safe-string string))))))
