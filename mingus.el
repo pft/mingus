@@ -12,7 +12,7 @@
 ;; ....................but actually named after a man so named
 ;;
 
-;; Copyright (C) 2006-2011 Niels Giesen <com dot gmail at niels dot giesen, in
+;; Copyright (C) 2006-2012 Niels Giesen <com dot gmail at niels dot giesen, in
 ;; reversed order>
 
 ;; Author: Niels Giesen <pft on #emacs>
@@ -2325,7 +2325,8 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
 			       (albumartist (or albumartist nil))
 			       (comment (or comment nil)))
 			   (mapconcat 'identity ,expression separator)))))))
-	  (puthash id val mingus-song-strings)
+      (when id
+       (puthash id val mingus-song-strings))
 	  val)
 	mingus-song-strings)))
 
@@ -3250,7 +3251,15 @@ If active region, add everything between BEG and END."
                                     ((string= (car item) "directory")
                                      'mingus-directory-face)
                                     ((string= (car item) "file")
-                                     'mingus-song-file-face))))
+                                     'mingus-song-file-face)))
+                (when (string= (car item) "file")
+                  (put-text-property (point-at-bol 0) (point-at-eol 0)
+                                     'display
+                                     ;; "blurb"
+                                     (mingus-make-song-string 
+                                      (car (mingus-get-songs (format "lsinfo %s" (mpd-safe-string (cdr item)))))
+                                      mingus-playlist-format-to-use
+                                      mingus-playlist-separator))))
             newcontents))
     (mingus-browse-invisible)
     (setq header-line-format string)))
@@ -3630,7 +3639,12 @@ Argument POS is the current position in the buffer to revert to (?)."
                     'face
                     (if (string= (car i) "file")
                         'mingus-song-file-face
-                      'mingus-directory-face))))
+                      'mingus-directory-face)
+                    'display
+                      (mingus-make-song-string 
+                       (car (mingus-get-songs (format "lsinfo %s" (mpd-safe-string (cdr i)))))
+                       mingus-playlist-format-to-use
+                       mingus-playlist-separator))))
         (insert 
          (mapconcat #'identity
                     (sort* (mapcar #'prop results)
