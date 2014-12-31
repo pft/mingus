@@ -2641,8 +2641,10 @@ Switch to *Mingus* buffer if necessary."
   (interactive "P")
   (mpd-execute-command
    mpd-inter-conn
-   (format "crossfade %S" (and p (if (listp p) (car p) p))))
-  (if p (message "Mingus: crossfade set to %d" p)))
+   (format "crossfade %S" (or (and p (if (listp p) (car p) p))
+                              0)))
+  (if p (message "Mingus: crossfade set to %d" p)
+    (message "Mingus: crossfade off")))
 
 (defun mingus-cur-line (&optional stringify)
   "In Mingus, return number of song under point"
