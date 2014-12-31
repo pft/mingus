@@ -2015,9 +2015,10 @@ see function `mingus-help' for instructions.
                                 (format "%s%s%s"
                                         (if (eq repeat 1) "r" "")
                                         (if (eq random 1) "z" "")
-                                        (if (< 0 xfade)
-                                            (format "#%d" xfade)
-                                          ""))) "")
+                                        (if (and (boundp 'xfade) (< 0 xfade))
+                                          (format "#%d" xfade)
+                                          ""))
+                                ) "")
 					  (or (and mingus-mode-line-show-consume-and-single-status 
 							   (concat (if (and (boundp 'single) (string= single "1")) "s" "")
 									   (if (and (boundp 'consume) (string= consume "1")) "c" ""))) "")))))))))
