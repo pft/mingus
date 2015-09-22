@@ -1,4 +1,4 @@
-;; mingus.el --- Time-stamp: <2011-02-04 10:12:13 sharik>
+;;; mingus.el --- Time-stamp: <2011-02-04 10:12:13 sharik>
 
 ;;            _
 ;;  _ __ ___ (_)_ __   __ _ _   _ ___
@@ -16,13 +16,16 @@
 ;; reversed order>
 
 ;; Author: Niels Giesen <pft on #emacs>
+;; URL: https://github.com/pft/mingus
+;; Package-Requires: ((libmpdee "2.1"))
 
 ;; Contributors (with patches and bug reports): Jeremie Lasalle
 ;; Ratelle, "Lexa12", Marc Zonzon, Mark Taylor, Drew Adams, Alec
 ;; Heller, "death" (github.com/death), Александр Цамутали, Maximilian
 ;; Gass and Dan King.
 
-;; Version: Open Letter to Duke, or: 0.33
+;; Version: 0.33
+;;          Or Open Letter to Duke
 ;; Latest version can be found at http://github.com/pft/mingus/
 ;; For Changes, please view http://github.com/pft/mingus/commits/master
 
