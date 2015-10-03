@@ -3230,9 +3230,12 @@ If active region, add everything between BEG and END."
          (lambda (item) (or
                             (null (cdr item))
                             (not (string-match (car item)
-                                               "file|directory|playlist"))))
-         (cdr (mingus-exec (format "lsinfo %s"
-                       (mpd-safe-string string)))))
+                                              "file|directory|playlist"))))
+         (cdr (if (string= string "")
+                  (mingus-exec "listplaylists")
+                (mingus-exec (format "lsinfo %s"
+                                     (mpd-safe-string string))))))
+         
         collect i)
           #'mingus-logically-less-p
       :key #'cdr)))
@@ -3365,7 +3368,7 @@ Prefix argument shows value of *mingus-point-of-insertion*, and moves there."
 (defun mingus-list-playlists ()
   (remove nil (mapcar (lambda (item)
                         (if (string= (car item) "playlist") (cdr item)))
-                      (cdr (mpd-execute-command mpd-inter-conn "lsinfo")))))
+                      (cdr (mpd-execute-command mpd-inter-conn "listplaylists")))))
 
 (defun mingus-load-playlist (&optional and-play)
   "Load an mpd playlist.
@@ -3612,14 +3615,24 @@ Argument POS is the current position in the buffer to revert to (?)."
 			finally return list))
 		 (t
 		  (if (null as-dir)
-		      (loop for i in (cdr (mingus-exec
-                                   (format "search %s %S" type query)))
-                    if (string= (car i) "file")
-                    collect 
-                    i)
-		    (loop for i in (cdr (mingus-exec
-                                 (format "search %s %S" type query)))
-                  when 
+                      (let ((results (cdr (mingus-exec
+                                           (format "search %s %S" type query)))))
+                        (flet ((filter-results (key)
+                                       (loop for i in results
+                                             if (string= (car i) key)
+                                             collect
+                                             i)))
+                          (let ((items 
+                                 (loop for f in (filter-results "file")
+                                       for s in (filter-results "Title")
+                                       collect (cons f s))))
+                            (mapcar (lambda (item)
+                                    (if (string-match "^spotify:track.*$" (cdar item))
+                                        (cdr item)
+                                      (car item))) items))))
+                    (loop for i in (cdr (mingus-exec
+                                         (format "search %s %S" type query)))
+                          when
                   (and (string= (car i) "file"))
                   if (file-name-directory (cdr i))
                   do (add-to-list 'list
