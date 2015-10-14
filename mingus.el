@@ -1849,6 +1849,7 @@ details : the car of the `details' text property.
 
 ;; {{dispatchers}}
 
+;;;###autoload
 (defun mingus-help ()
   "Help screen for `mingus'."
   (interactive)
@@ -3136,6 +3137,7 @@ Actually it tries to retrieve any stream from a given url.
         (push (match-string 1) streams))
       streams)))
 
+;;;###autoload
 (defun mingus-browse ()
   "Switch to buffer *Mingus Browser* and start the Mingus browsing experience."
   (interactive)
