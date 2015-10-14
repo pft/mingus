@@ -2953,7 +2953,8 @@ deleted."
             (remove nil
                     (if mingus-marked-list
                         (mapcar 'mingus-id->pos mingus-marked-list)))))
-      ;; make the shell-command-string
+      (mingus-exec (format "delete %d:%d" beg end))
+      ;; make a list of deletable positions
       (dotimes (count howmanysongs)
         (setq deletablelist (cons (+ beg count) deletablelist)))
       ;; delete the files
@@ -2961,7 +2962,6 @@ deleted."
                               (set-difference
                                mlist-as-pos
                                (intersection mlist-as-pos deletablelist)))))
-        (mpd-delete mpd-inter-conn deletablelist)
         (setq mingus-marked-list newmlist))
       ;; remove all songs that are deleted from the mingus-marked-list (mapcar
       ;; 'mingus-pos->id (set-difference '(3 111 4 5) (intersection '(3 111) '(2
