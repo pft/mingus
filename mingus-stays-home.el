@@ -1,4 +1,4 @@
-;;; mingus-stays-home.el --- Time-stamp: <2009-07-06 20:20:04 sharik>
+;;; mingus-stays-home.el --- Interface for local MPD server
 
 ;;                    _                    _
 ;;  _ __ ___      ___| |_ __ _ _   _ ___  | |__   ___  _ __ ___   ___
@@ -7,7 +7,7 @@
 ;; |_| |_| |_(_) |___/\__\__,_|\__, |___/ |_| |_|\___/|_| |_| |_|\___|
 ;;                             |___/
 
-;; Copyright (C) 2006-2011 Niels Giesen <com dot gmail at niels dot giesen, in
+;; Copyright (C) 2006-2011, 2015 Niels Giesen <com dot gmail at niels dot giesen, in
 ;; reversed order>
 
 ;; Author: Niels Giesen <pft on #emacs>
@@ -164,8 +164,8 @@
 (require 'cl)
 (eval-when-compile (load "cl-macs"))
 (require 'url)
-(when (featurep 'taggit) 
-	  (progn (require 'taggit)))
+(when (featurep 'taggit)
+          (progn (require 'taggit)))
 ;;;; {{Update Help Text}}
 
 (setq mingus-help-text
@@ -180,10 +180,10 @@ E                       mingus-blank-disk
 MORE ELABORATE INSTRUCTIONS:"
        (replace-regexp-in-string
         "U                       mingus-unmark-all"
-		(format 
-		 "U                       mingus-unmark-all%s"
-		 (if (featurep 'taggit)
-		  "
+                (format
+                 "U                       mingus-unmark-all%s"
+                 (if (featurep 'taggit)
+                  "
 #                       taggit-interactive
 e                       taggit (edit buffer)" ""))
         (replace-regexp-in-string
@@ -204,14 +204,14 @@ Mingus buffers, M-x mingus from elsewhere.")
 
 (eval-when (load)
   (unless (string-match "GNU Emacs 21" (version))
-	;;fixme: make this work in emacs21 too
-	(when (featurep 'taggit)
-	  (define-key-after mingus-playlist-map [menu-bar mingus taggit-interactive]
-		'("Set tags" . taggit-interactive) 'dired)
-	  (define-key-after mingus-playlist-map [menu-bar mingus taggit]
-		'("Visit edit buffer for tags" . taggit) 'taggit-interactive)
-	  (define-key mingus-playlist-map "#" 'taggit-interactive)
-	  (define-key mingus-playlist-map "e" 'taggit))))
+        ;;fixme: make this work in emacs21 too
+        (when (featurep 'taggit)
+          (define-key-after mingus-playlist-map [menu-bar mingus taggit-interactive]
+                '("Set tags" . taggit-interactive) 'dired)
+          (define-key-after mingus-playlist-map [menu-bar mingus taggit]
+                '("Visit edit buffer for tags" . taggit) 'taggit-interactive)
+          (define-key mingus-playlist-map "#" 'taggit-interactive)
+          (define-key mingus-playlist-map "e" 'taggit))))
 
 ;;;; {{Thumbs}}
 (eval-when (compile)
@@ -230,7 +230,7 @@ Mingus buffers, M-x mingus from elsewhere.")
   :group 'mingus)
 
 (defcustom mingus-burns-tmp-wav-dir "~/.mingus/tmp"
-  "Directory to hold temporary .wav files for a recording session. 
+  "Directory to hold temporary .wav files for a recording session.
 
 This directory will be created when it does not exist."
   :group 'mingus-burns
@@ -415,13 +415,13 @@ Use M-x mingus-decode-playlist if you just want to decode the files."
           *mingus-b-session*))
    'mingus-b-ask-to-keep-session))
 
-(defun mingus-b-ask-to-keep-session (&optional process event) ;a sentinel     
-  (when 
-	  (string-match "^exited abnormally with code " event)
-	(switch-to-buffer "*Mingus-Output*")
-	(and (not (eq (process-status process) 'exit))
-		 (stop-process process))
-	(error "Something happened that should not have. Inspect *Mingus-Output* buffer for any hints"))
+(defun mingus-b-ask-to-keep-session (&optional process event) ;a sentinel
+  (when
+          (string-match "^exited abnormally with code " event)
+        (switch-to-buffer "*Mingus-Output*")
+        (and (not (eq (process-status process) 'exit))
+                 (stop-process process))
+        (error "Something happened that should not have. Inspect *Mingus-Output* buffer for any hints"))
   (put '*mingus-b-session* :burn nil)   ;always reset to not go burning!
   (if (y-or-n-p "Remove temporary wave files?")
       (mapc 'delete-file
@@ -449,11 +449,11 @@ Use M-x mingus-decode-playlist if you just want to decode the files."
 
 (defun mingus-dec-list (&optional process event)
   "Decode contents referred to by *mingus-b-session* and put the resulting wave files in the directory `mingus-tmp-wav-dir'."
-  (when 
-	  (and event
-		   (string-match "^exited abnormally with code " event))
-	(switch-to-buffer "*Mingus-Output*")
-	(error "Something happened that should not have. Inspect *Mingus-Output* buffer for any hints"))
+  (when
+          (and event
+                   (string-match "^exited abnormally with code " event))
+        (switch-to-buffer "*Mingus-Output*")
+        (error "Something happened that should not have. Inspect *Mingus-Output* buffer for any hints"))
   (let* ((data *mingus-b-session*)
          (file (mingus-cdr-down-sessiondata data)))
     (message "Abort with M-x mingus-dec-abort")
@@ -508,7 +508,7 @@ Use M-x mingus-decode-playlist if you just want to decode the files."
 Both filename are absolute paths in the filesystem"
   (interactive p)
   (when (not (file-exists-p mingus-burns-tmp-wav-dir))
-	(make-directory mingus-burns-tmp-wav-dir t))
+        (make-directory mingus-burns-tmp-wav-dir t))
   (unless (and (not p)(file-exists-p dest))
     (case (mingus-what-type src)
       (flac (message "Decoding %s to %s" src dest)
@@ -627,9 +627,9 @@ Both filename are absolute paths in the filesystem"
 
 (defun mingus-browse-url (url action)
   (let* ((file (url-unhex-string (mingus-url-to-absolute-file url)))
-	 (file-relative (mingus-abs->rel file)))
+         (file-relative (mingus-abs->rel file)))
     (if (file-directory-p file)
-	(mingus-browse-to-dir file-relative)
+        (mingus-browse-to-dir file-relative)
       (mingus-browse-to-file file-relative))
   action))
 

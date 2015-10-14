@@ -1,4 +1,4 @@
-;;; mingus.el --- Time-stamp: <2011-02-04 10:12:13 sharik>
+;;; mingus.el --- MPD Interface
 
 ;;            _
 ;;  _ __ ___ (_)_ __   __ _ _   _ ___
@@ -12,7 +12,7 @@
 ;; ....................but actually named after a man so named
 ;;
 
-;; Copyright (C) 2006-2011 Niels Giesen <com dot gmail at niels dot giesen, in
+;; Copyright (C) 2006-2011, 2015 Niels Giesen <com dot gmail at niels dot giesen, in
 ;; reversed order>
 
 ;; Author: Niels Giesen <pft on #emacs>
@@ -213,13 +213,13 @@ This is used by `mingus-refresh'.")
   "Header to show when the playlist is empty")
 (defvar mingus-propertized-song-strings
   (make-hash-table :test 'eq
-		   :size 1000)
+                   :size 1000)
     "Cache for song strings according to `mingus-playlist-format' and propertized for use in playlist.
 
 Songs are hashed by their MPD ids.")
-(defvar mingus-song-strings 
+(defvar mingus-song-strings
   (make-hash-table :test 'eq
-		   :size 1000)
+                   :size 1000)
   "Cache for song strings according to `mingus-playlist-format',
 
 Songs are hashed by their MPD ids")
@@ -227,10 +227,10 @@ Songs are hashed by their MPD ids")
 (defun mingus-clear-cache ()
   "Clear Mingus' caches."
   (interactive)
-  (mapcar 
+  (mapcar
    #'clrhash
    (list mingus-propertized-song-strings
-		 mingus-song-strings)))
+                 mingus-song-strings)))
 
 (defstruct (mingus-data)
   (playlist -1)
@@ -264,21 +264,21 @@ Songs are hashed by their MPD ids")
   "Face for displaying playlist files"
   :group 'mingus-faces)
 
-(defface mingus-playing-face 
+(defface mingus-playing-face
   '((default)
     (((background light)) (:foreground "#c3be3d"))
     (((background dark)) (:foreground "#cac655")))
   "Face for playing mark"
   :group 'mingus-faces)
 
-(defface mingus-pausing-face 
+(defface mingus-pausing-face
   '((default)
     (((background light)) (:foreground "#979797"))
     (((background dark)) (:foreground "#d2d2d2")))
   "Face for playing mark"
   :group 'mingus-faces)
 
-(defface mingus-stopped-face 
+(defface mingus-stopped-face
   '((default)
     (((background light)) (:foreground "#902d2d"))
     (((background dark)) (:foreground "#df9797")))
@@ -316,8 +316,8 @@ Songs are hashed by their MPD ids")
   (if (file-exists-p file)
       (with-temp-buffer
         (insert-file-contents file)
-        (or 
-         (and 
+        (or
+         (and
           (re-search-forward (format "^[[:blank:]]*%s[[:blank:]]+\"\\(.+?\\)\"[[:blank:]]*$" option) nil t)
           (match-string 1))
          ))
@@ -387,7 +387,7 @@ These variables are set when loading mingus or callinge `mingus-set-variables'."
                10.0)))
     (when (processp (aref mpd-inter-conn 1))
       (stop-process (aref mpd-inter-conn 1)))
-	(mingus-clear-cache)
+        (mingus-clear-cache)
     (setq mpd-inter-conn
           (apply 'mpd-conn-new `(,@(mpd-connection-tidy
                                     mpd-interactive-connection-parameters)
@@ -409,7 +409,7 @@ These variables are set when loading mingus or callinge `mingus-set-variables'."
           port 10.0)))
     (when (processp (aref mpd-inter-conn 1))
       (stop-process (aref mpd-inter-conn 1)))
-	(mingus-clear-cache)
+        (mingus-clear-cache)
     (setq mpd-inter-conn
           (apply 'mpd-conn-new `(,@(mpd-connection-tidy
                                     mpd-interactive-connection-parameters)
@@ -571,16 +571,16 @@ customizing these values; use `mingus-customize' for that."
                (read-number "MPD_PORT: " mingus-mpd-port)
                (read-number "Timeout: " 10.0))))
     ;; clean up for new connection - bit too low level actually
-	(when (processp (aref mpd-inter-conn 1))
+        (when (processp (aref mpd-inter-conn 1))
       (stop-process (aref mpd-inter-conn 1)))
-	(mingus-clear-cache)
+        (mingus-clear-cache)
     ;; make new connection and process
     (setq mpd-inter-conn
           (apply 'mpd-conn-new `(,@(mpd-connection-tidy
                                     mpd-interactive-connection-parameters)
                                  nil)))
-	;; update views immediately
-	(save-window-excursion
+        ;; update views immediately
+        (save-window-excursion
     (when (get-buffer "*Mingus*")
       (mingus))
     (when (get-buffer "*Mingus Browser*")
@@ -674,7 +674,7 @@ M-%%                     mingus-query-regexp
 k                       forward-line -1
 j                       forward-line
 v                       mingus-show-version
-C-x-r-b                 mingus-bookmark-jump		
+C-x-r-b                 mingus-bookmark-jump
 C-x-r-m                 mingus-bookmark-set
 C-x-r-d                 mingus-bookmark-delete
 @                       mingus-update
@@ -984,25 +984,25 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (define-key mingus-global-map
   (if (featurep 'xemacs)[(shift button4)][S-mouse-4]) 'mingus-seek)
 
-(define-key mingus-global-map "A" 
+(define-key mingus-global-map "A"
   (lambda ()
-	(interactive)
-	(mingus-query-dir "artist")))
+        (interactive)
+        (mingus-query-dir "artist")))
 
-(define-key mingus-global-map "B" 
+(define-key mingus-global-map "B"
   (lambda ()
-	(interactive)
-	(mingus-query-dir "album")))
+        (interactive)
+        (mingus-query-dir "album")))
 
-(define-key mingus-global-map "F" 
+(define-key mingus-global-map "F"
   (lambda ()
-	(interactive)
-	(mingus-query-dir "filename")))
+        (interactive)
+        (mingus-query-dir "filename")))
 
-(define-key mingus-global-map "T" 
+(define-key mingus-global-map "T"
   (lambda ()
-	(interactive)
-	(mingus-query-dir "title")))
+        (interactive)
+        (mingus-query-dir "title")))
 
 ;; build the menu
 (define-key mingus-global-map [menu-bar mingus]
@@ -1028,8 +1028,8 @@ Or, you might show me how to use a function/string choice in customize ;)"
 
 (define-key mingus-global-map [menu-bar mingus customization mode-line]
   '("Mode-line" . (lambda ()
-					 (interactive)
-					 (customize-group 'mingus-mode-line))))
+                                         (interactive)
+                                         (customize-group 'mingus-mode-line))))
 
 (define-key mingus-global-map [menu-bar mingus customization stream-alist]
   '(menu-item "Streams"
@@ -1073,15 +1073,15 @@ Or, you might show me how to use a function/string choice in customize ;)"
 
 (define-key mingus-global-map [menu-bar mingus bookmark-delete]
   '(menu-item "Delete a bookmark"  mingus-bookmark-delete
-			  :help "Delete a saved bookmark"))
+                          :help "Delete a saved bookmark"))
 
 (define-key mingus-global-map [menu-bar mingus bookmark-jump]
   '(menu-item "Jump to a bookmark"  mingus-bookmark-jump
-			  :help "Jump to a bookmark"))
+                          :help "Jump to a bookmark"))
 
 (define-key mingus-global-map [menu-bar mingus bookmark-set]
   '(menu-item "Set bookmark"  mingus-bookmark-set
-			  :help "Set a bookmark for current position"))
+                          :help "Set a bookmark for current position"))
 
 (define-key mingus-global-map [menu-bar mingus sep-above-bookmarks]
   '(menu-item "--"))
@@ -1228,7 +1228,7 @@ Or, you might show me how to use a function/string choice in customize ;)"
     (mingus-del-marked)))
 
 (mapc (lambda (key) (define-key mingus-playlist-map key
-	    'mingus-del-dwim)) '("D" "\C-w"))
+            'mingus-del-dwim)) '("D" "\C-w"))
 
 (defun mingus-del-dwim2 ()
   "Delete either songs in region or song at point"
@@ -1252,7 +1252,7 @@ Or, you might show me how to use a function/string choice in customize ;)"
 ;;marking keys
 (define-key mingus-playlist-map "*!" 'mingus-unmark-all)
 
-(defvar mingus-*-map 
+(defvar mingus-*-map
   (let ((m (make-sparse-keymap)))
     (define-key m "!" 'mingus-unmark-all)
     (define-key m "%" 'mingus-mark-regexp)
@@ -1529,7 +1529,7 @@ E.g.: \"Artist 3 my beautiful song\" is logically less than \"Artist 11 blue sea
               (mingus-logically-less-p (substring s1 end2)
                                        (substring s2 (match-end 2)))
             (< n1 n2)))
-      (apply #'string< 
+      (apply #'string<
              (let ((args (list s1 s2)))
                (if mingus-fold-case
                    (mapcar #'downcase args)
@@ -1758,8 +1758,8 @@ The following symbols are bound during the evaluation of PREDICATE:
 file
 title
 artist
-album 
-date 
+album
+date
 genre
 track
 last-modified
@@ -1769,7 +1769,7 @@ These probably speak for themselves.
 details : the car of the `details' text property.
 "
   (interactive
-   (list (read-from-minibuffer 
+   (list (read-from-minibuffer
           (if current-prefix-arg
               "Unmark if (lisp expr): "
             "Mark if (lisp expr): ") nil mingus-sexp-map t)))
@@ -2021,9 +2021,9 @@ see function `mingus-help' for instructions.
                                         (if (< 0 xfade)
                                             (format "#%d" xfade)
                                           ""))) "")
-					  (or (and mingus-mode-line-show-consume-and-single-status 
-							   (concat (if (and (boundp 'single) (string= single "1")) "s" "")
-									   (if (and (boundp 'consume) (string= consume "1")) "c" ""))) "")))))))))
+                                          (or (and mingus-mode-line-show-consume-and-single-status
+                                                           (concat (if (and (boundp 'single) (string= single "1")) "s" "")
+                                                                           (if (and (boundp 'consume) (string= consume "1")) "c" ""))) "")))))))))
 
 (defun mingus-make-cond-exp-aux (item)
   (cond ((atom item) (mingus-make-cond-exp-aux (list item)))
@@ -2106,18 +2106,18 @@ Argument OVERRIDE defines whether to treat the situation as new."
   (condition-case nil
       (let ((pos (or pos (getf (mpd-get-status mpd-inter-conn) 'song))))
         (and pos
-	     (save-excursion
-	       (save-window-excursion
-		 (mingus-switch-to-playlist)
-		 (let (buffer-read-only)
-		   (mingus-goto-line (1+ pos))
-		   (mingus-move-NP-mark (point))))
-	       (mingus-set-song-pos pos))))))
+             (save-excursion
+               (save-window-excursion
+                 (mingus-switch-to-playlist)
+                 (let (buffer-read-only)
+                   (mingus-goto-line (1+ pos))
+                   (mingus-move-NP-mark (point))))
+               (mingus-set-song-pos pos))))))
 
 (define-fringe-bitmap 'mingus-NP-fringe
   [128 192 224 240 248 252 248 240 224 192 128])
 
-(defvar 
+(defvar
   *mingus-playing-string*
   (if window-system
       (propertize
@@ -2143,7 +2143,7 @@ Argument OVERRIDE defines whether to treat the situation as new."
 (define-fringe-bitmap 'mingus-pausing-fringe
   [102 102 102 102 102 102 102 102 102 102])
 
-(defvar 
+(defvar
   *mingus-pausing-string*
   (if window-system
       (propertize
@@ -2171,7 +2171,7 @@ Argument OVERRIDE defines whether to treat the situation as new."
 (define-fringe-bitmap 'mingus-stopped-fringe
   [-1 -1 -1 -1 -1 -1 -1 -1])
 
-(defvar 
+(defvar
   *mingus-stopped-string*
   (if window-system
       (propertize
@@ -2201,7 +2201,7 @@ Argument OVERRIDE defines whether to treat the situation as new."
 
 (defun mingus-move-NP-mark (pos)
   (move-overlay *mingus-NP-mark* pos pos (get-buffer "*Mingus*"))
-  (case 
+  (case
       (getf (mpd-get-status mpd-inter-conn) 'state)
     ((pause) (overlay-put *mingus-NP-mark*
                           'before-string
@@ -2239,7 +2239,7 @@ Argument OVERRIDE defines whether to treat the situation as new."
                      str)
                    (mingus-make-status-string))))))
 ;; filling the buffer:
-(defun mingus-playlist (&optional refresh) 
+(defun mingus-playlist (&optional refresh)
  "Fill the playlist buffer so as to reflect current status in most proper way.
 Optional argument REFRESH means not matter what is the status, do a refresh"
   (interactive)
@@ -2249,7 +2249,7 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
         (when (or
                refresh
                (/= (mingus-get-old-playlist-version)
-		   (mingus-set-playlist-version))
+                   (mingus-set-playlist-version))
                (= (point-min)
                   ;; apparently buffer was deleted before
                   (point-max))
@@ -2261,31 +2261,31 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
             (mingus-set-playlist-version)
             (erase-buffer)
             (if songs
-            	(progn  
-		  (insert	
+                (progn
+                  (insert
                    (replace-regexp-in-string
                     "\n\n" "\n" ;<<< circumvent a bug in libmpdee concerning
                                         ;non-unique vorbiscomment tags
                     (mapconcat
                      (lambda (list)
-		       (let ((id (plist-get list 'Id)))
-			 (or (gethash id mingus-propertized-song-strings)
-			     (let ((val
-				    (propertize
-				     (mingus-make-song-string
-				      list
-				      mingus-playlist-format-to-use
-				      mingus-playlist-separator)
-				     'mouse-face (when mingus-use-mouse-p 'highlight nil)
-				     'details (list list))))
-			       (puthash id val mingus-propertized-song-strings)
-			       val))))
+                       (let ((id (plist-get list 'Id)))
+                         (or (gethash id mingus-propertized-song-strings)
+                             (let ((val
+                                    (propertize
+                                     (mingus-make-song-string
+                                      list
+                                      mingus-playlist-format-to-use
+                                      mingus-playlist-separator)
+                                     'mouse-face (when mingus-use-mouse-p 'highlight nil)
+                                     'details (list list))))
+                               (puthash id val mingus-propertized-song-strings)
+                               val))))
                      songs "\n")))
                   (mingus-set-marks)
                   (mingus-set-NP-mark t))
-	      (insert *mingus-header-when-empty*))
+              (insert *mingus-header-when-empty*))
             (mingus-goto-line pos))
-		  (run-hooks 'mingus-make-playlist-hook)))
+                  (run-hooks 'mingus-make-playlist-hook)))
     (error err)))
 
 (defun mingus-playlist-set-detail-properties (songs)
@@ -2305,32 +2305,32 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
  syntax of EXPRESSION."
   (let ((id (plist-get plist 'Id)))
     (or (gethash id mingus-song-strings)
-	(let ((val
-	       (let (artist album title albumartist
-			    track name
-			    genre date
-			    composer performer
-			    comment disc
-			    time pos id file
-			    (separator (or separator " - ")))
-		 (eval `(mingus-bind-plist
-			 ',plist
-			 (let ((time
-				(and time
-				     (format "%02d:%.2d" (/ time 60) (mod time 60))))
-			       (pos (and pos (number-to-string pos)))
-			       (id (and id (number-to-string id)))
-			       (file
-				(and file
-				     (file-name-nondirectory
-				      file)))
-			       (genre (or genre nil))
-			       (albumartist (or albumartist nil))
-			       (comment (or comment nil)))
-			   (mapconcat 'identity ,expression separator)))))))
-	  (puthash id val mingus-song-strings)
-	  val)
-	mingus-song-strings)))
+        (let ((val
+               (let (artist album title albumartist
+                            track name
+                            genre date
+                            composer performer
+                            comment disc
+                            time pos id file
+                            (separator (or separator " - ")))
+                 (eval `(mingus-bind-plist
+                         ',plist
+                         (let ((time
+                                (and time
+                                     (format "%02d:%.2d" (/ time 60) (mod time 60))))
+                               (pos (and pos (number-to-string pos)))
+                               (id (and id (number-to-string id)))
+                               (file
+                                (and file
+                                     (file-name-nondirectory
+                                      file)))
+                               (genre (or genre nil))
+                               (albumartist (or albumartist nil))
+                               (comment (or comment nil)))
+                           (mapconcat 'identity ,expression separator)))))))
+          (puthash id val mingus-song-strings)
+          val)
+        mingus-song-strings)))
 
 ;;;###autoload
 (defun mingus (&optional set-variables)
@@ -2339,7 +2339,7 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
 Actually it is just named after that great bass player."
   (interactive "P")
   (when set-variables
-	(call-interactively 'mingus-set-variables-interactively))
+        (call-interactively 'mingus-set-variables-interactively))
   (mingus-switch-to-playlist)
   (cond ((boundp 'mode-line-modes)
          (add-to-list 'mode-line-modes mingus-mode-line-object))
@@ -2413,7 +2413,7 @@ Actually it is just named after that great bass player."
         (apply #',(intern-soft
            (replace-regexp-in-string "mingus-" "mpd-" (symbol-name name)))
          mpd-inter-conn
-	 args)
+         args)
         ,@body))))
 
 (mingus-define-mpd->mingus
@@ -2424,8 +2424,8 @@ Actually it is just named after that great bass player."
       (message "Updating DB")))
 
 (mingus-define-mpd->mingus mingus-pause
-			   (mingus-minibuffer-feedback 'state)
-			   (mingus-set-NP-mark t))
+                           (mingus-minibuffer-feedback 'state)
+                           (mingus-set-NP-mark t))
 
 (defalias 'mingus-toggle 'mingus-pause)
 
@@ -2433,11 +2433,11 @@ Actually it is just named after that great bass player."
  mingus-prev
  (mingus-set-NP-mark t))
 
-(mingus-define-mpd->mingus 
+(mingus-define-mpd->mingus
  mingus-next
  (mingus-set-NP-mark t))
 
-(mingus-define-mpd->mingus 
+(mingus-define-mpd->mingus
  mingus-stop
  (mingus-set-NP-mark t))
 
@@ -2527,11 +2527,11 @@ Switch to *Mingus* buffer if necessary."
 (mingus-advice mingus-down-dir-or-play-song "*Mingus Browser*")
 
 (mapc 'ad-activate '(mingus-goto-current-song
-		     mingus-del-region
-		     mingus-down-dir-or-play-song
-		     mingus-move-down
-		     mingus-move-up
-		     mingus-set-insertion-point))
+                     mingus-del-region
+                     mingus-down-dir-or-play-song
+                     mingus-move-down
+                     mingus-move-up
+                     mingus-set-insertion-point))
 
 (defmacro mingus-insertion-advice (func-name)
   "Move inserted songs to *mingus-point-of-insertion* after insertion.
@@ -2786,7 +2786,7 @@ Switch to *Mingus* buffer if necessary."
                                              (car mingus-uplist)) 0)
                                      (- (mingus-line-number-at-pos) 1))
                             (mingus-update-command-list) ;reset the count
-			    (mingus-set-NP-mark t)
+                            (mingus-set-NP-mark t)
                             ;; (mingus-set-song-pos)
                             ))))))
         (cond ((= (mingus-line-number-at-pos)
@@ -2804,7 +2804,7 @@ Switch to *Mingus* buffer if necessary."
                 (transpose-lines 1)
                 (forward-line -1)
                 (message "Moved 1 song down.")
-		(mingus-set-NP-mark t))))))))
+                (mingus-set-NP-mark t))))))))
 
 (defun mingus-move-all ()
   "In Mingus, move all marked songs to current position in buffer."
@@ -2891,8 +2891,8 @@ deleted."
   (if (and (= beg (point-min)) (= end (point-max)))
       (mingus-clear t)
     (let* ((ole-beg beg)
-	   (ole-end end)
-	   (buffer-read-only nil)
+           (ole-end end)
+           (buffer-read-only nil)
            (beg (1- (mingus-line-number-at-pos beg)))
            (end (1- (if (bolp)
                         (mingus-line-number-at-pos end)
@@ -3075,7 +3075,7 @@ If no url at point, return nil."
   (let ((url (and (not (member major-mode
                                '(mingus-playlist-mode mingus-browse-mode)))
                   (or (plist-get (text-properties-at (point)) 'w3m-href-anchor)
-                      (and 
+                      (and
                           (thing-at-point-bounds-of-url-at-point)
                         (thing-at-point-url-at-point))))))
     (when (not (null url))
@@ -3117,7 +3117,7 @@ Actually it tries to retrieve any stream from a given url.
 
 ;; (defun mingus-streams-from-podcast (xmlstring)
 ;;   (let ((xml
-;;          (with-temp-buffer 
+;;          (with-temp-buffer
 ;;            (insert xmlstring)
 ;;            (xml-parse-region (point-min)
 ;;                              (point-max)))))
@@ -3241,7 +3241,7 @@ If active region, add everything between BEG and END."
     (if (null newcontents)
         (message "No songs in database; check your mpd settings")
       (mapc (lambda (item)
-              (if mingus-use-mouse-p              
+              (if mingus-use-mouse-p
                   (insert (propertize (cdr item) 'mouse-face 'highlight) "\n")
                 (insert (cdr item) "\n"))
                 (put-text-property (point-at-bol 1) (point-at-eol -1)
@@ -3429,32 +3429,32 @@ INPUT is supposed to be supplied by current minibuffer contents."
     (append
      (if (and (car res)
                                         ;let the dir itself be sufficient too
-	      (not (string= "" input)))
+              (not (string= "" input)))
                                         ;do not show empty string or single "/"
-	 (list
-	  input
-	  (replace-regexp-in-string "/*$" "/" input))
+         (list
+          input
+          (replace-regexp-in-string "/*$" "/" input))
                                         ;mingus-switch-car-and-cdr
        (mapcar 'cdr
-	       (cdr (mingus-exec
-		     (concat "lsinfo " (mpd-safe-string
-					(if (car res)
-					    input
+               (cdr (mingus-exec
+                     (concat "lsinfo " (mpd-safe-string
+                                        (if (car res)
+                                            input
                                         ;search on dir if no match found here:
-					  (if (file-name-directory input)
-					      (substring (file-name-directory input) 0 -1)
-					;special case mpd root
-					    "")))))))))))
+                                          (if (file-name-directory input)
+                                              (substring (file-name-directory input) 0 -1)
+                                        ;special case mpd root
+                                            "")))))))))))
 
 (defun mingus-complete-from-minibuffer (prompt &optional predicate require-match
-					       initial-input hist def
-					       inherit-input-method)
+                                               initial-input hist def
+                                               inherit-input-method)
   (completing-read
    prompt
     (if (fboundp 'completion-table-dynamic)
-	(completion-table-dynamic (function mingus-complete-path))
+        (completion-table-dynamic (function mingus-complete-path))
       (with-no-warnings
-	(dynamic-completion-table 'mingus-complete-path)))
+        (dynamic-completion-table 'mingus-complete-path)))
     predicate
     require-match
     initial-input hist def
@@ -3472,19 +3472,19 @@ Complete in the style of the function `find-file'."
   "Update the database partially."
   (interactive)
   (let ((updatable
-	 (mingus-complete-from-minibuffer
-	  "Update database for: " nil nil)))
+         (mingus-complete-from-minibuffer
+          "Update database for: " nil nil)))
     (mingus-update updatable)))
 
 (defun mingus-update-thing-at-p ()
   "Update the database partially for song or directory at point."
   (interactive)
   (let ((updatable
-	 (cdar
-	  (mingus-get-details-for-song))))
+         (cdar
+          (mingus-get-details-for-song))))
     (if (listp updatable)
-	;;have to fix weird differences in details tss..
-	(setq updatable (car updatable)))
+        ;;have to fix weird differences in details tss..
+        (setq updatable (car updatable)))
     (mingus-update updatable)
     (case major-mode
       ((mingus-playlist-mode mingus-browse-mode)
@@ -3533,8 +3533,8 @@ possible).  Optional argument TYPE predefines the type of query."
   (let* ((type (or type (mingus-completing-read-allow-spaces
                          "Search type: "
                          '("album" "artist" "genre"
-						   "composer" "filename" "title"
-						   "regexp on filename")
+                                                   "composer" "filename" "title"
+                                                   "regexp on filename")
                          nil t)))
          (buffer (buffer-name))
          (pos (point))
@@ -3600,42 +3600,42 @@ Argument POS is the current position in the buffer to revert to (?)."
         (prev (buffer-string)))
     (erase-buffer)
     (let ((results
-	   (cond ((string-match "regexp on filename" type)
-		  (loop for i in 
-			(cdr (mingus-exec "listall"))
-			if (and (string= (car i) "file")
-				(string-match query (cdr i)))
-			if (or (null as-dir) (null (file-name-directory (cdr i))))
-			collect i into list
-			else do (add-to-list 'list                 
+           (cond ((string-match "regexp on filename" type)
+                  (loop for i in
+                        (cdr (mingus-exec "listall"))
+                        if (and (string= (car i) "file")
+                                (string-match query (cdr i)))
+                        if (or (null as-dir) (null (file-name-directory (cdr i))))
+                        collect i into list
+                        else do (add-to-list 'list
                                  (cons "directory"
                                        (substring (file-name-directory (cdr i)) 0 -1)))
-			finally return list))
-		 (t
-		  (if (null as-dir)
-		      (loop for i in (cdr (mingus-exec
+                        finally return list))
+                 (t
+                  (if (null as-dir)
+                      (loop for i in (cdr (mingus-exec
                                    (format "search %s %S" type query)))
                     if (string= (car i) "file")
-                    collect 
+                    collect
                     i)
-		    (loop for i in (cdr (mingus-exec
+                    (loop for i in (cdr (mingus-exec
                                  (format "search %s %S" type query)))
-                  when 
+                  when
                   (and (string= (car i) "file"))
                   if (file-name-directory (cdr i))
                   do (add-to-list 'list
                       (cons "directory" (substring (file-name-directory (cdr i)) 0 -1)))
-                  else 
+                  else
                   collect i into list
                   finally return list))))))
       (flet ((prop (i)
-                   (propertize 
+                   (propertize
                     (cdr i)
                     'face
                     (if (string= (car i) "file")
                         'mingus-song-file-face
                       'mingus-directory-face))))
-        (insert 
+        (insert
          (mapconcat #'identity
                     (sort* (mapcar #'prop results)
                            #'mingus-logically-less-p) "\n")))
@@ -3666,8 +3666,8 @@ Argument POS is the current position in the buffer to revert to (?)."
         (t (switch-to-buffer "*Mingus Browser*")
            (setq mode-name "Query results")
            (let ((buffer-read-only nil))
-	     (erase-buffer)
-	     (insert mingus-last-query-results)
+             (erase-buffer)
+             (insert mingus-last-query-results)
          (setq header-line-format
                (list (car mingus-last-query)
                      ": "
@@ -3803,78 +3803,78 @@ Region is between (beginning of line of) BEG and (beginning of line of) END."
 ;;;; {{Dired}}
 (defun mingus-test-if-external-file-is-symlinked-in-list (sym l)
   (if (file-directory-p sym)
-	  (loop for file in l
-			when 
-			(string= 
-			 (file-truename (file-name-directory (concat mingus-mpd-root file)))
-			 (file-truename (file-name-as-directory sym)))
-			return (substring (file-name-directory file) 0 -1))
-	(loop for file in l
-		  when 
-		  (string= 
-		   (file-truename (concat mingus-mpd-root file))
-		   (file-truename sym))
-		  return file)))
+          (loop for file in l
+                        when
+                        (string=
+                         (file-truename (file-name-directory (concat mingus-mpd-root file)))
+                         (file-truename (file-name-as-directory sym)))
+                        return (substring (file-name-directory file) 0 -1))
+        (loop for file in l
+                  when
+                  (string=
+                   (file-truename (concat mingus-mpd-root file))
+                   (file-truename sym))
+                  return file)))
 
 (defun mingus-resolve-files (files)
   "Resolve files in the filesystem to they can be found in the MPD database"
   (let* ((root (expand-file-name mingus-mpd-root))
-		 (rootlen (length root))
-		 not-under-root
-		 unfindables)
+                 (rootlen (length root))
+                 not-under-root
+                 unfindables)
 
-	;; first, add all 'normal files'
-	(mapc (lambda (file)
-			(if (not (string-prefix-p root file))
-				(push file not-under-root))) files)
+        ;; first, add all 'normal files'
+        (mapc (lambda (file)
+                        (if (not (string-prefix-p root file))
+                                (push file not-under-root))) files)
 
-	(setq files (set-difference files not-under-root))
+        (setq files (set-difference files not-under-root))
 
-	(when files
-	  ;; make relative to root 
-	  (setq files (mapcar (lambda (file) 
-							(file-relative-name file root)) files)))
+        (when files
+          ;; make relative to root
+          (setq files (mapcar (lambda (file)
+                                                        (file-relative-name file root)) files)))
 
-	;; then, let's see what to do with the rest, if any
-	(when not-under-root
-	  (let* ((files-sans-directory (mapcar #'file-name-nondirectory not-under-root))
-			 (putative-files-1 (mapcar (lambda (file)
-										 (cdr (mingus-exec (format "search %s %S" 
-																   (if (file-directory-p file) "filename" "file")
-																   file))))
-									   files-sans-directory))
-			 putative-files-2)
-		;; did we find anything at all?
-		(when (car putative-files-1)
-		  ;; remove all superfluous data
-		  (mapc (lambda (file)
-				  (mapc 
-				   (lambda (data) (when (string= (car data) "file") (push (cdr data) putative-files-2)))
-				   file))
-				putative-files-1))
+        ;; then, let's see what to do with the rest, if any
+        (when not-under-root
+          (let* ((files-sans-directory (mapcar #'file-name-nondirectory not-under-root))
+                         (putative-files-1 (mapcar (lambda (file)
+                                                                                 (cdr (mingus-exec (format "search %s %S"
+                                                                                                                                   (if (file-directory-p file) "filename" "file")
+                                                                                                                                   file))))
+                                                                           files-sans-directory))
+                         putative-files-2)
+                ;; did we find anything at all?
+                (when (car putative-files-1)
+                  ;; remove all superfluous data
+                  (mapc (lambda (file)
+                                  (mapc
+                                   (lambda (data) (when (string= (car data) "file") (push (cdr data) putative-files-2)))
+                                   file))
+                                putative-files-1))
 
-		(destructuring-bind (found notfound)
-			(loop for maybe-symlinked in not-under-root
-				  when  (mingus-test-if-external-file-is-symlinked-in-list 
-						 maybe-symlinked
-						 putative-files-2)
-				  collect  (mingus-test-if-external-file-is-symlinked-in-list 
-							maybe-symlinked
-							putative-files-2) 
-				  into found
-				  else collect maybe-symlinked into notfound
-				  finally return (list found notfound))
-		  
-		  (setq files (nconc files found))
-		  (setq unfindables notfound))))
+                (destructuring-bind (found notfound)
+                        (loop for maybe-symlinked in not-under-root
+                                  when  (mingus-test-if-external-file-is-symlinked-in-list
+                                                 maybe-symlinked
+                                                 putative-files-2)
+                                  collect  (mingus-test-if-external-file-is-symlinked-in-list
+                                                        maybe-symlinked
+                                                        putative-files-2)
+                                  into found
+                                  else collect maybe-symlinked into notfound
+                                  finally return (list found notfound))
 
-	(values files unfindables)))
+                  (setq files (nconc files found))
+                  (setq unfindables notfound))))
+
+        (values files unfindables)))
 
 (defun mingus-abs->rel (string)
   "Resolve a single file as relative to `mingus-mpd-root'."
-  (destructuring-bind (found notfound) 
-	  (mingus-resolve-files (list string))
-	(car found)))
+  (destructuring-bind (found notfound)
+          (mingus-resolve-files (list string))
+        (car found)))
 
 (defun mingus-dired-add ()
   "In `dired', add marked files or file at point to the mpd playlist;
@@ -3891,51 +3891,51 @@ path."
 If MPD is unwary of these files, ask whether to make a symlink.
 Create a symlink, update database and try to resolve those files again."
   (let ((rootlen (length (expand-file-name mingus-mpd-root))))
-	(destructuring-bind (files unfindables)
-		(mingus-resolve-files files)
+        (destructuring-bind (files unfindables)
+                (mingus-resolve-files files)
 
-	  (when unfindables 
-		(let (linked)
-		  (mapc (lambda (file)
-				  ;; ToDo: currently links files to root. Which is not good.
-				  (let ((src (expand-file-name
-							  (if (file-directory-p file)
-								  file
-								(substring (file-name-directory file) 0 -1))))
-						(symlink (expand-file-name
-								  (concat
-								   (file-name-as-directory 
-									mingus-mpd-root)
-								   (if (file-directory-p file)
-									   (file-name-nondirectory file)
-									 (file-name-nondirectory
-									  (substring (file-name-directory file) 0 -1)))))))
-					(when
-						(and (not (member (substring symlink rootlen) linked))
-							 (or (y-or-n-p (format "Not in database. Link %S to %S? " symlink src))
-								 (error "Cannot add while some songs are not in the database")))
-					  (make-symbolic-link src symlink)
-					  (push (substring symlink rootlen) linked)
-					  ;; do only partial update
-					  (mingus-update (substring symlink rootlen))))) 
-				unfindables))
+          (when unfindables
+                (let (linked)
+                  (mapc (lambda (file)
+                                  ;; ToDo: currently links files to root. Which is not good.
+                                  (let ((src (expand-file-name
+                                                          (if (file-directory-p file)
+                                                                  file
+                                                                (substring (file-name-directory file) 0 -1))))
+                                                (symlink (expand-file-name
+                                                                  (concat
+                                                                   (file-name-as-directory
+                                                                        mingus-mpd-root)
+                                                                   (if (file-directory-p file)
+                                                                           (file-name-nondirectory file)
+                                                                         (file-name-nondirectory
+                                                                          (substring (file-name-directory file) 0 -1)))))))
+                                        (when
+                                                (and (not (member (substring symlink rootlen) linked))
+                                                         (or (y-or-n-p (format "Not in database. Link %S to %S? " symlink src))
+                                                                 (error "Cannot add while some songs are not in the database")))
+                                          (make-symbolic-link src symlink)
+                                          (push (substring symlink rootlen) linked)
+                                          ;; do only partial update
+                                          (mingus-update (substring symlink rootlen)))))
+                                unfindables))
 
-		;; Wait a moment for the forced update to complete
-		(sit-for mingus-wait-for-update-interval)
+                ;; Wait a moment for the forced update to complete
+                (sit-for mingus-wait-for-update-interval)
 
-		;; Try to resolve again:
-		(destructuring-bind (found notfound) (mingus-resolve-files unfindables)
-		  ;; If update has not completed, error out, so found files will be added just once
-		  (if notfound
-			  (error "Please run this command again now some files have been symlinked. Updating may take some time")		   (setq files (append found files)))))
+                ;; Try to resolve again:
+                (destructuring-bind (found notfound) (mingus-resolve-files unfindables)
+                  ;; If update has not completed, error out, so found files will be added just once
+                  (if notfound
+                          (error "Please run this command again now some files have been symlinked. Updating may take some time")                  (setq files (append found files)))))
 
-	  ;; Bake a command for mingus-add
-	  (if files
-		(let ((fmt (concat "%S" (mapconcat 'identity (make-list (length files) "") "\nadd %S"))))
-		  ;; And do the final call
-		  (mingus-add (apply #'format fmt files) t))
-		;; Return a non-`nil' value to indicate success
-		t)))) 
+          ;; Bake a command for mingus-add
+          (if files
+                (let ((fmt (concat "%S" (mapconcat 'identity (make-list (length files) "") "\nadd %S"))))
+                  ;; And do the final call
+                  (mingus-add (apply #'format fmt files) t))
+                ;; Return a non-`nil' value to indicate success
+                t))))
 
 ;; create function mingus-dired-add-and-play
 (mingus-and-play mingus-dired-add mingus-dired-add-and-play)
@@ -3996,16 +3996,16 @@ In Dired, use `mingus-dired-add', elsewhere read a filename from
 the minibuffer."
   (interactive)
   (case major-mode
-	('dired-mode
-	 (mingus-dired-add))
-	(t
-	 (mingus-add-files (list (read-file-name "Add: "))))))
+        ('dired-mode
+         (mingus-dired-add))
+        (t
+         (mingus-add-files (list (read-file-name "Add: "))))))
 
 (mingus-and-play mingus-dwim-add mingus-dwim-add-and-play)
 
 ;; (@> "development stuff")
 ' (mapconcat (lambda (list)
-	       (mingus-make-song-string list mingus-playlist-format-to-use
+               (mingus-make-song-string list mingus-playlist-format-to-use
                                         mingus-playlist-separator))
              (mingus-get-songs "playlistinfo") "\n")
 
@@ -4014,9 +4014,9 @@ the minibuffer."
   (timer-activate mingus-timer))
 
  ' (message "Average time: %f"
-	    (let ((total (seconds-to-time 0)))
-	      (dotimes (var 4 (/ (float-time total) var))
-		(setq total (time-add total (time (mingus-playlist t)))))))
+            (let ((total (seconds-to-time 0)))
+              (dotimes (var 4 (/ (float-time total) var))
+                (setq total (time-add total (time (mingus-playlist t)))))))
 
 ' (defmacro time (&rest body)
     `(let ((time (current-time)))
@@ -4027,68 +4027,68 @@ the minibuffer."
   (let ((output (mingus-exec "outputs")))
     (when (car output)
       (loop for i on (cdr output)
-	    by 'cdddr
-	    collect 
-	    (list 
-	     :id (string-to-number (cdr (nth 0 i))) 
-	     :name (cdr (nth 1 i)) 
-	     :enabled (string= (cdr (nth 2 i)) "1"))))))
+            by 'cdddr
+            collect
+            (list
+             :id (string-to-number (cdr (nth 0 i)))
+             :name (cdr (nth 1 i))
+             :enabled (string= (cdr (nth 2 i)) "1"))))))
 
 (defun mingus-disable-output ()
   (interactive)
   (let* ((outputs (mingus-outputs))
-	 (enabled 
-	 (loop for i in outputs
-	       when (plist-get i :enabled)
-	       collect i)))
+         (enabled
+         (loop for i in outputs
+               when (plist-get i :enabled)
+               collect i)))
     (if (null enabled)
-	(message "No outputs to disable")
+        (message "No outputs to disable")
       (let ((id
-	     (string-to-number
-	      (completing-read
-	       "Disable output: "
-	       (mapcar (lambda (output)
-			 (format "%d: %s"
-				 (plist-get output :id)
-				 (plist-get output :name))) enabled)
-	       nil t))))
-	(mingus-exec (format "disableoutput %d" id))))))
+             (string-to-number
+              (completing-read
+               "Disable output: "
+               (mapcar (lambda (output)
+                         (format "%d: %s"
+                                 (plist-get output :id)
+                                 (plist-get output :name))) enabled)
+               nil t))))
+        (mingus-exec (format "disableoutput %d" id))))))
 
 (defun mingus-enable-output ()
   (interactive)
   (let* ((outputs (mingus-outputs))
-	 (disabled 
-	 (loop for i in outputs
-	       when (not (plist-get i :enabled))
-	       collect i)))
+         (disabled
+         (loop for i in outputs
+               when (not (plist-get i :enabled))
+               collect i)))
     (if (null disabled)
-	(message "No outputs to enable")
+        (message "No outputs to enable")
       (let ((id
-	     (string-to-number
-	      (completing-read
-	       "Enable output: "
-	       (mapcar (lambda (output)
-			 (format "%d: %s"
-				 (plist-get output :id)
-				 (plist-get output :name))) disabled)
-	       nil t))))
-	(mingus-exec (format "enableoutput %d" id))))))
+             (string-to-number
+              (completing-read
+               "Enable output: "
+               (mapcar (lambda (output)
+                         (format "%d: %s"
+                                 (plist-get output :id)
+                                 (plist-get output :name))) disabled)
+               nil t))))
+        (mingus-exec (format "enableoutput %d" id))))))
 
 ;; (@> "bookmarks")
 (defun mingus-play-or-add-and-play (filestring)
   (let ((song (mingus-find-in-playlist filestring)))
-	(if (null song)
-		(and (mingus-add filestring)
-			 (mingus-play-or-add-and-play filestring))
-	  (mingus-play (getf song 'Pos)))))
+        (if (null song)
+                (and (mingus-add filestring)
+                         (mingus-play-or-add-and-play filestring))
+          (mingus-play (getf song 'Pos)))))
 
 (defun mingus-find-in-playlist (file)
-  (find 
+  (find
    file
    (mingus-get-songs "playlistinfo")
-   :test 
+   :test
    (lambda (f d)
-	 (string= file (getf d 'file)))))
+         (string= file (getf d 'file)))))
 
 (defcustom mingus-bookmarks nil
   "Alist of mingus bookmarks.
@@ -4099,30 +4099,30 @@ A bookmark is a plist in the form of (file FILENAME position POSITION-IN-SECONDS
 
 (defun mingus-bookmark-jump (bkmk-name)
   "Jump to bookmark in `mingus-bookmarks' list"
-  (interactive 
-   (or 
-	(and (null mingus-bookmarks)
-		 (error "No bookmarks have been set yet"))
-	(list 
-	 (completing-read 
-	  "Bookmark: " 
-	  mingus-bookmarks
-	  nil t))))
+  (interactive
+   (or
+        (and (null mingus-bookmarks)
+                 (error "No bookmarks have been set yet"))
+        (list
+         (completing-read
+          "Bookmark: "
+          mingus-bookmarks
+          nil t))))
   (let ((bkmk (cadr (assoc bkmk-name mingus-bookmarks))))
-   (mingus-play-or-add-and-play 
-	(getf bkmk 'file))
-   (mingus-seek 
-	(getf bkmk 'position)
-	nil t)))
+   (mingus-play-or-add-and-play
+        (getf bkmk 'file))
+   (mingus-seek
+        (getf bkmk 'position)
+        nil t)))
 
 (defun mingus-bookmark-create ()
   "Create a Mingus bookmark."
-  (let* ((file (getf 
-				(car (mingus-get-songs "currentsong"))
-				'file))
-		 (status (mpd-get-status mpd-inter-conn))
-		 (position (getf status 'time-elapsed)))
-	(list 'file file 'position position)))
+  (let* ((file (getf
+                                (car (mingus-get-songs "currentsong"))
+                                'file))
+                 (status (mpd-get-status mpd-inter-conn))
+                 (position (getf status 'time-elapsed)))
+        (list 'file file 'position position)))
 
 (defun mingus-bookmark-set (bkmk name)
   "Add bookmark BKMK to `mingus-bookmarks' list identified by NAME.
@@ -4130,73 +4130,73 @@ A bookmark is a plist in the form of (file FILENAME position POSITION-IN-SECONDS
 This function adds a bookmark for current song AND position in
 playlist.  Useful e.g. in audiobooks or language courses."
   (interactive
-   (list 
-	(mingus-bookmark-create)
-	(let* ((songdata (car (mingus-get-songs "currentsong")))
-		   (name (or (getf 
-					  songdata
-					  'Title)
-					 (file-name-sans-extension
-					  (file-name-nondirectory
-					   (getf 
-						songdata
-						'file))))))
-	  (completing-read 
-	   (format "Name for bookmark (default: %s) : " name) 
-	   mingus-bookmarks
-	   nil
-	   nil
-	   nil
-	   nil
-	   name))))
+   (list
+        (mingus-bookmark-create)
+        (let* ((songdata (car (mingus-get-songs "currentsong")))
+                   (name (or (getf
+                                          songdata
+                                          'Title)
+                                         (file-name-sans-extension
+                                          (file-name-nondirectory
+                                           (getf
+                                                songdata
+                                                'file))))))
+          (completing-read
+           (format "Name for bookmark (default: %s) : " name)
+           mingus-bookmarks
+           nil
+           nil
+           nil
+           nil
+           name))))
   (let ((match (assoc name mingus-bookmarks)))
-	(if match 
-		(setf (cadr match) bkmk)
-	  (push (list name bkmk)
-			mingus-bookmarks))
-	(customize-save-variable 'mingus-bookmarks mingus-bookmarks)))
+        (if match
+                (setf (cadr match) bkmk)
+          (push (list name bkmk)
+                        mingus-bookmarks))
+        (customize-save-variable 'mingus-bookmarks mingus-bookmarks)))
 
 (defun mingus-bookmark-delete (name)
   "Delete bookmark from `mingus-bookmarks' list"
   (interactive
-   (list (completing-read 
-		  "Delete bookmark: " 
-		  mingus-bookmarks)))
+   (list (completing-read
+                  "Delete bookmark: "
+                  mingus-bookmarks)))
   (let ((match (assoc name mingus-bookmarks)))
-	(customize-save-variable 'mingus-bookmarks
-							 (delete match mingus-bookmarks))))
+        (customize-save-variable 'mingus-bookmarks
+                                                         (delete match mingus-bookmarks))))
 
 
 (defun mingus-get-a-state (state)
   "Get a certain status."
   (let ((status (mpd-get-status mpd-inter-conn)))
-	(plist-get status state)))
+        (plist-get status state)))
 
 (defun mingus-single ()
   (interactive)
   (let ((state (mingus-get-a-state 'single)))
-	(if (not state)
-		(message "Single mode seems to be unsupported")
-	  (mingus-exec 
-	   (format "single %d" 
-			   (abs (- (string-to-number state) 1))))
-	  (message "Single mode is %s" 
-			   (if (string= "1" state)
-				   "off"
-				 "on")))))
+        (if (not state)
+                (message "Single mode seems to be unsupported")
+          (mingus-exec
+           (format "single %d"
+                           (abs (- (string-to-number state) 1))))
+          (message "Single mode is %s"
+                           (if (string= "1" state)
+                                   "off"
+                                 "on")))))
 
 (defun mingus-consume ()
   (interactive)
   (let ((state (mingus-get-a-state 'consume)))
-	(if (not state)
-		(message "Consume mode seems to be unsupported")
-	  (mingus-exec 
-	   (format "consume %d" 
-			   (abs (- (string-to-number state) 1))))
-	  (message "Consume mode is %s" 
-			   (if (string= "1" state)
-				   "off"
-				 "on")))))
+        (if (not state)
+                (message "Consume mode seems to be unsupported")
+          (mingus-exec
+           (format "consume %d"
+                           (abs (- (string-to-number state) 1))))
+          (message "Consume mode is %s"
+                           (if (string= "1" state)
+                                   "off"
+                                 "on")))))
 
 (provide 'mingus)
 ;;; mingus.el ends here
