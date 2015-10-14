@@ -2332,6 +2332,7 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
 	  val)
 	mingus-song-strings)))
 
+;;;###autoload
 (defun mingus (&optional set-variables)
   "MPD Interface by Niels Giesen, Useful and Simple.
 
