@@ -2114,8 +2114,9 @@ Argument OVERRIDE defines whether to treat the situation as new."
                    (mingus-move-NP-mark (point))))
                (mingus-set-song-pos pos))))))
 
-(define-fringe-bitmap 'mingus-NP-fringe
-  [128 192 224 240 248 252 248 240 224 192 128])
+(when (fboundp 'define-fringe-bitmap)
+  (define-fringe-bitmap 'mingus-NP-fringe
+    [128 192 224 240 248 252 248 240 224 192 128]))
 
 (defvar
   *mingus-playing-string*
@@ -2140,8 +2141,9 @@ Argument OVERRIDE defines whether to treat the situation as new."
 ;; 1 1 0 0 0 0 0 0
 ;; 1 0 0 0 0 0 0 0
 
-(define-fringe-bitmap 'mingus-pausing-fringe
-  [102 102 102 102 102 102 102 102 102 102])
+(when (fboundp 'define-fringe-bitmap)
+  (define-fringe-bitmap 'mingus-pausing-fringe
+    [102 102 102 102 102 102 102 102 102 102]))
 
 (defvar
   *mingus-pausing-string*
@@ -2168,8 +2170,9 @@ Argument OVERRIDE defines whether to treat the situation as new."
 ;; 0 1 1 0 0 1 1 0
 ;; 0 1 1 0 0 1 1 0
 
-(define-fringe-bitmap 'mingus-stopped-fringe
-  [-1 -1 -1 -1 -1 -1 -1 -1])
+(when (fboundp 'define-fringe-bitmap)
+  (define-fringe-bitmap 'mingus-stopped-fringe
+    [-1 -1 -1 -1 -1 -1 -1 -1]))
 
 (defvar
   *mingus-stopped-string*
@@ -2180,9 +2183,10 @@ Argument OVERRIDE defines whether to treat the situation as new."
        '(left-fringe mingus-stopped-fringe))
     (propertize "[] " 'face 'mingus-stopped-face)))
 
-(set-fringe-bitmap-face 'mingus-NP-fringe 'mingus-playing-face)
-(set-fringe-bitmap-face 'mingus-pausing-fringe 'mingus-pausing-face)
-(set-fringe-bitmap-face 'mingus-stopped-fringe 'mingus-stopped-face)
+(when (fboundp 'set-fringe-bitmap-face)
+ (set-fringe-bitmap-face 'mingus-NP-fringe 'mingus-playing-face)
+ (set-fringe-bitmap-face 'mingus-pausing-fringe 'mingus-pausing-face)
+ (set-fringe-bitmap-face 'mingus-stopped-fringe 'mingus-stopped-face))
 
 (defun mingus-create-NP-mark ()
   (let ((string *mingus-playing-string*))
