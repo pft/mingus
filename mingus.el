@@ -3214,14 +3214,19 @@ Actually it tries to retrieve any stream from a given url.
   "Add song or directory at point.
 If active region, add everything between BEG and END."
   (interactive "r")
-  (let ((song (buffer-substring-no-properties
-               (or beg (point-at-bol))
-               (or end (point-at-eol)))))
-    (mpd-execute-command mpd-inter-conn
-                         (mapconcat
-                          (lambda (song)
-                            (format "add %s" (mpd-safe-string song)))
-                          (split-string song "\n") "\n"))))
+  (let ((pos (or beg (point-at-bol)))
+        (song
+         (plist-get (car (get-text-property (point) 'details)) 'file))
+        ;; @todo: handle case of region
+        ;; (buffer-substring-no-properties
+        ;;  (or beg (point-at-bol))
+        ;;  (or end (point-at-eol)))
+
+        (mpd-execute-command mpd-inter-conn
+                             (mapconcat
+                              (lambda (song)
+                                (format "add %s" (mpd-safe-string song)))
+                              (split-string song "\n") "\n")))))
 
 (defun mingus-down-dir-or-play-song ()
   "In *Mingus Browser* buffer, go to dir at point, or play song at point."
@@ -3667,38 +3672,30 @@ Argument POS is the current position in the buffer to revert to (?)."
                         finally return list))
                  (t
                   (if (null as-dir)
-                      (let ((results (cdr (mingus-exec
+                      (let ((results (cdr (mingus-get-songs
                                            (format "search %s %S" type query)))))
-                        (flet ((filter-results (key)
-                                       (loop for i in results
-                                             if (string= (car i) key)
-                                             collect
-                                             i)))
-                          (let ((items
-                                 (loop for f in (filter-results "file")
-                                       for s in (filter-results "Title")
-                                       collect (cons f s))))
-                            (mapcar (lambda (item)
-                                    (if (string-match "^spotify:track.*$" (cdar item))
-                                        (cdr item)
-                                      (car item))) items))))
-                    (loop for i in (cdr (mingus-exec
-                                 (format "search %s %S" type query)))
-                  when
-                  (and (string= (car i) "file"))
-                  if (file-name-directory (cdr i))
-                  do (add-to-list 'list
-                      (cons "directory" (substring (file-name-directory (cdr i)) 0 -1)))
-                  else
-                  collect i into list
-                  finally return list))))))
+                        results)
+                    (loop for i in (cdr (mingus-get-songs
+                                         (format "search %s %S" type query)))
+                          when
+                          (and (string= (car i) "file"))
+                          if (file-name-directory (cdr i))
+                          do (add-to-list 'list
+                                          (cons "directory" (substring (file-name-directory (cdr i)) 0 -1)))
+                          else
+                          collect i into list
+                          finally return list))))))
       (flet ((prop (i)
                    (propertize
-                    (cdr i)
+                    (plist-get i 'Title)
                     'face
-                    (if (string= (car i) "file")
+                    (if (plist-get i 'file
+                               ;; not good...
+                               )
                         'mingus-song-file-face
-                      'mingus-directory-face))))
+                      'mingus-directory-face)
+                    'details
+                    (list i))))
         (insert
          (mapconcat #'identity
                     (sort* (mapcar #'prop results)
