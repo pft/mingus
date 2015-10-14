@@ -1305,10 +1305,7 @@ Or, you might show me how to use a function/string choice in customize ;)"
 
 (mapc (lambda (key)
           (define-key mingus-playlist-map key
-            (lambda () (interactive)
-              (if (mingus-mark-active)
-                  (call-interactively 'mingus-mark-region)
-                (mingus-mark)))))
+            'mingus-mark-dwim))
         '("m" " "))
 
 (define-key mingus-playlist-map "n" 'mingus-unmark-region)
@@ -1748,6 +1745,12 @@ database may work."
         (mingus-mark-line)
       (mingus-unmark-line)))
   (forward-line 1))
+
+(defun mingus-mark-dwim ()
+  (interactive)
+  (if (mingus-mark-active)
+      (call-interactively 'mingus-mark-region)
+    (mingus-mark)))
 
 (defun mingus-mark-regexp (re)
   "In Mingus, mark all songs containing regexp RE."
