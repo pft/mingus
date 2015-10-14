@@ -56,17 +56,55 @@
 ;; somewhat like in `find-file', and searching on multiple fields, also with
 ;; auto-completion).
 
-;; INSTALLATION INSTRUCTIONS:
+;; Installation (Melpa)
+;; ====================
 
-;; make sure you have libmpdee.el in your load-path. NOTE for old-time users:
+;; Mingus is now installable from Melpa, and this is the preferred method.
+
+;; NOTE if you want to use the mingus-stays-home library (see below),
+;; you still will have to put
+
+;; (require 'mingus-stays-home)
+
+;; in your init file.
+
+;; For non-Melpa installs, see below.
+
+;; Usage
+;; =====
+
+;; After installation the following commands will be available:
+
+;; 1) M-x mingus-help shows the Mingus help buffer;
+;; 2) M-x mingus will show the playlist;
+;; 3) M-x mingus-browse navigates your music collection.
+
+;; You can switch between these buffers with keys 1: help, 2: playlist, 3: browser.
+
+;; For other key bindings, see M-x mingus-help.
+
+;; Mingus-stays-home
+;; =================
+
+;; When the computer running the mpd service is the same as the one from which
+;; mingus is being run, you may use the library mingus-stays-home.
+;; This library can provide stuff such as:
+
+;; - id3 tagging
+;; - cd-burning
+;; - integration with dired and the shell
+
+;; Check the file mingus-stays-home.el itself if you want to know
+;; more.
+
+;; Non-Melpa Installation
+;; ======================
+
+;; Make sure you have libmpdee.el in your load-path. NOTE for old-time users:
 ;; mpc is not required anymore. Everything is done in lisp. This also means that
 ;; mingus has become multi-platform (in an easy way).
 
-;; 1. When you install both the main mingus AND mingus-stays-home (recommended
-;; when the computer running the mpd service is the same as the one from which
-;; mingus is being run, see more on the reasons for installing mingus-stays-home
-;; (id3 tagging, cd-burning, integration with dired and the shell etc etc in the
-;; file mingus-stays-home.el)) :
+;; 1. When you install both the main mingus AND mingus-stays-home:
 
 ;; byte-compile, IN ORDER, repeat: IN ORDER, the files mingus.el and
 ;; mingus-stays-home.el
@@ -85,7 +123,8 @@
 ;; (add-to-list 'load-path "/path/where/mingus/resides")
 ;; (autoload 'mingus "mingus" nil t)
 
-;; Design issues:
+;; Design Issues
+;; =============
 
 ;; No editing of metadata tags is provided in mingus itself. This is because mpd is
 ;; designed to be run in a network as a server (although it can be used on a single
@@ -119,7 +158,8 @@
 
 ;; NOTE: right now these two functions are mutually exclusive.
 
-;; DIRED:
+;; Dired
+;; =====
 
 ;; Ability to snap to the file location of a song instantly in `dired', so as
 ;; to perform file management or other actions on these files easily (such as
@@ -171,7 +211,8 @@
 ;; nice integration features. See that file for more information. Emacs21
 ;; compatablity, except for parts of mingus-stays-home.
 
-;; Known bugs:
+;; Known bugs
+;; ==========
 
 ;; * a file name cannot have a double quotes (") or a backtick (`) in it. Do not
 ;; know how to fix that, so if anyone feels so inclined... You CAN query your
