@@ -49,9 +49,9 @@
 ;; 02111-1307, USA.
 
 ;;; Commentary:
-;; Mingus is a client for the Music Player Daemon (MPD). It provides an
+;; Mingus is a client for the Music Player Daemon (MPD).  It provides an
 ;; interactive interface, where most emphasis lies on on-screen display/editing
-;; of the playlist, and browsing in a buffer. However, minibuffer operations are
+;; of the playlist, and browsing in a buffer.  However, minibuffer operations are
 ;; becoming more intelligent with each version (with completive browsing
 ;; somewhat like in `find-file', and searching on multiple fields, also with
 ;; auto-completion).
@@ -100,8 +100,8 @@
 ;; Non-Melpa Installation
 ;; ======================
 
-;; Make sure you have libmpdee.el in your load-path. NOTE for old-time users:
-;; mpc is not required anymore. Everything is done in lisp. This also means that
+;; Make sure you have libmpdee.el in your load-path.  NOTE for old-time users:
+;; mpc is not required anymore.  Everything is done in lisp.  This also means that
 ;; mingus has become multi-platform (in an easy way).
 
 ;; 1. When you install both the main mingus AND mingus-stays-home:
@@ -126,35 +126,35 @@
 ;; Design Issues
 ;; =============
 
-;; No editing of metadata tags is provided in mingus itself. This is because mpd is
+;; No editing of metadata tags is provided in mingus itself.  This is because mpd is
 ;; designed to be run in a network as a server (although it can be used on a single
 ;; system, which, in fact, is what I do); as such, clients to mpd are unaware of mpd's
 ;; root dir, and possibly/probably do not have write permissions on the music
 ;; files.
 
-;; If you DO use mingus-stays-home, rough metadata-editing IS provided. `mingus-id3-set'
+;; If you DO use mingus-stays-home, rough metadata-editing IS provided.  `mingus-id3-set'
 ;; tries to guess the values for artist, song, track number, and album from the name
-;; encountered in the playlist. Use it with caution though, as as I said, it is still
+;; encountered in the playlist.  Use it with caution though, as as I said, it is still
 ;; rough, e.g. having to abstract away from differences between the various tagging
-;; formats. I AM looking into taglib for an elegant solution. But that will take some
-;; time. So be patient.
+;; formats.  I AM looking into taglib for an elegant solution.  But that will take some
+;; time.  So be patient.
 
-;; The interface is roughly based on that on ncmpc. Many keybindings are alike,
+;; The interface is roughly based on that on ncmpc.  Many keybindings are alike,
 ;; except for some notoriously vi-style-ones.  Some significant features (main
 ;; reasons to write this stuff) :
 
 ;; MARKING Notice specifically the possibility to mark multiple songs in the playlist
 ;; for movement or deletion (by pressing the spacebar one toggles the mark at the
 ;; current line; if there is a region, it marks all songs in the region.) Pressing 'y'
-;; asks for a regular expression against which to match the songs. Pressing 'Y' unmarks
-;; alike. If a song matches, it is marked. Unmarking all marks happens with a single
+;; asks for a regular expression against which to match the songs.  Pressing 'Y' unmarks
+;; alike.  If a song matches, it is marked.  Unmarking all marks happens with a single
 ;; capital "U".
 
 ;; INSERTION POINT Another nice feature is "mingus-set-insertion-point" (Key:
 ;; "i") : mark a song after which you would like your next insertions to take
-;; place. Then go inserting. Unset this behaviour with "u"
-;; (mingus-unset-insertion-point), and songs will be added to the end of the
-;; playlist again. As of version 0.24 this is NOT time-consuming. Yeah!
+;; place.  Then go inserting.  Unset this behaviour with "u"
+;; (mingus-unset-insertion-point), and songs will be added to 3the end of the
+;; playlist again.  As of version 0.24 this is NOT time-consuming.  Yeah!
 
 ;; NOTE: right now these two functions are mutually exclusive.
 
@@ -168,9 +168,9 @@
 
 ;; You might want to change the `dired-mode-map' so that it will play well with
 ;; Mingus.  If you want to, you can set the variable `mingus-dired-add-keys' to
-;; t; this can be done with `mingus-customize'. It will set "SPC" to
+;; t; this can be done with `mingus-customize'.  It will set "SPC" to
 ;; `mingus-dired-add', "C-u SPC" to `mingus-dired-add-and-play' and add an item
-;; for `mingus-dired-add' to the menu-bar in dired. `mingus-dwim-add' and
+;; for `mingus-dired-add' to the menu-bar in dired.  `mingus-dwim-add' and
 ;; `mingus-dwim-add-and-play' (see below) calls mingus-dired-add when in dired,
 ;; so binding this to a global key might be a nice solution too.
 
@@ -184,7 +184,7 @@
 ;; there are two options:
 
 ;; 1. you want to run locally, so run mpd
-;; first. Do so from somewhere else or simply evaluate (mingus-start-daemon).
+;; first.  Do so from somewhere else or simply evaluate (mingus-start-daemon).
 ;; On some configurations of mpd this must be done as root.
 
 ;; For those unfamiliar with mpd, to set it up, put something like the following
@@ -199,7 +199,7 @@
 ;; then run mpd
 
 ;; 2. you want to connect to a remote host, but have not set the
-;; environment variables MPD_HOST and/or MPD_PORT. Do so by calling
+;; environment variables MPD_HOST and/or MPD_PORT.  Do so by calling
 ;; (mingus-set-variables-interactively) (settings lost when emacs
 ;; restarted) or by means of customization (mingus-customize) or
 ;; (customize-group 'mingus).
@@ -208,13 +208,13 @@
 ;; error message when leaving mingus-info on for a while; allowing spaces in
 ;; minibuffer operations, such as loading and saving of playlists, radio-streams
 ;; and the like, but most of all: inclusion of mingus-stays-home, which provides
-;; nice integration features. See that file for more information. Emacs21
+;; nice integration features.  See that file for more information.  Emacs21
 ;; compatablity, except for parts of mingus-stays-home.
 
 ;; Known bugs
 ;; ==========
 
-;; * a file name cannot have a double quotes (") or a backtick (`) in it. Do not
+;; * a file name cannot have a double quotes (") or a backtick (`) in it.  Do not
 ;; know how to fix that, so if anyone feels so inclined... You CAN query your
 ;; database (M-x mingus-query-regexp " RET) to know if you are in the possession
 ;; of such files, so you can adjust their names (with mingus-stays-home
@@ -241,10 +241,11 @@
   "Current status of the connection to MPD (nil or t).")
 (defvar mingus-status-line ""
   "Current status line for use in modeline in mingus")
-(defvar mingus-browse-last-cmd nil "Last command issued to obtain a listing in Mingus Browse buffer.
+(defvar mingus-browse-command-history nil
+  "Stack of commands issued to obtain a listing in Mingus Browse buffer.
 
 This is used by `mingus-refresh'.")
-(make-variable-buffer-local 'mingus-browse-last-cmd)
+(make-variable-buffer-local 'mingus-browse-command-history)
 (defvar mingus-playlist-hooks nil "Hooks run at the end of `mingus-playlist'")
 (defvar mingus-marked-list nil
   "List of marked songs, identified by songid")
@@ -282,6 +283,7 @@ Songs are hashed by their MPD ids")
 ;; (@> "faces")
 (defgroup mingus-faces ()
   "Customization group for faces in Mingus"
+  :prefix "mingus-"
   :group 'mingus)
 
 (defface mingus-directory-face
@@ -1821,7 +1823,7 @@ details : the car of the `details' text property.
     (let (buffer-read-only any)
       (goto-char (point-min))
       (while (not (eobp))
-        (let* ((details (car (get-text-property (point) 'details)))
+        (let* ((details (get-text-property (point) 'details))
                (file (getf details 'file))
                (title (getf details 'Title))
                (artist (getf details 'Artist))
@@ -2326,7 +2328,7 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
                                       mingus-playlist-format-to-use
                                       mingus-playlist-separator)
                                      'mouse-face (when mingus-use-mouse-p 'highlight nil)
-                                     'details (list list))))
+                                     'details list)))
                                (puthash id val mingus-propertized-song-strings)
                                val))))
                      songs "\n")))
@@ -2341,7 +2343,7 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
   (mapc
    (lambda (sublist)
      (mingus-goto-line (1+ (plist-get sublist 'Pos)))
-     (put-text-property (point-at-bol) (point-at-eol) 'details (list sublist)))
+     (put-text-property (point-at-bol) (point-at-eol) 'details sublist))
    songs))
 
 (defun mingus-make-song-string (plist expression &optional separator)
@@ -2613,7 +2615,8 @@ Switch to *Mingus* buffer if necessary."
                               howmanysongs song
                               (cadar *mingus-point-of-insertion*)))
                  (message "%d %s added at end of playlist."
-                          howmanysongs song)) (mingus))))))))
+                          howmanysongs song))
+               (mingus))))))))
 
 (defun mingus-undo ()
   (mpd-execute-command mpd-inter-conn
@@ -3216,17 +3219,17 @@ If active region, add everything between BEG and END."
   (interactive "r")
   (let ((pos (or beg (point-at-bol)))
         (song
-         (plist-get (car (get-text-property (point) 'details)) 'file))
+         (plist-get (mingus-get-details-for-song) 'file))
         ;; @todo: handle case of region
         ;; (buffer-substring-no-properties
         ;;  (or beg (point-at-bol))
         ;;  (or end (point-at-eol)))
-
-        (mpd-execute-command mpd-inter-conn
-                             (mapconcat
-                              (lambda (song)
-                                (format "add %s" (mpd-safe-string song)))
-                              (split-string song "\n") "\n")))))
+)
+    (mpd-execute-command mpd-inter-conn
+                         (mapconcat
+                          (lambda (song)
+                            (format "add %s" (mpd-safe-string song)))
+                          (split-string song "\n") "\n"))))
 
 (defun mingus-down-dir-or-play-song ()
   "In *Mingus Browser* buffer, go to dir at point, or play song at point."
@@ -3234,15 +3237,19 @@ If active region, add everything between BEG and END."
   (save-excursion
     (beginning-of-line)
     (cond
-     ((mingus-songp)                    ;is it a song?
+     ((mingus-songp)
       (mingus-insert))
-     ((mingus-playlistp)                ;is it a playlist?
-      (mpd-load-playlist mpd-inter-conn (cdr (mingus-playlistp))))
-     (t                                 ;it's  a directory!
+     ((mingus-playlistp)
+      (mingus-list-playlist
+       (or
+        (plist-get (mingus-get-details-for-song) 'file)
+        (plist-get (mingus-get-details-for-song) 'Title))))
+     (t                                 ;it's a directory!
       (push (mingus-line-number-at-pos) *mingus-positions*)
       (mingus-ls
-       (buffer-substring-no-properties
-        (point-at-bol) (point-at-eol)))))))
+       (or
+        (plist-get (mingus-get-details-for-song) 'file)
+        (plist-get (mingus-get-details-for-song) 'Title)))))))
 
 ;; Idea: bind cdr and car of text-property 'details to two vars. Act upon these
 ;; vars.
@@ -3251,22 +3258,22 @@ If active region, add everything between BEG and END."
   (get-text-property (point-at-bol) 'details))
 
 (defun _mingus-playlist-get-filename-at-p ()
-  (plist-get (car (mingus-get-details-for-song)) 'file))
+  (plist-get (mingus-get-details-for-song) 'file))
+
+(defun mingus-item-type ()
+  (get-text-property (point-at-bol) 'mingus-type))
 
 (defun mingus-playlistp ()
-  "In *Mingus Browser* buffer, is thing-at-p a playlist.
- Return cons of form '(\"playlist\" . playlistname) or nil if not a playlist."
-  (assoc "playlist" (mingus-get-details-for-song)))
-
-(defun mingus-songp ()
-  "In *Mingus Browser* buffer, is thing-at-p a song.
- Return cons of the form '(\"song\" . songname) or nil if not a song."
-  (assoc "file" (mingus-get-details-for-song)))
+  "In *Mingus Browser* buffer, is thing-at-p a playlist?"
+  (eq 'playlist (mingus-item-type)))
 
 (defun mingus-directoryp ()
-  "In *Mingus Browser* buffer, is thing-at-p a directory.
- Return cons of form '(\"directory\" . dirname) or nil if not a directory."
-  (assoc "directory" (mingus-get-details-for-song)))
+  "In *Mingus Browser* buffer, is thing-at-p a directory?"
+  (eq 'directory (mingus-item-type)))
+
+(defun mingus-songp ()
+  "In *Mingus Browser* buffer, is thing-at-p a song?"
+  (eq 'file (mingus-item-type)))
 
 (defun _mingus-string->parent-dir (child)
   (if (string-match "^https?://" child) ;URLS are illegal here
@@ -3274,49 +3281,55 @@ If active region, add everything between BEG and END."
     (string-match "\\(.*\\)/" child)
     (match-string 1 child)))
 
+(defun mingus-get-directory-info (dir)
+  (mpd-get-directory-info mpd-inter-conn dir))
+
 (defun mingus-ls (string)
   "List songs/dirs in directory STRING in dedicated *Mingus Browser* buffer."
   (mingus-switch-to-browser)
-  (setq mingus-browse-last-cmd `(mingus-ls ,string))
-  (save-excursion)
-  (let ((buffer-read-only nil)
-        (newcontents
-     (sort*
-      (loop for i in
-        (remove-if
-         (lambda (item) (or
-                            (null (cdr item))
-                            (not (string-match (car item)
-                                              "file|directory|playlist"))))
-         (cdr (if (string= string "")
-                  (mingus-exec "listplaylists")
-                (mingus-exec (format "lsinfo %s"
-                                     (mpd-safe-string string))))))
+  (push `(mingus-ls ,string) mingus-browse-command-history)
+  (mingus-browse-fill string (mingus-get-directory-info string)))
 
-        collect i)
-          #'mingus-logically-less-p
-      :key #'cdr)))
-    (erase-buffer)
-    (if (null newcontents)
-        (message "No songs in database; check your mpd settings")
-      (mapc (lambda (item)
-              (if mingus-use-mouse-p
-                  (insert (propertize (cdr item) 'mouse-face 'highlight) "\n")
-                (insert (cdr item) "\n"))
-                (put-text-property (point-at-bol 1) (point-at-eol -1)
-                                   'details (list item))
-                (put-text-property (point-at-bol 1) (point-at-eol -1)
-                                   'face
-                                   (cond
-                                    ((string= (car item) "playlist")
-                                     'mingus-playlist-face)
-                                    ((string= (car item) "directory")
-                                     'mingus-directory-face)
-                                    ((string= (car item) "file")
-                                     'mingus-song-file-face))))
-            newcontents))
-    (mingus-browse-invisible)
-    (setq header-line-format string)))
+(defun mingus-list-playlist (playlist)
+  "List songs in PLAYLIST."
+  (mingus-switch-to-browser)
+  (push `(mingus-list-playlist ,playlist) mingus-browse-command-history)
+  (let*
+      ((results (make-vector 3 nil)))
+    (aset results 0
+          (mingus-get-songs
+           (format "listplaylistinfo %s"
+                   (mpd-safe-string "eurovision 2015"))))
+    (mingus-browse-fill playlist results)))
+
+(defun mingus-browse-fill (string results)
+  "Fill the Browser buffer with RESULTS for STRING.
+
+RESULTS is a vector of [songs playlists directories]"
+  (save-excursion
+    (let*
+        ((buffer-read-only nil)
+         (songs
+          (mapconcat #'mingus-format-item (cdr (aref results 0)) "\n"))
+         (playlists (mapconcat
+                     (lambda (s)
+                       (mingus-itemize-and-format s 'playlist))
+                     (aref results 1)
+                     "\n"))
+         (dirs (mapconcat
+                (lambda (s)
+                  (mingus-itemize-and-format s 'directory))
+                (aref results 2)
+                "\n"))
+         (newcontents (mapconcat #'identity
+                                 (list songs dirs playlists)
+                                 "\n\n")))
+      (erase-buffer)
+      (if (string= "" newcontents)
+          (message "No songs in database; check your mpd settings")
+        (insert newcontents))
+      (mingus-browse-invisible)
+      (setq header-line-format string))))
 
 (defun mingus-browse-to-song-at-p ()
   (interactive)
@@ -3337,17 +3350,27 @@ If active region, add everything between BEG and END."
   "In Mingus-Browse, go up one directory level."
   (interactive)
   (end-of-line)
+  ;; @todo: use 'details instead
   (let ((buffer-read-only nil)
-        (goal (buffer-substring-no-properties
-               (or (re-search-backward "/" (point-at-bol) t 1) (point))
-               (point-at-bol))))
+        (goal
+         (buffer-substring-no-properties
+          (or (re-search-backward "/" (point-at-bol) t 1) (point))
+          (point-at-bol))))
     (end-of-line)
-    (if (re-search-backward "/" (point-at-bol) t 2)
-        (progn
-          (mingus-ls
-           (buffer-substring-no-properties (point-at-bol) (point))))
-      (progn
-        (mingus-ls "")))
+    ;; Ditch current command
+    (pop mingus-browse-command-history)
+    ;; Get last command
+    (eval (pop mingus-browse-command-history))
+    ;; @todo: Normal MPD (query results may list songs inside a
+    ;; directory - then you would want the parent
+
+    ;; (if (re-search-backward "/" (point-at-bol) t 2)
+    ;;     (progn
+    ;;       (mingus-ls
+    ;;        (buffer-substring-no-properties (point-at-bol) (point))))
+    ;;   (if (stringp header-line-format)
+    ;;       (mingus-ls (file-name-directory header-line-format))
+    ;;    (mingus-ls "")))
     (search-backward goal)))
 
 (defun mingus-refresh ()
@@ -3357,7 +3380,7 @@ If active region, add everything between BEG and END."
   (case major-mode
     (mingus-browse-mode
      (mingus-save-excursion
-       (eval mingus-browse-last-cmd))
+      (eval (pop mingus-browse-command-history)))
      (goto-char (point-at-bol)))
     (mingus-playlist-mode
      (mingus-playlist t))
@@ -3378,8 +3401,9 @@ If active region, add everything between BEG and END."
                                         ;FIXME: cannot handle playlists in an
                                         ;active region right now
         (cond
-         ((mingus-playlistp) (mpd-load-playlist mpd-inter-conn
-                                                (cdr (mingus-playlistp))))
+         ((mingus-playlistp)
+          (mpd-load-playlist mpd-inter-conn
+                             (plist-get (mingus-get-details-for-song) 'Title)))
          (t (mingus-add-song-at-p)))))
     (if (eq major-mode 'mingus-playlist-mode)
         (mingus)
@@ -3647,19 +3671,42 @@ Show results in dedicated *Mingus Browser* buffer for further selection."
   (interactive "p")
   (mingus-query as-dir "regexp on filename"))
 
+(defun mingus-format-item (item)
+  (let ((type (or (plist-get item 'Type) 'file)))
+   (propertize
+    (plist-get item 'Title)
+    'face
+    (cadr
+     (member type
+             '(file mingus-song-file-face
+                    directory mingus-directory-face
+                    playlist mingus-playlist-face)))
+    'mingus-type
+    type
+    'details
+    item)))
+
+(defun mingus-itemize (string type)
+  (list 'Title string 'Type type))
+
+(defun mingus-itemize-and-format (string type)
+  (mingus-format-item
+   (mingus-itemize string type)))
+
 (defun mingus-query-do-it (type query pos buffer &optional as-dir)
   "Perform the query provided by either `mingus-query' or `mingus-query-regexp'.
 Argument TYPE specifies the kind of query.
 Argument QUERY is a query string.
 Argument POS is the current position in the buffer to revert to (?)."
   (mingus-switch-to-browser)
-  (setq mingus-browse-last-cmd `(mingus-query-do-it ,type ,pos ,buffer ,as-dir)
-        mingus-last-query (list type query pos buffer as-dir))
+  (push `(mingus-query-do-it ,type ,pos ,buffer ,as-dir) mingus-browse-command-history)
+  (setq mingus-last-query (list type query pos buffer as-dir))
   (let ((buffer-read-only nil)
         (prev (buffer-string)))
     (erase-buffer)
     (let ((results
            (cond ((string-match "regexp on filename" type)
+                  ;; @todo (non-mopidy)
                   (loop for i in
                         (cdr (mingus-exec "listall"))
                         if (and (string= (car i) "file")
@@ -3672,9 +3719,9 @@ Argument POS is the current position in the buffer to revert to (?)."
                         finally return list))
                  (t
                   (if (null as-dir)
-                      (let ((results (cdr (mingus-get-songs
-                                           (format "search %s %S" type query)))))
-                        results)
+                      (cdr (mingus-get-songs
+                            (format "search %s %S" type query)))
+                    ;; @todo what does as-dir mean?
                     (loop for i in (cdr (mingus-get-songs
                                          (format "search %s %S" type query)))
                           when
@@ -3685,21 +3732,10 @@ Argument POS is the current position in the buffer to revert to (?)."
                           else
                           collect i into list
                           finally return list))))))
-      (flet ((prop (i)
-                   (propertize
-                    (plist-get i 'Title)
-                    'face
-                    (if (plist-get i 'file
-                               ;; not good...
-                               )
-                        'mingus-song-file-face
-                      'mingus-directory-face)
-                    'details
-                    (list i))))
-        (insert
-         (mapconcat #'identity
-                    (sort* (mapcar #'prop results)
-                           #'mingus-logically-less-p) "\n")))
+      (insert
+       (mapconcat #'identity
+                  (sort* (mapcar #'mingus-format-item results)
+                         #'mingus-logically-less-p) "\n"))
       (setq header-line-format (list type ": " query)))
     (mingus-browse-invisible)
     (goto-char (point-min))
