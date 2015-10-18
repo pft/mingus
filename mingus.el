@@ -3295,18 +3295,24 @@ If active region, add everything between BEG and END."
 (defun mingus-down-dir-or-play-song ()
   "In *Mingus Browser* buffer, go to dir at point, or play song at point."
   (interactive)
-  (save-excursion
-    (beginning-of-line)
-    (cond
-     ((mingus-songp)
-      (mingus-insert))
-     ((mingus-playlistp)
-      (mingus-list-playlist
-       (mingus-get-filename-at-p)))
-     (t                                 ;it's a directory!
-      (push (mingus-line-number-at-pos) *mingus-positions*)
-      (mingus-ls
-       (mingus-get-filename-at-p))))))
+  (when (mingus-get-details)
+   (save-excursion
+     (beginning-of-line)
+     (cond
+      ((or
+        (mingus-songp)
+        (mingus-albump))
+       ;; Does anybody know how to list album tracks?
+       (mingus-insert))
+      ((mingus-playlistp)
+       (mingus-list-playlist
+        (mingus-get-filename-at-p)))
+      ((mingus-directoryp)
+       (push (mingus-line-number-at-pos) *mingus-positions*)
+       (mingus-ls
+        (mingus-get-filename-at-p)))
+      (t (message "Mingus knows nothing of this type %S"
+                  (mingus-item-type)))))))
 
 ;; Idea: bind cdr and car of text-property 'details to two vars. Act upon these
 ;; vars.
@@ -3335,6 +3341,10 @@ If active region, add everything between BEG and END."
 (defun mingus-songp ()
   "In *Mingus Browser* buffer, is thing-at-p a song?"
   (eq 'file (mingus-item-type)))
+
+(defun mingus-albump ()
+  "In *Mingus Browser* buffer, is thing-at-p an album?"
+  (eq 'album (mingus-item-type)))
 
 (defun _mingus-string->parent-dir (child)
   (if (string-match "^https?://" child) ;URLS are illegal here
@@ -3893,6 +3903,9 @@ Argument POS is the current position in the buffer to revert to (?)."
       ;;   #'identity
       ;;   (mapcar #'mingus-format-item results)
       ;;   "\n"))
+
+      ;; NOTE: we should probably sort on relevance ourselves -- mpd
+      ;; (mopidy in particular) returns pretty fuzzily...
       (mapc
        (lambda (artist)
          (insert
