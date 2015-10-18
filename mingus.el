@@ -289,8 +289,22 @@ Songs are hashed by their MPD ids")
 (defface mingus-directory-face
   '((default)
     (((background light)) (:foreground "#a0606d"))
-    (((background dark)) (:foreground "orange")))
+    (((background dark)) (:foreground "#ffa500")))
   "Face for displaying directories"
+  :group 'mingus-faces)
+
+(defface mingus-artist-face
+  '((default (:height 1.2))
+    (((background light)) (:foreground "#7560a0"))
+    (((background dark)) (:foreground "#b7a6da")))
+  "Face for displaying song files"
+  :group 'mingus-faces)
+
+(defface mingus-album-face
+  '((default (:height 1.2))
+    (((background light)) (:foreground "#ba6746"))
+    (((background dark)) (:foreground "#ff4500")))
+  "Face for displaying song files"
   :group 'mingus-faces)
 
 (defface mingus-song-file-face
@@ -3755,20 +3769,39 @@ Show results in dedicated *Mingus Browser* buffer for further selection."
   (interactive "p")
   (mingus-query as-dir "regexp on filename"))
 
+(defun mingus-get-type (item)
+  (let (file)
+    (or (plist-get item 'Type)
+        (progn
+          (setq file (plist-get item 'file))
+          (cond
+           ((string-match "spotify:" file 0)
+            (cond
+             ((string-match "spotify:album" file 0) 'album)
+             ((string-match "spotify:artist" file 0) 'artist)
+             ((string-match "spotify:track" file 0) 'file)
+             (t (prog1
+                    'file
+                  (message "Of unknown spotify type: %S" item)))))
+           (t 'file))))))
+
 (defun mingus-format-item (item)
-  (let ((type (or (plist-get item 'Type) 'file)))
-   (propertize
-    (plist-get item 'Title)
-    'face
-    (cadr
-     (member type
-             '(file mingus-song-file-face
-                    directory mingus-directory-face
-                    playlist mingus-playlist-face)))
-    'mingus-type
-    type
-    'details
-    item)))
+  (let ((type (mingus-get-type item)))
+    (propertize
+     (file-name-nondirectory
+      (or
+       (plist-get item 'Title)
+       (plist-get item 'file)))
+     'face
+     (cadr
+      (member type
+              '(file mingus-song-file-face
+                     directory mingus-directory-face
+                     playlist mingus-playlist-face
+                     artist mingus-artist-face
+                     album mingus-album-face)))
+     'mingus-type type
+     'details item)))
 
 (defun mingus-itemize (string type)
   (list 'Title string 'Type type))
