@@ -1018,6 +1018,7 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (define-key mingus-global-map "w" 'mingus-wake-up-call)
 (define-key mingus-global-map "]" 'mingus-enable-output)
 (define-key mingus-global-map "[" 'mingus-disable-output)
+(define-key mingus-global-map "I" 'mingus-inspect)
 (define-key mingus-global-map
   (if (featurep 'xemacs)[(control button5)][C-mouse-5]) 'mingus-vol-down)
 (define-key mingus-global-map
@@ -1524,6 +1525,45 @@ Or, you might show me how to use a function/string choice in customize ;)"
        (mingus-goto-line ,line)
        (move-to-column ,col))))
 
+(defun mingus-format-plist (plist)
+  (let* ((len 0)
+         odd
+         (plist
+          (mapcar
+           (lambda (_)
+             (setq odd (not odd))
+             (when (symbolp _)
+               (setq _ (symbol-name _)))
+             (when odd
+               (setq len (max len (length _))))
+             _)
+           plist))
+         (key-template
+          (format "\n%%%ds : " len)))
+    (concat
+     (mapconcat
+      (lambda (_)
+        (setq odd (not odd))
+        (if odd
+            (format key-template _)
+          (format "%S" _)))
+      plist "")
+     "")))
+
+(defun mingus-inspect ()
+  (interactive)
+  (when (mingus-buffer-p)
+    (delete-all-overlays)
+    (let ((details (mingus-get-details))
+          (overlay (make-overlay
+                    (point-at-eol)
+                    (point-at-eol)
+                    nil t nil)))
+      (overlay-put overlay
+                   'before-string
+                   (mingus-format-plist details)))
+    (message "Press (g) to hide the info")))
+
 ;;;;  {{Generic Functions}}
 (defun _mingus-bol-at (pos)
   "Return the position at beginning of line relative to POS."
@@ -1949,6 +1989,7 @@ see function `mingus-help' for instructions.
   (use-local-map mingus-playlist-map)
   (setq major-mode 'mingus-playlist-mode)
   (setq mode-name "Mingus-playlist")
+  (delete-all-overlays)
   (font-lock-mode -1)
   (setq buffer-read-only t)
   (setq left-fringe-width 16)
@@ -1961,6 +2002,7 @@ see function `mingus-help' for instructions.
     (use-local-map mingus-browse-map)
     (setq major-mode 'mingus-browse-mode)
     (setq mode-name "Mingus-browse")
+    (delete-all-overlays)
     (run-hooks 'mingus-browse-hook)
     (set (make-local-variable '*mingus-positions*) nil)
     (setq buffer-read-only t)
@@ -3348,37 +3390,51 @@ RESULTS is a vector of [songs playlists directories]"
   (mingus-ls dir)
   (goto-char (point-min)))
 
-(defun mingus-dir-up ()
-  "In Mingus-Browse, go up one directory level."
+(defun mingus-open-parent ()
+  "In Mingus-Browse, go up one level."
   (interactive)
-  (end-of-line)
-  ;; @todo: use 'details instead
-  (let ((buffer-read-only nil)
-        (goal
-         (buffer-substring-no-properties
-          (or (re-search-backward "/" (point-at-bol) t 1) (point))
-          (point-at-bol))))
-    (end-of-line)
-    ;; Ditch current command
-    (pop mingus-browse-command-history)
-    ;; Get last command
-    (eval (pop mingus-browse-command-history))
-    ;; @todo: Normal MPD (query results may list songs inside a
-    ;; directory - then you would want the parent
+  (cl-flet ((bound-regex (s) (concat "^" (regexp-quote s) "$")))
+    (let* ((details (mingus-get-details))
+           (dir (file-name-directory
+                 (mingus-normalize
+                  (or
+                   (plist-get details 'file)
+                   (plist-get details 'Title)))))
+           (header (and
+                    (stringp header-line-format)
+                    (bound-regex header-line-format)))
+           (goal
+            (and dir
+                 (bound-regex
+                  (file-name-nondirectory
+                   (directory-file-name dir))))))
+      ;; Ditch current command
+      (pop mingus-browse-command-history)
+      ;; Get last command
+      (eval (pop mingus-browse-command-history))
+      ;; @todo: Normal MPD (query results may list songs inside a
+      ;; directory - then you would want the parent
 
-    ;; (if (re-search-backward "/" (point-at-bol) t 2)
-    ;;     (progn
-    ;;       (mingus-ls
-    ;;        (buffer-substring-no-properties (point-at-bol) (point))))
-    ;;   (if (stringp header-line-format)
-    ;;       (mingus-ls (file-name-directory header-line-format))
-    ;;    (mingus-ls "")))
-    (search-backward goal)))
+      ;; (if (re-search-backward "/" (point-at-bol) t 2)
+      ;;     (progn
+      ;;       (mingus-ls
+      ;;        (buffer-substring-no-properties (point-at-bol) (point))))
+      ;;   (if (stringp header-line-format)
+      ;;       (mingus-ls (file-name-directory header-line-format))
+      ;;    (mingus-ls "")))
+      (goto-char (point-max))
+      (or (and goal
+               (re-search-backward goal nil t))
+          (and header
+               (re-search-backward header nil t))
+          (goto-char (point-min))))))
 
 (defun mingus-refresh ()
   "Refresh view."
   (interactive)
   (end-of-line)
+  (when (mingus-buffer-p)
+    (delete-all-overlays))
   (case major-mode
     (mingus-browse-mode
      (mingus-save-excursion
