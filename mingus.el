@@ -3260,7 +3260,7 @@ If active region, add everything between BEG and END."
   (interactive "r")
   (let ((pos (or beg (point-at-bol)))
         (song
-         (plist-get (mingus-get-details-for-song) 'file))
+         (mingus-get-filename-at-p))
         ;; @todo: handle case of region
         ;; (buffer-substring-no-properties
         ;;  (or beg (point-at-bol))
@@ -3285,24 +3285,24 @@ If active region, add everything between BEG and END."
       (mingus-insert))
      ((mingus-playlistp)
       (mingus-list-playlist
-       (or
-        (plist-get (mingus-get-details-for-song) 'file)
-        (plist-get (mingus-get-details-for-song) 'Title))))
+       (mingus-get-filename-at-p)))
      (t                                 ;it's a directory!
       (push (mingus-line-number-at-pos) *mingus-positions*)
       (mingus-ls
-       (or
-        (plist-get (mingus-get-details-for-song) 'file)
-        (plist-get (mingus-get-details-for-song) 'Title)))))))
+       (mingus-get-filename-at-p))))))
 
 ;; Idea: bind cdr and car of text-property 'details to two vars. Act upon these
 ;; vars.
-(defun mingus-get-details-for-song ()
+(defun mingus-get-details ()
   "Get details for song from text-property `details'"
   (get-text-property (point-at-bol) 'details))
 
-(defun _mingus-playlist-get-filename-at-p ()
-  (plist-get (mingus-get-details-for-song) 'file))
+(defun mingus-get-filename-at-p ()
+  "Retrieve filename of song at point."
+  (let ((details (mingus-get-details)))
+   (or
+    (plist-get details 'file)
+    (plist-get details 'Title))))
 
 (defun mingus-item-type ()
   (get-text-property (point-at-bol) 'mingus-type))
@@ -3377,7 +3377,7 @@ RESULTS is a vector of [songs playlists directories]"
 
 (defun mingus-browse-to-song-at-p ()
   (interactive)
-  (let ((file (_mingus-playlist-get-filename-at-p)))
+  (let ((file (mingus-get-filename-at-p)))
     (mingus-browse-to-file file)))
 
 (defun mingus-browse-to-file (file)
@@ -3460,8 +3460,10 @@ RESULTS is a vector of [songs playlists directories]"
                                         ;active region right now
         (cond
          ((mingus-playlistp)
-          (mpd-load-playlist mpd-inter-conn
-                             (plist-get (mingus-get-details-for-song) 'Title)))
+          (let* ((playlist (plist-get (mingus-get-details) 'Title))
+                 (len (mingus-load-playlist-internal playlist)))
+            (message (format "Playlist %s loaded, songs: %d"
+                             playlist len))))
          (t (mingus-add-song-at-p)))))
     (if (eq major-mode 'mingus-playlist-mode)
         (mingus)
@@ -3524,10 +3526,24 @@ Optional argument AND-PLAY means start playing thereafter."
                (quoted-playlist (mpd-safe-string playlist)))
           (if (string= "" playlist)
               (message "No playlist selected")
-            (progn
-              (mpd-load-playlist mpd-inter-conn quoted-playlist)
-              (message (format "Playlist %s loaded" playlist))
+            (let ((len (mingus-load-playlist-internal playlist)))
+              (message (format "Playlist %s loaded, songs: %d"
+                               playlist len))
               (mingus))))))))
+
+(defun mingus-load-playlist-internal (playlist)
+  "Load an mpd playlist.
+Append playlist to current playlist, then optionally move all its to
+the insertion point."
+  (let ((old-length (mingus-playlist-length)))
+    (mpd-load-playlist mpd-inter-conn playlist)
+    (if (mingus-get-insertion-number)
+        (mingus-exec
+         (format "move %d:%d %d"
+                 old-length
+                 (mingus-playlist-length)
+                 (mingus-get-insertion-number))))
+    (- (mingus-playlist-length) old-length)))
 
 (defun mingus-save-playlist ()
   "Save an mpd playlist."
@@ -3622,7 +3638,7 @@ Complete in the style of the function `find-file'."
   (interactive)
   (let ((updatable
          (cdar
-          (mingus-get-details-for-song))))
+          (mingus-get-details))))
     (if (listp updatable)
         ;;have to fix weird differences in details tss..
         (setq updatable (car updatable)))
@@ -3901,59 +3917,59 @@ The timer-object is referenced to by the variable `mingus-wake-up-call'"
 (defun _mingus-get-parent-dir ()
   "Get parent dir of song at point."
   (_mingus-string->parent-dir
-   (mingus-get-filename)))
+   (mingus-get-absolute-filename)))
 
-(defun _mingus-burner-get-filename-at-p ()
-  (plist-get (mingus-get-details-for-song) :file))
+(defun mingus-normalize (filename)
+  "Normalize FILENAME into an understandable one.
+It may also mean handling file:/// links."
+  (cond
+   ((string-match "^file:///" filename)
+    (decode-coding-string
+     (url-unhex-string
+      (url-filename
+       (url-generic-parse-url filename)))
+     'utf-8))
+   ((string-match "^local:track:" filename)
+    (decode-coding-string
+     (url-unhex-string (substring filename 12))
+     'utf-8))
+   (t filename)))
 
-(defun _mingus-make-absolute-filename (filename)
-  "Turn a filename relative to `mingus-mpd-root' into an absolute one."
-  (if (string-match "^https?://" filename) ;URLS are legal here (!)
-      filename
-    (expand-file-name (concat mingus-mpd-root filename))))
+(defun _mingus-make-absolute-filename (file)
+  "Turn any FILE into an understandable one.
+This may mean making a file relative to `mingus-mpd-root' into an absolute one.
+It may also mean handling file:/// links."
+  (let ((filename (mingus-normalize file)))
+   (cond
+    ((file-name-absolute-p filename)
+     filename)
+    ((string-match "^[a-z]+://" filename)
+     filename)                          ;URLS are legal here (!)
+    (t
+     (expand-file-name (concat mingus-mpd-root filename))))))
 
-(defun _mingus-get-filename-from-playlist-relative ()
-  "In buffer *Mingus*, retrieve filename-at-p, relative to `mingus-mpd-root'."
-  (_mingus-playlist-get-filename-at-p))
-
-(defun _mingus-get-filename-from-burner-relative ()
-  "In buffer *Mingus*, retrieve filename-at-p, relative to `mingus-mpd-root'."
-  (_mingus-burner-get-filename-at-p))
-
-(defun _mingus-get-filename-from-browser-relative ()
-  "In *Mingus Browse*, retrieve filename-at-p, relative to `mingus-mpd-root'."
-  (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
-
-(defun _mingus-get-filename-relative ()
-  "Retrieve filename of song at point, relative to `mingus-mpd-root'"
-  (case major-mode
-    ('mingus-browse-mode
-     (_mingus-get-filename-from-browser-relative))
-    ('mingus-playlist-mode
-     (_mingus-get-filename-from-playlist-relative))
-    ('mingus-burn-mode
-     (_mingus-get-filename-from-burner-relative))))
-
-(defun _mingus-get-filename-absolute ()
+(defun mingus-get-absolute-filename ()
   "Get absolute filename for song-at-p."
-  (_mingus-make-absolute-filename (_mingus-get-filename-relative)))
-
-(defalias 'mingus-get-filename
-  '_mingus-get-filename-absolute "Get absolute filename for song-at-p.")
+  (_mingus-make-absolute-filename (mingus-get-filename-at-p)))
 
 (defun mingus-get-filename-for-shell ()
   "Retrieve filename of song at point, and shell-quote it."
-  (shell-quote-argument (mingus-get-filename)))
+  (shell-quote-argument (mingus-get-absolute-filename)))
 
 ;; Unused, but probably useful someday:
-(defun mingus-get-filenames-from-browser-for-shell (beg end)
+(defun mingus-get-filenames-for-shell (beg end)
   "Get everything under the region, sloppily.
 Region is between (beginning of line of) BEG and (beginning of line of) END."
   (interactive "r")
   (let ((beg (if mark-active (_mingus-bol-at beg) (point-at-bol)))
-        (end (if mark-active (_mingus-bol-at end) (point-at-eol))))
-    (mapcar '_mingus-make-absolute-filename
-            (split-string (buffer-substring-no-properties beg end) "\n" t))))
+        (end (if mark-active (_mingus-bol-at end) (point-at-eol)))
+        results)
+    (save-excursion
+      (goto-char beg)
+      (while (< (point) end)
+        (push (mingus-get-filename-for-shell) results)
+        (forward-line)))
+    results))
 
 ;;;; {{Dired}}
 (defun mingus-test-if-external-file-is-symlinked-in-list (sym l)
@@ -4140,7 +4156,7 @@ songs to Mingus."
   (dired
    (cond
     ((mingus-directoryp)
-     (_mingus-make-absolute-filename (cdr (mingus-directoryp))))
+     (mingus-get-absolute-filename))
     ((mingus-playlistp) mingus-mpd-playlist-dir)
     (t (_mingus-get-parent-dir))) "-al"))
 

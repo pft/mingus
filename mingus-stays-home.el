@@ -317,15 +317,17 @@ However, you can just as well specify it directly in this string."
 ;;;; {{Generic Functions}}
 ;; Replace with: (?)
 (defun mingus-read-entire-metadata ()
-  (mapcar (lambda (sublist)
-            (mapcar (lambda (item)
-                      (cond
-                       ((eq item 'Pos) :pos)
-                       ((symbolp item)
-                        (intern-soft (concat ":" (downcase (symbol-name item)))))
-                       (t item)))
-                    sublist))
-          (mpd-get-songs mpd-inter-conn "playlistinfo")))
+  (mpd-get-songs mpd-inter-conn "playlistinfo")
+  ;; (mapcar (lambda (sublist)
+  ;;           (mapcar (lambda (item)
+  ;;                     (cond
+  ;;                      ((eq item 'Pos) 'Pos)
+  ;;                      ((symbolp item)
+  ;;                       (intern-soft (concat ":" (downcase (symbol-name item)))))
+  ;;                      (t item)))
+  ;;                   sublist))
+  ;;         (mpd-get-songs mpd-inter-conn "playlistinfo"))
+  )
 
 (defun mingus-what-type (string)
   "Return symbol, based on extension"
@@ -338,7 +340,7 @@ However, you can just as well specify it directly in this string."
 
 (defun mingus-burns-get-name ()
   (format "%s%s" mingus-mpd-root
-          (getf (get-text-property (point-at-bol) 'details) :file)))
+          (getf (mingus-get-details) 'file)))
 
 ;; keep me
 (defun mingus-burns-color-bar (pos-beg-from-bol pos-end-from-bol color)
@@ -382,7 +384,7 @@ However, you can just as well specify it directly in this string."
   (block nil
     (save-excursion
       (let* ((buffer-read-only nil)
-             (length-of-song-at-p (getf (get-text-property (point-at-bol) 'details) :time))
+             (length-of-song-at-p (getf (mingus-get-details) 'Time))
              (min:secs (mingus-sec->min:sec (or length-of-song-at-p (return nil)))))
       (if (null min:secs) (message "Nothing to delete")
         (mpd-delete mpd-inter-conn (1- (mingus-line-number-at-pos)))
@@ -396,7 +398,7 @@ However, you can just as well specify it directly in this string."
 
 (defun mingus-burns-play ()
   (interactive)
-  (mingus-play (plist-get (get-text-property (point-at-bol) 'metadata) :pos)))
+  (mingus-play (plist-get (get-text-property (point-at-bol) 'metadata) 'Pos)))
 
 ;;;; {{Recording}}
 (defvar *mingus-b-session* nil)
@@ -410,7 +412,7 @@ Use M-x mingus-decode-playlist if you just want to decode the files."
          (format mingus-burns-format-string mingus-burns-device mingus-burns-speed)
          (mapcar
           (lambda (item)
-            (shell-quote-argument (mingus-dec-transl-src->dest (getf item :file))))
+            (shell-quote-argument (mingus-dec-transl-src->dest (getf item 'file))))
           *mingus-b-session*))
    'mingus-b-ask-to-keep-session))
 
@@ -425,7 +427,7 @@ Use M-x mingus-decode-playlist if you just want to decode the files."
   (if (y-or-n-p "Remove temporary wave files?")
       (mapc 'delete-file
             (mapcar (lambda (item)
-                      (mingus-dec-transl-src->dest (getf item :file)))
+                      (mingus-dec-transl-src->dest (getf item 'file)))
                     *mingus-b-session*)))
   (unless (y-or-n-p "Keep session data? ")
     (setq *mingus-b-session* nil)))
@@ -481,9 +483,9 @@ Use M-x mingus-decode-playlist if you just want to decode the files."
 (defun mingus-cdr-down-sessiondata (data)
   "Recursively find the first non-existing destination pathname from DATA."
   (cond ((null data) nil)
-        (t (if (file-exists-p (mingus-dec-transl-src->dest (getf (car data) :file)))
+        (t (if (file-exists-p (mingus-dec-transl-src->dest (getf (car data) 'file)))
                (mingus-cdr-down-sessiondata (cdr data))
-             (getf (car data) :file)))))
+             (getf (car data) 'file)))))
 
 ;; translation functions
 (defun mingus-transl-mpd->realroot (file)
@@ -533,26 +535,27 @@ Both filename are absolute paths in the filesystem"
          (total-time 0)
          buffer-read-only
          (httpp (member* nil data :test (lambda (elt item)
-                                          (null (getf item :time))))))
+                                          (null (getf item 'Time))))))
     (if httpp
         (progn
-          (message "There is a non-local file in the playlist (%s);\nPlease remove it as I am (still) too stupid to handle this situation " (getf (car httpp) :file))
+          (message "There is a non-local file in the playlist (%s);\nPlease remove it as I am (still) too stupid to handle this situation " (getf (car httpp) 'file))
           (bury-buffer "*Mingus Burns*"))
 
       (put '*mingus-b-session* :total-time total-time)
       (erase-buffer)
       (mapc
        (lambda (item)
-         (insert (format "%5s %s\n" (mingus-sec->min:sec (getf item :time))
-                         (mingus-ldots (replace-regexp-in-string "\\(.*/\\)+" "" (getf item :file) t t 1)
+         (insert (format "%5s %s\n" (mingus-sec->min:sec (getf item 'Time))
+                         (mingus-ldots (replace-regexp-in-string "\\(.*/\\)+" ""
+                                                                 (getf item 'Title) t t 1)
                                        (- (window-width) 7))))
          (forward-line -1)
          (mingus-burns-color-bar 0 5 "orange")
          (mingus-burns-color-bar 5 (- (point-at-eol) (point-at-bol)) "lightblue")
          (put-text-property (point-at-bol) (point-at-eol) 'details item)
 
-         (incf total-time (getf item :time))
-                                        ;        (incf total-time (min:sec->secs (getf item :time)))
+         (incf total-time (getf item 'Time))
+                                        ;        (incf total-time (min:sec->secs (getf item 'Time)))
          (forward-line))
        data)
       (put '*mingus-b-session* :total-time total-time)
