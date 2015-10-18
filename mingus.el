@@ -3841,9 +3841,10 @@ Argument POS is the current position in the buffer to revert to (?)."
                           collect i into list
                           finally return list))))))
       (insert
-       (mapconcat #'identity
-                  (sort* (mapcar #'mingus-format-item results)
-                         #'mingus-logically-less-p) "\n"))
+       (mapconcat
+        #'identity
+        (mapcar #'mingus-format-item results)
+        "\n"))
       (setq header-line-format (list type ": " query)))
     (goto-char (point-min))
     (mingus-revert-from-query pos prev buffer)))
