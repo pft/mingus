@@ -3394,7 +3394,7 @@ RESULTS is a vector of [songs playlists directories]"
                                  "\n\n")))
       (erase-buffer)
       (if (string= "" newcontents)
-          (message "No songs in database; check your mpd settings")
+          (message "No songs found; check your mpd settings")
         (insert newcontents))
       (mingus-browse-invisible)
       (setq header-line-format string))))
