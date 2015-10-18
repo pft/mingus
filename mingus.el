@@ -3298,7 +3298,7 @@ If active region, add everything between BEG and END."
     (aset results 0
           (mingus-get-songs
            (format "listplaylistinfo %s"
-                   (mpd-safe-string "eurovision 2015"))))
+                   (mpd-safe-string playlist))))
     (mingus-browse-fill playlist results)))
 
 (defun mingus-browse-fill (string results)
