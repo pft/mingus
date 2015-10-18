@@ -2653,9 +2653,10 @@ Switch to *Mingus* buffer if necessary."
                      mingus-seek-amount
                    amount))
          (amount-final
-          (cond (percentage (round (* (/ time-total 100.0) amount)))
-                ((not from-start) (+ time-elapsed amount))
-                (t amount))))
+          (max 0
+               (cond (percentage (round (* (/ time-total 100.0) amount)))
+                 ((not from-start) (+ time-elapsed amount))
+                 (t amount)))))
     (mpd-seek mpd-inter-conn (mingus-cur-song-id) amount-final t)))
 
 (defun mingus-seek-percents (amount)
