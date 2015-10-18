@@ -2595,8 +2595,7 @@ Switch to *Mingus* buffer if necessary."
        (when ad-do-it
          (save-window-excursion
            (let* ((new-version (mingus-get-new-playlist-version))
-                  (changes (mpd-execute-command
-                            mpd-inter-conn
+                  (changes (mingus-exec
                             (format "plchangesposid %d" old-version)))
                   (howmanysongs (if (car changes) (- new-version old-version)))
                   (song (if (< 1 howmanysongs) "songs" "song")))
@@ -3449,7 +3448,7 @@ Prefix argument shows value of *mingus-point-of-insertion*, and moves there."
 (defun mingus-list-playlists ()
   (remove nil (mapcar (lambda (item)
                         (if (string= (car item) "playlist") (cdr item)))
-                      (cdr (mpd-execute-command mpd-inter-conn "listplaylists")))))
+                      (cdr (mingus-exec "listplaylists")))))
 
 (defun mingus-load-playlist (&optional and-play)
   "Load an mpd playlist.
