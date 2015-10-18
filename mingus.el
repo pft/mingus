@@ -3362,25 +3362,28 @@ If active region, add everything between BEG and END."
 (defun mingus-browse-fill (string results)
   "Fill the Browser buffer with RESULTS for STRING.
 
-RESULTS is a vector of [songs playlists directories]"
+RESULTS is a vector of [songs playlists directories].
+\"songs\" is a list as returned by `mpd-get-songs'.
+\"playlists\" and \"directories\" are a list of strings."
   (save-excursion
     (let*
         ((buffer-read-only nil)
          (songs
-          (mapconcat #'mingus-format-item (cdr (aref results 0)) "\n"))
-         (playlists (mapconcat
+          (mapcar #'mingus-format-item (cdr (aref results 0))))
+         (playlists (mapcar
                      (lambda (s)
                        (mingus-itemize-and-format s 'playlist))
-                     (aref results 1)
-                     "\n"))
-         (dirs (mapconcat
+                     (aref results 1)))
+         (dirs (mapcar
                 (lambda (s)
                   (mingus-itemize-and-format s 'directory))
-                (aref results 2)
-                "\n"))
-         (newcontents (mapconcat #'identity
-                                 (list songs dirs playlists)
-                                 "\n\n")))
+                (aref results 2)))
+         (newcontents
+          (mapconcat
+           (lambda (list)
+             (mapconcat #'identity list "\n"))
+           (remove nil (list songs dirs playlists))
+           "\n")))
       (erase-buffer)
       (if (string= "" newcontents)
           (message "No songs found; check your mpd settings")
