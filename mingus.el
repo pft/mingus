@@ -1484,10 +1484,10 @@ Or, you might show me how to use a function/string choice in customize ;)"
 
 (define-key mingus-browse-map
   (if (featurep 'xemacs) [button3] [mouse-3])
-  'mingus-dir-up)
+  'mingus-open-parent)
 
 (mapc (lambda (key)
-          (define-key mingus-browse-map key 'mingus-dir-up))
+          (define-key mingus-browse-map key 'mingus-open-parent))
         '(":" "^" "\C-x\C-j"))
 
 (define-key mingus-browse-map
