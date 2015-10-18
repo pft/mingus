@@ -3906,32 +3906,39 @@ Argument POS is the current position in the buffer to revert to (?)."
 
       ;; NOTE: we should probably sort on relevance ourselves -- mpd
       ;; (mopidy in particular) returns pretty fuzzily...
-      (mapc
-       (lambda (artist)
-         (insert
-          (propertize
-           (car artist)
-           'face 'mingus-artist-face))
-         (newline)
-         (mapc
-          (lambda (album)
-            (insert
-             (propertize
-              (car album)
-              'face 'mingus-album-stale-face))
-            ;; NOTE: in mopidy, dupes are created
-            (newline)
-            (mapc
-             (lambda (song)
-               (insert (mingus-format-item song))
-               (newline))
-             (sort* (cdr album)
-                    (lambda (a b)
-                      (mingus-logically-less-p
-                       (or (getf a 'Track) "")
-                       (or (getf b 'Track) ""))))))
-          (mingus-group-by-album (cdr artist))))
-       (mingus-group-by-artist results))
+      (flet ((favour-exact-match (a b)
+           (if (string= (downcase (car a)) (downcase query))
+               (not (string= (downcase (car b)) (downcase query))))))
+       (mapc
+        (lambda (artist)
+          (insert
+           (propertize
+            (car artist)
+            'face 'mingus-artist-face))
+          (newline)
+          (mapc
+           (lambda (album)
+             (insert
+              (propertize
+               (car album)
+               'face 'mingus-album-stale-face))
+             ;; NOTE: in mopidy, dupes are created
+             (newline)
+             (mapc
+              (lambda (song)
+                (insert (mingus-format-item song))
+                (newline))
+              (sort* (cdr album)
+                     (lambda (a b)
+                       (mingus-logically-less-p
+                        (or (getf a 'Track) "")
+                        (or (getf b 'Track) ""))))))
+           (sort
+            (mingus-group-by-album (cdr artist))
+            #'favour-exact-match)))
+        (sort
+         (mingus-group-by-artist results)
+         #'favour-exact-match)))
       (setq header-line-format (list type ": " query)))
     (goto-char (point-min))
     (mingus-revert-from-query pos prev buffer)))
