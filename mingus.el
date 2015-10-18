@@ -744,6 +744,7 @@ C-u * %%, Y              mingus-unmark-regexp
 
 Browser keys:
 
+<home>                  mingus-browse-top-level
 RET, [mouse-1]          mingus-down-dir-or-play-song
 :,^, [mouse-3]          mingus-dir-up
 SPC  [mouse-2]          mingus-insert
@@ -969,6 +970,7 @@ Or, you might show me how to use a function/string choice in customize ;)"
 
 ;; add some keys to the various modes for dired look-ups
 (define-key mingus-global-map "0" 'mingus-dired-file)
+(define-key mingus-global-map [home] 'mingus-browse-top-level)
 (define-key mingus-global-map "q" 'mingus-git-out)
 (define-key mingus-global-map "." 'mingus-single)
 (define-key mingus-global-map "," 'mingus-consume)
@@ -3328,8 +3330,16 @@ If active region, add everything between BEG and END."
 (defun mingus-get-directory-info (dir)
   (mpd-get-directory-info mpd-inter-conn dir))
 
-(defun mingus-ls (string)
+(defun mingus-browse-top-level ()
+  "Goto top level of *Mingus Browser*."
+  (interactive)
+  (mingus-switch-to-browser)
+  (mingus-ls))
+
+(defun mingus-ls (&optional string)
   "List songs/dirs in directory STRING in dedicated *Mingus Browser* buffer."
+  (if (null string)
+      (setq string ""))
   (mingus-switch-to-browser)
   (push `(mingus-ls ,string) mingus-browse-command-history)
   (mingus-browse-fill string (mingus-get-directory-info string)))
