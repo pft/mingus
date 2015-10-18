@@ -3865,7 +3865,7 @@ Argument TYPE specifies the kind of query.
 Argument QUERY is a query string.
 Argument POS is the current position in the buffer to revert to (?)."
   (mingus-switch-to-browser)
-  (push `(mingus-query-do-it ,type ,pos ,buffer ,as-dir) mingus-browse-command-history)
+  (push `(mingus-query-do-it ,type ,query ,pos ,buffer ,as-dir) mingus-browse-command-history)
   (setq mingus-last-query (list type query pos buffer as-dir))
   (let ((buffer-read-only nil)
         (prev (buffer-string)))
