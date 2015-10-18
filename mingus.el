@@ -3258,17 +3258,6 @@ Actually it tries to retrieve any stream from a given url.
       (goto-char (point-min))
       (mingus-down-dir-or-play-song)))))
 
-(defun mingus-browse-invisible ()
-  "Hide $PWD in file and directory names in *Mingus Browser* buffer."
-  (save-excursion
-    (goto-char (point-min))
-    (while (not (eobp))
-      (put-text-property
-       (point-at-bol)
-       (or (re-search-forward ".*/" (point-at-eol) t 1) (point-at-bol))
-       'invisible t)
-      (forward-line 1))))
-
 ;; fixme: Problem if a playlist is contained within.
 (defun* mingus-add-song-at-p (&optional beg end)
   "Add song or directory at point.
@@ -3396,7 +3385,6 @@ RESULTS is a vector of [songs playlists directories]"
       (if (string= "" newcontents)
           (message "No songs found; check your mpd settings")
         (insert newcontents))
-      (mingus-browse-invisible)
       (setq header-line-format string))))
 
 (defun mingus-browse-to-song-at-p ()
@@ -3854,7 +3842,6 @@ Argument POS is the current position in the buffer to revert to (?)."
                   (sort* (mapcar #'mingus-format-item results)
                          #'mingus-logically-less-p) "\n"))
       (setq header-line-format (list type ": " query)))
-    (mingus-browse-invisible)
     (goto-char (point-min))
     (mingus-revert-from-query pos prev buffer)))
 
