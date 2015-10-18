@@ -624,7 +624,12 @@ Default to `mingus-mpd-host' and `mingus-mpd-port'. Do not use this for
 customizing these values; use `mingus-customize' for that."
   (interactive)
   (let ((mpd-interactive-connection-parameters
-         (list (read-string "MPD_HOST: " mingus-mpd-host)
+         (list (completing-read
+                "MPD_HOST: "
+                (remove nil (list mingus-mpd-host "localhost"))
+                nil
+                nil
+                mingus-mpd-host)
                (read-number "MPD_PORT: " mingus-mpd-port)
                (read-number "Timeout: " 10.0))))
     ;; clean up for new connection - bit too low level actually
