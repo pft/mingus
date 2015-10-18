@@ -760,7 +760,7 @@ Browser keys:
 
 <home>                  mingus-browse-top-level
 RET, [mouse-1]          mingus-down-dir-or-play-song
-:,^, [mouse-3]          mingus-dir-up
+:,^, [mouse-3]          mingus-open-parent
 SPC  [mouse-2]          mingus-insert
 P                       mingus-insert-and-play
 S                       mingus-browse-sort
@@ -3848,6 +3848,22 @@ Argument POS is the current position in the buffer to revert to (?)."
       (setq header-line-format (list type ": " query)))
     (goto-char (point-min))
     (mingus-revert-from-query pos prev buffer)))
+
+(defun mingus-sort-by-artist-and-album (list)
+  (let (out)
+    (mapc (lambda (item)
+            (let* ((artist-name
+                    (or (getf item 'AlbumArtist)
+                        (getf item 'Artist)))
+                   (artist (assoc artist-name out)))
+              (if (not artist)
+                  (setq artist
+                        (push
+                         (cons
+                          artist-name
+                          ))))))
+          list)
+    out))
 
 (defun mingus-revert-from-query (pos prev buffer)
   "Restore previous situation when `mingus-query-do-it' returned nothing."
