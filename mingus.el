@@ -3842,24 +3842,6 @@ Show results in dedicated *Mingus Browser* buffer for further selection."
      songs)
     albums))
 
-(defun mingus-get-artists-in-buffer ()
-  (save-excursion
-    (goto-char (point-min))
-    (let ((artists))
-      (while (< (point-at-eol) (point-max))
-        (let*
-            ((details (mingus-get-details))
-             (albumartist
-              (or
-               (getf details 'AlbumArtist)
-               (getf details 'Artist))))
-          (when albumartist
-            (when (not (assoc albumartist artists))
-              (push (list albumartist) artists))
-            (push details (cdr (assoc albumartist artists)))))
-        (forward-line 1))
-      artists)))
-
 (defun mingus-itemize (string type)
   (list 'Title string 'Type type))
 
@@ -3940,25 +3922,6 @@ Argument POS is the current position in the buffer to revert to (?)."
       (setq header-line-format (list type ": " query)))
     (goto-char (point-min))
     (mingus-revert-from-query pos prev buffer)))
-
-;;; NOTE: we should probably ditch Spotify-provided artists, as these
-;;; are bullshit ones and incomplete. Better to get them from the
-;;; songs and albums instead
-(defun mingus-sort-by-artist-and-album (list)
-  (let (out)
-    (mapc (lambda (item)
-            (let* ((artist-name
-                    (or (getf item 'AlbumArtist)
-                        (getf item 'Artist)))
-                   (artist (assoc artist-name out)))
-              (if (not artist)
-                  (setq artist
-                        (push
-                         (cons
-                          artist-name
-                          ))))))
-          list)
-    out))
 
 (defun mingus-revert-from-query (pos prev buffer)
   "Restore previous situation when `mingus-query-do-it' returned nothing."
