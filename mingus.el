@@ -2544,27 +2544,29 @@ Actually it is just named after that great bass player."
             ad-do-it
           (message ,(format "Not in %s buffer" buffer-name)))))))
 
-(defun mingus-insertion-point-set-p ()
-  (save-window-excursion
-    (mingus-switch-to-playlist)
-    (when (boundp '*mingus-point-of-insertion*)
-        (caar *mingus-point-of-insertion*))))
+(defun mingus-get-insertion-number (&optional or-playlist-length)
+  "When insertion point is set and valid, return it as a number.
+When it is not set, return nil.
+When it is set but invalid, unset it, and return nil.
 
-(defun mingus-get-insertion-number (&optional stringify)
-  (save-window-excursion
-    (mingus-switch-to-playlist)
-    (if *mingus-point-of-insertion*
-        (if stringify (number-to-string (caar *mingus-point-of-insertion*))
-          (caar *mingus-point-of-insertion*))
-      (if stringify (number-to-string (mingus-playlist-length))
-        (mingus-playlist-length)))))
+When OR-PLAYLIST-LENGTH is non-`nil', return the playlist length
+when there is no (valid) insertion point."
+  (let ((point (caar *mingus-point-of-insertion*)))
+    (if point
+        (let ((playlistlength (mingus-playlist-length)))
+          (if (<= point playlistlength)
+              point
+            (mingus-unset-insertion-point)
+            (when or-playlist-length
+              playlistlength)))
+      (and or-playlist-length (mingus-playlist-length)))))
 
 (defun mingus-goto-point-of-insertion ()
   "Move point to *mingus-point-of-insertion*.
 Switch to *Mingus* buffer if necessary."
   (interactive)
   (mingus-switch-to-playlist)
-  (mingus-goto-line (mingus-get-insertion-number)))
+  (mingus-goto-line (mingus-get-insertion-number t)))
 
 (mingus-advice mingus-toggle-marked "*Mingus*")
 (mingus-advice mingus-goto-current-song "*Mingus*")
@@ -2590,8 +2592,7 @@ Switch to *Mingus* buffer if necessary."
   `(defadvice ,func-name (around mingus-insertion-advice activate)
      (let ((old-version (mingus-get-new-playlist-version))
            (end-of-playlist (1+ (mingus-playlist-length)))
-           (insertion-point (if (mingus-insertion-point-set-p) ;fixme
-                                (mingus-get-insertion-number))))
+           (insertion-point (mingus-get-insertion-number)))
        (when ad-do-it
          (save-window-excursion
            (let* ((new-version (mingus-get-new-playlist-version))
@@ -2601,36 +2602,34 @@ Switch to *Mingus* buffer if necessary."
                   (song (if (< 1 howmanysongs) "songs" "song")))
              ;;back out when nothing is inserted:
              (when howmanysongs
-               (message "Processing request...")
-               (if insertion-point
-                   (progn
-                     ;;move all just inserted songs to their destination:
-                     (mingus-move
-                      (loop for i in (cdr changes) by #'cddr collect
-                            (string-to-number (cdr i)))
-                      (make-list howmanysongs insertion-point) nil)
-                     ;; some informative message:
-                     (message "%d %s added at %s"
-                              howmanysongs song
-                              (cadar *mingus-point-of-insertion*)))
-                 (message "%d %s added at end of playlist."
-                          howmanysongs song))
+               ;; Insertion is now done at the right point, no need to
+               ;; move it afterwards -- EXCEPT for playlist.
+
+               ;; (if insertion-point
+               ;;   (progn
+               ;;     (message "Processing request...")
+               ;;       ;;move all just inserted songs to their destination:
+               ;;       (mingus-move
+               ;;        (loop for i in (cdr changes) by #'cddr collect
+               ;;              (string-to-number (cdr i)))
+               ;;        (make-list howmanysongs insertion-point) nil)
+               ;;       ;; some informative message:
+               ;;       (message "%d %s added at %s"
+               ;;                howmanysongs song
+               ;;                (cadar *mingus-point-of-insertion*)))
+               ;;   (message "%d %s added at end of playlist."
+               ;;            howmanysongs song))
                (mingus))))))))
 
-(defun mingus-undo ()
-  (mpd-execute-command mpd-inter-conn
-                       (format "plchangesposid %d"
-                               (1- (mingus-get-new-playlist-version)))))
-
-(mingus-insertion-advice mingus-add-stream)
-(mingus-insertion-advice mingus-add-podcast)
-(mingus-insertion-advice mingus-insert)
+ (mingus-insertion-advice mingus-add-stream)
+ (mingus-insertion-advice mingus-add-podcast)
+ (mingus-insertion-advice mingus-insert)
 
 (defmacro mingus-and-play (func-name new-func-name)
   "Transform `insert functions' to \"(insert)-and-play\" functions."
   `(defun ,new-func-name ()
      (interactive)
-     (let ((mingus-playing-point (mingus-get-insertion-number)))
+     (let ((mingus-playing-point (mingus-get-insertion-number t)))
        (,func-name)
        (mingus-play mingus-playing-point))))
 
@@ -2928,12 +2927,13 @@ Switch to *Mingus* buffer if necessary."
 
 This is according to the situation where the song at point will have been
 deleted."
-  (cond ((and *mingus-point-of-insertion*
-              (= (mingus-get-insertion-number) (mingus-line-number-at-pos)))
-         (mingus-unset-insertion-point))
-        ((and *mingus-point-of-insertion*
-              (> (mingus-get-insertion-number) (mingus-line-number-at-pos)))
-         (decf (caar *mingus-point-of-insertion*)))))
+  (let ((number (mingus-get-insertion-number)))
+    (cond ((and number
+                (= number (mingus-line-number-at-pos)))
+           (mingus-unset-insertion-point))
+          ((and number
+                (> number (mingus-line-number-at-pos)))
+           (decf (caar *mingus-point-of-insertion*))))))
 
 (defun mingus-del-region (beg end)
   "In Mingus, delete region.
@@ -3223,12 +3223,15 @@ If active region, add everything between BEG and END."
         ;; (buffer-substring-no-properties
         ;;  (or beg (point-at-bol))
         ;;  (or end (point-at-eol)))
-)
-    (mpd-execute-command mpd-inter-conn
-                         (mapconcat
-                          (lambda (song)
-                            (format "add %s" (mpd-safe-string song)))
-                          (split-string song "\n") "\n"))))
+        (at (mingus-get-insertion-number)))
+    (mpd-execute-command
+     mpd-inter-conn
+     (mapconcat
+      (lambda (song)
+        (if at
+            (format "addid %s %d" (mpd-safe-string song) at)
+          (format "add %s" (mpd-safe-string song))))
+      (split-string song "\n") "\n"))))
 
 (defun mingus-down-dir-or-play-song ()
   "In *Mingus Browser* buffer, go to dir at point, or play song at point."
@@ -3421,7 +3424,7 @@ Prefix argument shows value of *mingus-point-of-insertion*, and moves there."
                                   (point-at-bol) (point-at-eol))))))
                (*mingus-point-of-insertion*
                 (mingus-goto-line (caar *mingus-point-of-insertion*))))
-         (message "*mingus-point-of-insertion* set at %s"
+         (message "*mingus-point-of-insertion* set AFTER %s"
                   (or (cadar *mingus-point-of-insertion*)
                       "end of playlist (unset)")))
         (t (message "Not in \"*Mingus*\" buffer"))))
