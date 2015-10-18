@@ -301,9 +301,16 @@ Songs are hashed by their MPD ids")
   :group 'mingus-faces)
 
 (defface mingus-album-face
-  '((default (:height 1.2))
+  '((default (:height 1.2 :underline t))
     (((background light)) (:foreground "#ba6746"))
-    (((background dark)) (:foreground "#ff4500")))
+    (((background dark)) (:foreground "#ce5c32")))
+  "Face for displaying song files"
+  :group 'mingus-faces)
+
+(defface mingus-album-stale-face
+  '((default (:height 1.2))
+    (((background light)) (:foreground "#847e7c"))
+    (((background dark)) (:foreground "#9d7363")))
   "Face for displaying song files"
   :group 'mingus-faces)
 
@@ -3415,11 +3422,12 @@ RESULTS is a vector of [songs playlists directories].
   (interactive)
   (cl-flet ((bound-regex (s) (concat "^" (regexp-quote s) "$")))
     (let* ((details (mingus-get-details))
-           (dir (file-name-directory
-                 (mingus-normalize
-                  (or
-                   (plist-get details 'file)
-                   (plist-get details 'Title)))))
+           (dir (ignore-errors
+                  (file-name-directory
+                   (mingus-normalize
+                    (or
+                     (plist-get details 'file)
+                     (plist-get details 'Title))))))
            (header (and
                     (stringp header-line-format)
                     (bound-regex header-line-format)))
@@ -3784,10 +3792,14 @@ Show results in dedicated *Mingus Browser* buffer for further selection."
 (defun mingus-format-item (item)
   (let ((type (mingus-get-type item)))
     (propertize
-     (file-name-nondirectory
-      (or
-       (plist-get item 'Title)
-       (plist-get item 'file)))
+     (if
+         (eq type 'directory)
+         (file-name-nondirectory
+          (plist-get item 'Title))
+       (or
+        (plist-get item 'Title)
+        (file-name-nondirectory
+         (plist-get item 'file))))
      'face
      (cadr
       (member type
@@ -3798,6 +3810,55 @@ Show results in dedicated *Mingus Browser* buffer for further selection."
                      album mingus-album-face)))
      'mingus-type type
      'details item)))
+
+(defun mingus-group-by-artist (songs)
+  (let ((artists))
+    (mapc
+     (lambda (details)
+       (let* ((albumartist
+               (or
+                (getf details 'AlbumArtist)
+                (getf details 'Artist))))
+         (when albumartist
+           (when (not (assoc albumartist artists))
+             (push (list albumartist) artists))
+           (push details (cdr (assoc albumartist artists))))))
+     songs)
+    artists))
+
+(defun mingus-group-by-album (songs)
+  (let ((albums))
+    (mapc
+     (lambda (details)
+       (let* ((album
+               (or
+                ;; NOTE: X-AlbumUri is a better identifier, but not
+                ;; always present!
+                (getf details 'Album))))
+         (when album
+           (when (not (assoc album albums))
+             (push (list album) albums))
+           (push details (cdr (assoc album albums))))))
+     songs)
+    albums))
+
+(defun mingus-get-artists-in-buffer ()
+  (save-excursion
+    (goto-char (point-min))
+    (let ((artists))
+      (while (< (point-at-eol) (point-max))
+        (let*
+            ((details (mingus-get-details))
+             (albumartist
+              (or
+               (getf details 'AlbumArtist)
+               (getf details 'Artist))))
+          (when albumartist
+            (when (not (assoc albumartist artists))
+              (push (list albumartist) artists))
+            (push details (cdr (assoc albumartist artists)))))
+        (forward-line 1))
+      artists)))
 
 (defun mingus-itemize (string type)
   (list 'Title string 'Type type))
@@ -3845,15 +3906,44 @@ Argument POS is the current position in the buffer to revert to (?)."
                           else
                           collect i into list
                           finally return list))))))
-      (insert
-       (mapconcat
-        #'identity
-        (mapcar #'mingus-format-item results)
-        "\n"))
+      ;; (insert
+      ;;  (mapconcat
+      ;;   #'identity
+      ;;   (mapcar #'mingus-format-item results)
+      ;;   "\n"))
+      (mapc
+       (lambda (artist)
+         (insert
+          (propertize
+           (car artist)
+           'face 'mingus-artist-face))
+         (newline)
+         (mapc
+          (lambda (album)
+            (insert
+             (propertize
+              (car album)
+              'face 'mingus-album-stale-face))
+            ;; NOTE: in mopidy, dupes are created
+            (newline)
+            (mapc
+             (lambda (song)
+               (insert (mingus-format-item song))
+               (newline))
+             (sort* (cdr album)
+                    (lambda (a b)
+                      (mingus-logically-less-p
+                       (or (getf a 'Track) "")
+                       (or (getf b 'Track) ""))))))
+          (mingus-group-by-album (cdr artist))))
+       (mingus-group-by-artist results))
       (setq header-line-format (list type ": " query)))
     (goto-char (point-min))
     (mingus-revert-from-query pos prev buffer)))
 
+;;; NOTE: we should probably ditch Spotify-provided artists, as these
+;;; are bullshit ones and incomplete. Better to get them from the
+;;; songs and albums instead
 (defun mingus-sort-by-artist-and-album (list)
   (let (out)
     (mapc (lambda (item)
