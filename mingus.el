@@ -3906,7 +3906,7 @@ Argument POS is the current position in the buffer to revert to (?)."
 
       ;; NOTE: we should probably sort on relevance ourselves -- mpd
       ;; (mopidy in particular) returns pretty fuzzily...
-      (flet ((favour-exact-match (a b)
+      (cl-flet ((favour-exact-match (a b)
            (if (string= (downcase (car a)) (downcase query))
                (not (string= (downcase (car b)) (downcase query))))))
        (mapc
