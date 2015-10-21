@@ -2393,7 +2393,8 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
                          (or (gethash id mingus-propertized-song-strings)
                              (let ((val
                                     (propertize
-                                     (mingus-make-song-string
+                                     (funcall
+                                      mingus-song-format
                                       list
                                       mingus-playlist-format-to-use
                                       mingus-playlist-separator)
@@ -2416,7 +2417,20 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
      (put-text-property (point-at-bol) (point-at-eol) 'details sublist))
    songs))
 
-(defun mingus-make-song-string (plist expression &optional separator)
+(defcustom mingus-song-format 'mingus-make-song-string
+  "Function for formatting songs in the playlist.
+
+The function receives three arguments: SONG-DETAILS EXPR SEP.
+
+SONG-DETAILS is a plist, see `mingus-get-details'.
+For EXPR, see `mingus-playlist-format-to-use'.
+For SEP, see `mingus-playlist-separator'.
+
+For a new format to take effect, run M-x mingus-clear-cache."
+  :type '(function)
+  :group 'mingus)
+
+ (defun mingus-make-song-string (plist expression &optional separator)
   "Make a string from PLIST, using EXPRESSION for the priority of values.
 
  Concatenate the results for the values with SEPARATOR, where SEPARATOR
@@ -3341,8 +3355,6 @@ Actually it tries to retrieve any stream from a given url.
       (t (message "Mingus knows nothing of this type %S"
                   (mingus-item-type)))))))
 
-;; Idea: bind cdr and car of text-property 'details to two vars. Act upon these
-;; vars.
 (defun mingus-get-details ()
   "Get details for song from text-property `details'"
   (get-text-property (point-at-bol) 'details))
@@ -3540,8 +3552,6 @@ Prefix argument shows value of *mingus-point-of-insertion*, and moves there."
                   (or (cadar *mingus-point-of-insertion*)
                       "end of playlist (unset)")))
         (t (message "Not in \"*Mingus*\" buffer"))))
-                                        ;fixme do something with text-properties
-                                        ;here once I find out how to...
 
 (defun mingus-set-insertion-point-at-currently-playing-song ()
   (interactive)
@@ -3587,8 +3597,9 @@ Optional argument AND-PLAY means start playing thereafter."
 
 (defun mingus-load-playlist-internal (playlist)
   "Load an mpd playlist.
-Append playlist to current playlist, then optionally move all its to
-the insertion point."
+
+Append playlist to current playlist, then optionally move all its
+songs to the insertion point."
   (let ((old-length (mingus-playlist-length)))
     (mpd-load-playlist mpd-inter-conn playlist)
     (if (mingus-get-insertion-number)
@@ -3630,7 +3641,6 @@ the insertion point."
                  (mpd-remove-playlist mpd-inter-conn quoted-playlist))
                (message "Playlist %s removed" playlist)))))))
 
-
 
 ;; {{minibuffer addition of tracks/dirs}}
 (defun mingus-complete-path (input)
@@ -3639,9 +3649,9 @@ INPUT is supposed to be supplied by current minibuffer contents."
   (let ((res (mingus-exec (concat "lsinfo " (mpd-safe-string input)))))
     (append
      (if (and (car res)
-                                        ;let the dir itself be sufficient too
+              ;;let the dir itself be sufficient too
               (not (string= "" input)))
-                                        ;do not show empty string or single "/"
+         ;; do not show empty string or single "/"
          (list
           input
           (replace-regexp-in-string "/*$" "/" input))
@@ -3744,8 +3754,8 @@ possible).  Optional argument TYPE predefines the type of query."
   (let* ((type (or type (mingus-completing-read-allow-spaces
                          "Search type: "
                          '("album" "artist" "genre"
-                                                   "composer" "filename" "title"
-                                                   "regexp on filename")
+                           "composer" "filename" "title"
+                           "regexp on filename")
                          nil t)))
          (buffer (buffer-name))
          (pos (point))
