@@ -3270,31 +3270,57 @@ Actually it tries to retrieve any stream from a given url.
       (goto-char (point-min))
       (mingus-down-dir-or-play-song)))))
 
-;; fixme: Problem if a playlist is contained within.
-(defun* mingus-add-song-at-p (&optional beg end)
-  "Add song or directory at point.
-If active region, add everything between BEG and END."
-  (interactive "r")
-  (let ((pos (or beg (point-at-bol)))
-        (song
-         (mingus-get-filename-at-p))
-        ;; @todo: handle case of region
-        ;; (buffer-substring-no-properties
-        ;;  (or beg (point-at-bol))
-        ;;  (or end (point-at-eol)))
-        (at (mingus-get-insertion-number)))
-    (mpd-execute-command
-     mpd-inter-conn
-     (mapconcat
-      (lambda (song)
-        (if at
-            (format "addid %s %d" (mpd-safe-string song) at)
-          (format "add %s" (mpd-safe-string song))))
-      (split-string song "\n") "\n"))))
+(defun mingus-get-items ()
+  (let ((items (unless mark-active
+                 (list (mingus-get-details))))
+        (beg (min (mark) (point)))
+        (end (max (mark) (point))))
+    (when mark-active
+     (save-excursion
+       (goto-char end)
+       (while
+           (> (point) beg)
+         (forward-line -1)
+         (push (mingus-get-details) items))))
+    (remove nil items)))
 
-(defun mingus-down-dir-or-play-song ()
-  "In *Mingus Browser* buffer, go to dir at point, or play song at point."
+(defun mingus-add-things-at-p ()
   (interactive)
+  (let* ((old-length (mingus-playlist-length))
+         (items (mingus-get-items))
+         (commands (mapconcat #'mingus-command-for-item items "\n"))
+         (playlists (cl-count 'playlist items :key #'mingus-get-type))
+         (directories (cl-count 'directory items :key #'mingus-get-type))
+         (songs (cl-count 'file items :key #'mingus-get-type))
+         (albums (cl-count 'album items :key #'mingus-get-type))
+         (at (mingus-get-insertion-number))
+         (tries 0)
+         (new-length))
+    (mingus-exec commands)
+    (while
+        (and
+         (null (setq new-length (mingus-playlist-length)))
+         (< tries 100)) ; Wait for max 1 sec
+      (incf tries)
+      (sleep-for 0.01))
+    (when new-length
+      (when at
+       (mingus-exec
+        (format "move %d:%d %d" old-length new-length at)))
+      (message "Added total of %d songs (%d playlists, %d albums, %d songs, %d directories)"
+               (- new-length old-length)
+               playlists albums songs directories))))
+
+(defun mingus-command-for-item (item)
+  (when item
+    (case (mingus-get-type item)
+      ((playlist) (format "load %s" (mpd-safe-string (plist-get item 'Title))))
+      ((file directory album)
+       (format "add %s" (mpd-safe-string (plist-get item 'file)))))))
+
+(defun mingus-down-dir-or-play-song (&optional and-play)
+  "In *Mingus Browser* buffer, go to dir at point, or play song at point."
+  (interactive "P")
   (when (mingus-get-details)
    (save-excursion
      (beginning-of-line)
@@ -3303,7 +3329,7 @@ If active region, add everything between BEG and END."
         (mingus-songp)
         (mingus-albump))
        ;; Does anybody know how to list album tracks?
-       (mingus-insert))
+       (mingus-insert and-play))
       ((mingus-playlistp)
        (mingus-list-playlist
         (mingus-get-filename-at-p)))
@@ -3492,17 +3518,7 @@ RESULTS is a vector of [songs playlists directories].
   (if and-play (mingus-insert-and-play)
     (if (not (eq major-mode 'mingus-browse-mode))
         (mingus-add-read-input)
-      (if (mingus-mark-active)
-          (mingus-add-song-at-p (min (mark)(point))(max (mark)(point)))
-                                        ;FIXME: cannot handle playlists in an
-                                        ;active region right now
-        (cond
-         ((mingus-playlistp)
-          (let* ((playlist (plist-get (mingus-get-details) 'Title))
-                 (len (mingus-load-playlist-internal playlist)))
-            (message (format "Playlist %s loaded, songs: %d"
-                             playlist len))))
-         (t (mingus-add-song-at-p)))))
+      (mingus-add-things-at-p))
     (if (eq major-mode 'mingus-playlist-mode)
         (mingus)
       (unless (mingus-mark-active) (forward-line 1)))))
