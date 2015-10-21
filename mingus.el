@@ -3315,7 +3315,9 @@ Actually it tries to retrieve any stream from a given url.
     (case (mingus-get-type item)
       ((playlist) (format "load %s" (mpd-safe-string (plist-get item 'Title))))
       ((file directory album)
-       (format "add %s" (mpd-safe-string (plist-get item 'file)))))))
+       (format "add %s" (mpd-safe-string
+                         (or (plist-get item 'file)
+                             (plist-get item 'Title))))))))
 
 (defun mingus-down-dir-or-play-song (&optional and-play)
   "In *Mingus Browser* buffer, go to dir at point, or play song at point."
