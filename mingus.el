@@ -2361,7 +2361,7 @@ Argument OVERRIDE defines whether to treat the situation as new."
                    (mingus-make-status-string))))))
 ;; filling the buffer:
 (defun mingus-playlist (&optional refresh)
- "Fill the playlist buffer so as to reflect current status in most proper way.
+  "Fill the playlist buffer so as to reflect current status in most proper way.
 Optional argument REFRESH means not matter what is the status, do a refresh"
   (interactive)
   (condition-case err
@@ -2406,7 +2406,7 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
                   (mingus-set-NP-mark t))
               (insert *mingus-header-when-empty*))
             (mingus-goto-line pos))
-                  (run-hooks 'mingus-make-playlist-hook)))
+          (run-hooks 'mingus-make-playlist-hook)))
     (error err)))
 
 (defun mingus-playlist-set-detail-properties (songs)
@@ -2693,7 +2693,6 @@ Switch to *Mingus* buffer if necessary."
 
  (mingus-insertion-advice mingus-add-stream)
  (mingus-insertion-advice mingus-add-podcast)
- (mingus-insertion-advice mingus-insert)
 
 (defmacro mingus-and-play (func-name new-func-name)
   "Transform `insert functions' to \"(insert)-and-play\" functions."
@@ -3519,9 +3518,8 @@ RESULTS is a vector of [songs playlists directories].
     (if (not (eq major-mode 'mingus-browse-mode))
         (mingus-add-read-input)
       (mingus-add-things-at-p))
-    (if (eq major-mode 'mingus-playlist-mode)
-        (mingus)
-      (unless (mingus-mark-active) (forward-line 1)))))
+    (mingus-playlist t)
+    (unless (mingus-mark-active) (forward-line 1))))
 
 (defun* mingus-set-insertion-point (&optional p)
   "In Mingus, set *mingus-point-of-insertion* for new songs.
