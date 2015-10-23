@@ -2593,7 +2593,7 @@ Actually it is just named after that great bass player."
   (interactive)
   (let ((newval (abs (1- (getf (mpd-get-status mpd-inter-conn) 'random)))))
     (mpd-execute-command mpd-inter-conn (format "random %d" newval))
-    (message "Mingus: random set to %S" (mingus-boolean->string newval))))
+    (message "Mingus: Random mode %S" (mingus-boolean->string newval))))
 
 
 (defun mingus-setvol (arg)
