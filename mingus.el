@@ -514,6 +514,21 @@ Note that you can use tramp, as in
   :group 'mingus
   :type '(string))
 
+(defcustom mingus-playlist-directory
+  nil
+  "Playlist directory to save playlists to.
+
+This is just in case the MPD implementation does not allow to
+save playlists.
+
+Note that you can use tramp, as in
+
+\"/ssh:username@host:/var/lib/mpd/music/\"
+
+\(don't forget the trailing slash)"
+  :group 'mingus
+  :type '(string))
+
 (defcustom mingus-seek-amount 10
   "Default amount of seconds or percents to seek by when using `mingus-seek'."
   :group 'mingus
@@ -3621,8 +3636,41 @@ songs to the insertion point."
     (if (null playlist)
         (message "No name for playlist provided, won't save...")
       (mpd-remove-playlist mpd-inter-conn quoted-playlist)
-      (mpd-save-playlist mpd-inter-conn quoted-playlist)
-      (message "Playlist saved as %s" playlist))))
+      (if (mpd-save-playlist mpd-inter-conn quoted-playlist)
+          (message "Playlist saved as %s" playlist)
+        (if (and
+             mingus-playlist-directory
+             (yes-or-no-p
+              (format "MPD implementation does *not* save playlists.
+Shall I save it to %s?"
+                      ;; NOTE: we could get this from a variable.
+                      (concat mingus-playlist-directory playlist ".m3u"))))
+            (let* ((songs (cdr (mingus-get-songs "playlistinfo")))
+                   (body (mapconcat #'mingus-format-for-m3u songs "\n")))
+              (with-temp-buffer
+                (insert "#EXTM3U\n" body)
+                (write-file (concat mingus-playlist-directory playlist ".m3u")
+                            t)))
+          (message "MPD implementation does save playlists *and* you do not have\
+ `mingus-playlist-directory' set."))))))
+
+(defun mingus-format-for-m3u (item &optional f s)
+  (format "#EXTINF:%d,%s - %s\n%s"
+          (or (plist-get item 'Time) 0)
+          (or
+           (plist-get item 'Artist)
+           (plist-get item 'AlbumArtist)
+           "")
+          (or
+           (plist-get item 'Title)
+           (plist-get item 'file)
+           (plist-get item 'Album)
+           "")
+          (or
+           (plist-get item 'file)
+           (plist-get item 'Title)
+           (plist-get item 'Album)
+           "" )))
 
 (defun mingus-remove-playlist ()
   "Remove an mpd playlist"
