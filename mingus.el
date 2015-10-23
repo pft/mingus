@@ -3279,15 +3279,15 @@ Actually it tries to retrieve any stream from a given url.
    (t
     (mingus-switch-to-browser)
     (let ((buffer-read-only nil))
-      (erase-buffer)                    ;only if not yet in browsing mode
-      (goto-char (point-min))
-      (mingus-down-dir-or-play-song)))))
+      (erase-buffer)
+      ;; only if not yet in browsing mode
+      (mingus-browse-top-level)))))
 
 (defun mingus-get-items ()
   (let ((items (unless mark-active
                  (list (mingus-get-details))))
-        (beg (min (mark) (point)))
-        (end (max (mark) (point))))
+        (beg (if mark-active (min (mark) (point))))
+        (end (if mark-active (max (mark) (point)))))
     (when mark-active
      (save-excursion
        (goto-char end)
