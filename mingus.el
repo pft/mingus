@@ -294,23 +294,22 @@ Songs are hashed by their MPD ids")
   :group 'mingus-faces)
 
 (defface mingus-artist-face
-  '((default (:height 1.2))
-    (((background light)) (:foreground "#7560a0"))
+  '((((background light)) (:foreground "#7560a0"))
     (((background dark)) (:foreground "#b7a6da")))
   "Face for displaying song files"
   :group 'mingus-faces)
 
 (defface mingus-album-face
-  '((default (:height 1.2 :underline t))
+  '((default (:underline t))
     (((background light)) (:foreground "#ba6746"))
     (((background dark)) (:foreground "#ce5c32")))
   "Face for displaying song files"
   :group 'mingus-faces)
 
 (defface mingus-album-stale-face
-  '((default (:height 1.2))
-    (((background light)) (:foreground "#847e7c"))
-    (((background dark)) (:foreground "#9d7363")))
+  '((default)
+    (((background light)) (:foreground "#ba6746"))
+    (((background dark)) (:foreground "#ce5c32")))
   "Face for displaying song files"
   :group 'mingus-faces)
 
