@@ -2382,11 +2382,11 @@ Argument OVERRIDE defines whether to treat the situation as new."
                             " - ")))
                      str)
                    (mingus-make-status-string))))))
+
 ;; filling the buffer:
 (defun mingus-playlist (&optional refresh)
   "Fill the playlist buffer so as to reflect current status in most proper way.
 Optional argument REFRESH means not matter what is the status, do a refresh"
-  (interactive)
   (condition-case err
       (save-window-excursion
         (mingus-switch-to-playlist)
