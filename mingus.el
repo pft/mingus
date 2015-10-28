@@ -391,6 +391,15 @@ Songs are hashed by their MPD ids")
  :group 'multimedia
  :group 'applications)
 
+(defcustom mingus-use-caching nil
+  "Whether or not to use caching.
+
+It appears caching does not help a lot, and easily leads to
+out-of-date stuff. That's why it has been turned off for now by
+default."
+  :group 'mingus
+  :type '(boolean))
+
 (defcustom mingus-mpd-config-file "~/.mpdconf"
   "File used by mpd as a configuration file"
   :group 'mingus
@@ -2404,7 +2413,9 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
                     (mapconcat
                      (lambda (list)
                        (let ((id (plist-get list 'Id)))
-                         (or (gethash id mingus-propertized-song-strings)
+                         (or (and
+                              mingus-use-caching
+                              (gethash id mingus-propertized-song-strings))
                              (let ((val
                                     (propertize
                                      (funcall
@@ -2412,9 +2423,10 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
                                       list
                                       mingus-playlist-format-to-use
                                       mingus-playlist-separator)
-                                     'mouse-face (when mingus-use-mouse-p 'highlight nil)
+                                     'mouse-face (when mingus-use-mouse-p 'highlight t)
                                      'details list)))
-                               (puthash id val mingus-propertized-song-strings)
+                               (when mingus-use-caching
+                                 (puthash id val mingus-propertized-song-strings))
                                val))))
                      songs "\n")))
                   (mingus-set-marks)
@@ -2453,7 +2465,8 @@ For a new format to take effect, run M-x mingus-clear-cache."
  See the documentation for the variable `mingus-mode-line-format' for the
  syntax of EXPRESSION."
   (let ((id (plist-get plist 'Id)))
-    (or (gethash id mingus-song-strings)
+    (or (and mingus-use-caching
+             (gethash id mingus-song-strings))
         (let ((val
                (let (artist album title albumartist
                             track name
@@ -2477,9 +2490,9 @@ For a new format to take effect, run M-x mingus-clear-cache."
                                (albumartist (or albumartist nil))
                                (comment (or comment nil)))
                            (mapconcat 'identity ,expression separator)))))))
-          (puthash id val mingus-song-strings)
-          val)
-        mingus-song-strings)))
+          (and mingus-use-caching
+           (puthash id val mingus-song-strings))
+          val))))
 
 ;;;###autoload
 (defun mingus (&optional set-variables)
