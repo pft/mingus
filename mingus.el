@@ -3444,7 +3444,10 @@ RESULTS is a vector of [songs playlists directories].
     (let*
         ((buffer-read-only nil)
          (songs
-          (mapcar #'mingus-format-item (cdr (aref results 0))))
+          (mapcar #'mingus-format-item
+                  (if (assoc 'Last-Modified (aref results 0))
+                      (cdr (aref results 0))
+                    (aref results 0))))
          (playlists (mapcar
                      (lambda (s)
                        (mingus-itemize-and-format s 'playlist))
