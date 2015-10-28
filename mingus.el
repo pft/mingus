@@ -672,11 +672,12 @@ customizing these values; use `mingus-customize' for that."
                                     mpd-interactive-connection-parameters)
                                  nil)))
         ;; update views immediately
-        (save-window-excursion
-    (when (get-buffer "*Mingus*")
-      (mingus))
-    (when (get-buffer "*Mingus Browser*")
-      (mingus-ls "")))))
+        (when (get-buffer "*Mingus*")
+          (mingus-playlist))
+        (when (get-buffer "*Mingus Browser*")
+          (with-current-buffer
+              (get-buffer "*Mingus Browser*")
+            (mingus-ls "")))))
 
 (defun mingus-customize ()
   "Call the customize function with mingus as argument."
@@ -2388,8 +2389,8 @@ Argument OVERRIDE defines whether to treat the situation as new."
   "Fill the playlist buffer so as to reflect current status in most proper way.
 Optional argument REFRESH means not matter what is the status, do a refresh"
   (condition-case err
-      (save-window-excursion
-        (mingus-switch-to-playlist)
+      (with-current-buffer
+          (get-buffer-create "*Mingus*")
         (when (or
                refresh
                (/= (mingus-get-old-playlist-version)
@@ -3175,7 +3176,7 @@ deleted."
                          (remove song
                                  (dotimes (count playlistlength list)
                                    (push count list))))
-             (save-window-excursion
+             (save-selected-window
                (mingus))))
     (error "Mingus error: %s" err)))
 
@@ -3431,9 +3432,9 @@ Actually it tries to retrieve any stream from a given url.
   "List songs/dirs in directory STRING in dedicated *Mingus Browser* buffer."
   (if (null string)
       (setq string ""))
-  (mingus-switch-to-browser)
-  (push `(mingus-ls ,string) mingus-browse-command-history)
-  (mingus-browse-fill string (mingus-get-directory-info string)))
+  (with-current-buffer (get-buffer-create "*Mingus Browser*")
+    (push `(mingus-ls ,string) mingus-browse-command-history)
+    (mingus-browse-fill string (mingus-get-directory-info string))))
 
 (defun mingus-list-playlist (playlist)
   "List songs in PLAYLIST."
