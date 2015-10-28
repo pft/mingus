@@ -2420,7 +2420,7 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
                              (let ((val
                                     (propertize
                                      (funcall
-                                      mingus-song-format
+                                      mingus-format-song-function
                                       list
                                       mingus-playlist-format-to-use
                                       mingus-playlist-separator)
@@ -2444,7 +2444,7 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
      (put-text-property (point-at-bol) (point-at-eol) 'details sublist))
    songs))
 
-(defcustom mingus-song-format 'mingus-make-song-string
+(defcustom mingus-format-song-function 'mingus-format-song-in-columns
   "Function for formatting songs in the playlist.
 
 The function receives three arguments: SONG-DETAILS EXPR SEP.
@@ -2457,7 +2457,46 @@ For a new format to take effect, run M-x mingus-clear-cache."
   :type '(function)
   :group 'mingus)
 
- (defun mingus-make-song-string (plist expression &optional separator)
+(defun mingus-format-song-in-columns (item &rest ignore)
+  (let* ((available-width (- (window-text-width) 10
+                             ;; 10 is time width plus column gaps plus
+                             ;; leeway
+                             ))
+         (song-width (/ available-width 2))
+         (artist-width (/ available-width 4))
+         (album-width  (/ available-width 4))
+         (string
+          (concat
+           (format "%02d.%.2d "
+                   (/ (or (plist-get item 'Time) 0) 60)
+                   (mod (or (plist-get item 'Time) 0) 60))
+           (mingus-truncate-string
+            (or (plist-get item 'Title)
+                (plist-get item 'file))
+            song-width)
+           " "
+           (mingus-truncate-string
+            (or (plist-get item 'Artist)
+                (plist-get item 'AlbumArtist)
+                "")
+            artist-width)
+           " "
+           (mingus-truncate-string
+            (or (plist-get item 'Album) "")
+            album-width)
+           )))
+    (put-text-property 6
+                       (+ 6 song-width)
+                       'face 'mingus-song-file-face string)
+    (put-text-property (+ 6 song-width 1)
+                       (+ 6 song-width 1 artist-width)
+                       'face 'mingus-artist-face string)
+    (put-text-property (+ 6 song-width 1 artist-width)
+                       (+ 6 song-width 1 artist-width 1 album-width)
+                       'face 'mingus-album-stale-face string)
+    string))
+
+(defun mingus-format-song (plist expression &optional separator)
   "Make a string from PLIST, using EXPRESSION for the priority of values.
 
  Concatenate the results for the values with SEPARATOR, where SEPARATOR
