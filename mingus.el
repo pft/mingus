@@ -2552,7 +2552,7 @@ Actually it is just named after that great bass player."
 (defun mingus-shuffle ()
   (interactive)
   (mpd-shuffle-playlist mpd-inter-conn)
-  (mingus-playlist 1))
+  (mingus-playlist t))
 
 (defmacro mingus-define-mpd->mingus (name &rest body)
   (funcall
@@ -2961,10 +2961,9 @@ Switch to *Mingus* buffer if necessary."
       (message "No marked songs")
     (mingus-move mingus-marked-list
                  (make-list (length mingus-marked-list)
-                            (1- (mingus-line-number-at-pos))) t)
+                            (1- (mingus-line-number-at-pos)))
+                 t)
     (mingus-playlist t)))
-
-
 
 (defmacro mingus-define-region-mark-operation
   (name function &optional docstring)
@@ -3006,9 +3005,9 @@ Switch to *Mingus* buffer if necessary."
          (mapcar
           (lambda (song-item)
             (getf song-item 'Id))
-          (mingus-get-songs "playlistinfo")) mingus-marked-list))
-  (mingus-playlist t)
-  )
+          (mingus-get-songs "playlistinfo"))
+         mingus-marked-list))
+  (mingus-playlist t))
 
 (defun mingus-del ()
   (interactive)
@@ -3110,7 +3109,8 @@ deleted."
                                 (loop for i in
                                       (mingus-get-songs "playlistinfo")
                                       collect (getf i 'Id))
-                                mingus-marked-list) t)
+                                mingus-marked-list)
+                t)
     (mingus-playlist)
     (message "Other songs deleted")))
 
