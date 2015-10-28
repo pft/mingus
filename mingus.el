@@ -2458,8 +2458,8 @@ For a new format to take effect, run M-x mingus-clear-cache."
   :group 'mingus)
 
 (defun mingus-format-song-in-columns (item &rest ignore)
-  (let* ((available-width (- (window-text-width) 10
-                             ;; 10 is time width plus column gaps plus
+  (let* ((available-width (- (window-text-width) 9
+                             ;; 9 is time width plus column gaps plus
                              ;; leeway
                              ))
          (song-width (/ available-width 2))
