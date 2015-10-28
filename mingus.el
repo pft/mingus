@@ -2224,7 +2224,7 @@ ATOM10))) for (mingus-make-cond-exp '((ATOM1 ATOM2)(ATOM8 ATOM10))).
               (concat
                (let* ((data (car (mingus-get-songs "currentsong")))
                       (str
-                       (mingus-make-song-string
+                       (mingus-format-song
                         data
                         mingus-mode-line-format-to-use
                         mingus-playlist-separator)))
@@ -2377,7 +2377,7 @@ Argument OVERRIDE defines whether to treat the situation as new."
                   (concat
                    (let* ((data (car (mingus-get-songs "currentsong")))
                           (str
-                           (mingus-make-song-string
+                           (mingus-format-song
                             data
                             mingus-mode-line-help-echo-format-to-use
                             " - ")))
@@ -4433,7 +4433,7 @@ the minibuffer."
 
 ;; (@> "development stuff")
 ' (mapconcat (lambda (list)
-               (mingus-make-song-string list mingus-playlist-format-to-use
+               (mingus-format-song list mingus-playlist-format-to-use
                                         mingus-playlist-separator))
              (mingus-get-songs "playlistinfo") "\n")
 
