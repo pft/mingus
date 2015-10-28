@@ -3646,7 +3646,7 @@ songs to the insertion point."
               (format "MPD implementation does *not* save playlists.
 Shall I save it to %s?"
                       ;; NOTE: we could get this from a variable.
-                      (concat mingus-playlist-directory playlist ".m3u"))))
+                      (concat mingus-playlist-directory playlist ".m3u8"))))
             (let* ((songs (cdr (mingus-get-songs "playlistinfo")))
                    (body (mapconcat #'mingus-format-for-m3u songs "\n")))
               (with-temp-buffer
