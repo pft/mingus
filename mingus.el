@@ -2457,6 +2457,9 @@ For a new format to take effect, run M-x mingus-clear-cache."
   :type '(function)
   :group 'mingus)
 
+(defun mingus-truncate-string (string length)
+  (truncate-string-to-width string length nil 32 "…"))
+
 (defun mingus-format-song-in-columns (item &rest ignore)
   (let* ((available-width (- (window-text-width) 9
                              ;; 9 is time width plus column gaps plus
