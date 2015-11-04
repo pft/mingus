@@ -239,8 +239,6 @@
 (defvar mingus-timer nil)
 (defvar mingus-status nil
   "Current status of the connection to MPD (nil or t).")
-(defvar mingus-status-line ""
-  "Current status line for use in modeline in mingus")
 (defvar mingus-browse-command-history nil
   "Stack of commands issued to obtain a listing in Mingus Browse buffer.
 
@@ -2676,7 +2674,6 @@ Actually it is just named after that great bass player."
                                     (- '1-))
                                   (getf (mpd-get-status mpd-inter-conn)
                                         'volume)))))
-  (setq mingus-status-line (mingus-make-mode-line-string))
   (mingus-minibuffer-feedback 'volume))
 
 (defun mingus-vol-up ()
