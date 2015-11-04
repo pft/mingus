@@ -1692,12 +1692,6 @@ E.g.: \"Artist 3 my beautiful song\" is logically less than \"Artist 11 blue sea
   (multiple-value-bind (min sec) (floor* sec 60)
     (format "%02d:%02d" min sec)))
 
-(defun mingus-ldots (string max)
-  (let ((len (length string)))
-    (if (< max len)
-        (concat (substring string 0 (- max 3)) "...")
-      string)))
-
 (defun mingus-line-number-at-pos (&optional pos)
   "Return (narrowed) buffer line number at position POS.
 If POS is nil, use current buffer location.
@@ -2226,11 +2220,7 @@ ATOM10))) for (mingus-make-cond-exp '((ATOM1 ATOM2)(ATOM8 ATOM10))).
                         data
                         mingus-mode-line-format-to-use
                         mingus-playlist-separator)))
-                 ;; a small (?) side effect, but only if playlist buffer is
-                 ;; shown:
-                 (and (get-buffer-window-list "*Mingus*")
-                      (mingus-set-NP-mark nil (getf data 'Pos)))
-                 (mingus-ldots str mingus-mode-line-string-max))
+                 (truncate-string-to-width str mingus-mode-line-string-max nil 32 "…"))
                (mingus-make-status-string)))))
 
 (defun mingus-set-NP-mark (override &optional pos)
