@@ -2567,31 +2567,24 @@ Actually it is just named after that great bass player."
    (window-list frame)))
 
 (defun mingus-timer-handler ()
-  (let* ((timeout (mpd-get-connection-timeout mpd-inter-conn))
-         (changes
-          (prog2
-              (mpd-set-connection-timeout mpd-inter-conn 16)
-              (condition-case err
+  (condition-case outer
+      (let ((changes
+              (condition-case inner
                   (mingus-exec "idle\nnoidle")
-                (error))
-            (mpd-set-connection-timeout mpd-inter-conn timeout))))
-    (when changes
-      (setq mingus-status t)
-      (condition-case err
-          (progn
-            (when (member '("changed" . "playlist") changes)
-              (mingus-playlist))
-            (when
-                (member '("changed" . "player") changes)
-              (force-mode-line-update)
-              (mingus-set-NP-mark t)))
-        (error
-         (progn
-           ;; (error
-           ;;  "Something wrong in Mingus' connection: %s"
-           ;;  err)
-           (mingus-cancel-timer)
-           (setq mingus-timer (run-with-timer 5 1 'mingus-timer-handler))))))))
+                (error ;; e.g. (eq 'file-error (car err))
+                 ))))
+        (setq mingus-status t)
+        (when changes
+          (when (member '("changed" . "playlist") changes)
+            (mingus-playlist))
+          (when
+              (member '("changed" . "player") changes)
+            (mingus-set-NP-mark t))
+          (force-mode-line-update)))
+    (error
+     ;; Delay before first using the timer again:
+     (mingus-cancel-timer)
+     (setq mingus-timer (run-with-timer 5 1 'mingus-timer-handler)))))
 
 (defun mingus-start-daemon ()
   "Start mpd daemon for `mingus'."
