@@ -2220,7 +2220,7 @@ ATOM10))) for (mingus-make-cond-exp '((ATOM1 ATOM2)(ATOM8 ATOM10))).
                         data
                         mingus-mode-line-format-to-use
                         mingus-playlist-separator)))
-                 (truncate-string-to-width str mingus-mode-line-string-max nil 32 "…"))
+                 (truncate-string-to-width str mingus-mode-line-string-max nil nil "…"))
                (mingus-make-status-string)))))
 
 (defun mingus-set-NP-mark (override &optional pos)
