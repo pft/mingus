@@ -2540,7 +2540,7 @@ Actually it is just named after that great bass player."
          (add-to-list 'global-mode-string mingus-mode-line-object)))
   (if (timerp mingus-timer)
       (timer-activate mingus-timer)
-    (setq mingus-timer (run-with-timer 1 1 'mingus-timer-handler)))
+    (setq mingus-timer (run-with-idle-timer 1 1 'mingus-timer-handler)))
   (mingus-playlist))
 
 (defun mingus-cancel-timer ()
@@ -2567,21 +2567,31 @@ Actually it is just named after that great bass player."
    (window-list frame)))
 
 (defun mingus-timer-handler ()
-  (condition-case err
-      (progn
-        (setq mingus-status t)
-        (when
-            (and
-             (mingus-buffer-visible-p "*Mingus*")
-             (< (mingus-get-old-playlist-version)
-                (mingus-get-new-playlist-version)))
-          (mingus-playlist)
-          (mingus-set-NP-mark t)))
-    (error
-     "Something wrong in Mingus' connection: %s"
-     err
-     (mingus-cancel-timer)
-     (setq mingus-status nil))))
+  (let* ((timeout (mpd-get-connection-timeout mpd-inter-conn))
+         (changes
+          (prog2
+              (mpd-set-connection-timeout mpd-inter-conn 16)
+              (condition-case err
+                  (mingus-exec "idle\nnoidle")
+                (error))
+            (mpd-set-connection-timeout mpd-inter-conn timeout))))
+    (when changes
+      (setq mingus-status t)
+      (condition-case err
+          (progn
+            (when (member '("changed" . "playlist") changes)
+              (mingus-playlist))
+            (when
+                (member '("changed" . "player") changes)
+              (force-mode-line-update)
+              (mingus-set-NP-mark t)))
+        (error
+         (progn
+           ;; (error
+           ;;  "Something wrong in Mingus' connection: %s"
+           ;;  err)
+           (mingus-cancel-timer)
+           (setq mingus-timer (run-with-timer 5 1 'mingus-timer-handler))))))))
 
 (defun mingus-start-daemon ()
   "Start mpd daemon for `mingus'."
@@ -2595,8 +2605,7 @@ Actually it is just named after that great bass player."
 
 (defun mingus-shuffle ()
   (interactive)
-  (mpd-shuffle-playlist mpd-inter-conn)
-  (mingus-playlist t))
+  (mpd-shuffle-playlist mpd-inter-conn))
 
 (defmacro mingus-define-mpd->mingus (name &rest body)
   (funcall
@@ -2847,7 +2856,7 @@ Switch to *Mingus* buffer if necessary."
   "In Mingus, unset `mingus-marked-list'."
   (interactive)
   (setq mingus-marked-list)
-  (mingus-playlist t)
+  (mingus-playlist t)                   ;@todo: just remove marks...
   (message "No songs marked anymore"))
 
 (defun mingus-cur-song-number ()
@@ -3005,8 +3014,7 @@ Switch to *Mingus* buffer if necessary."
     (mingus-move mingus-marked-list
                  (make-list (length mingus-marked-list)
                             (1- (mingus-line-number-at-pos)))
-                 t)
-    (mingus-playlist t)))
+                 t)))
 
 (defmacro mingus-define-region-mark-operation
   (name function &optional docstring)
@@ -3154,7 +3162,6 @@ deleted."
                                       collect (getf i 'Id))
                                 mingus-marked-list)
                 t)
-    (mingus-playlist)
     (message "Other songs deleted")))
 
 (defun mingus-play (&optional position)
@@ -3175,9 +3182,7 @@ deleted."
  Optional argument DONTASK means no prompting."
   (interactive "P")
   (if (or dontask (yes-or-no-p "Clear the playlist? "))
-      (progn (mpd-clear-playlist mpd-inter-conn)
-             (with-current-buffer "*Mingus*"
-               (mingus-playlist t)))
+      (mpd-clear-playlist mpd-inter-conn)
     (message "Playlist not cleared")))
 
 (defun mingus-load-all (&optional and-play)
@@ -3187,9 +3192,7 @@ deleted."
   (if and-play (mingus-load-all-and-play)
     (when (yes-or-no-p "Load the WHOLE mpd database? " )
       (mpd-clear-playlist mpd-inter-conn)
-      (mpd-execute-command mpd-inter-conn "add /")
-      (with-current-buffer "*Mingus*"
-        (mingus-playlist t)))))
+      (mpd-execute-command mpd-inter-conn "add /"))))
 
 (defun mingus-crop ()
   "Crop mpd playlist."
@@ -3592,7 +3595,6 @@ RESULTS is a vector of [songs playlists directories].
     (if (not (eq major-mode 'mingus-browse-mode))
         (mingus-add-read-input)
       (mingus-add-things-at-p))
-    (mingus-playlist t)
     (unless (mingus-mark-active) (forward-line 1))))
 
 (defun* mingus-set-insertion-point (&optional p)
