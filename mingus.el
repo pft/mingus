@@ -2151,7 +2151,7 @@ see function `mingus-help' for instructions.
                                 (format "%s%s%s"
                                         (if (eq repeat 1) "r" "")
                                         (if (eq random 1) "z" "")
-                                        (if (< 0 xfade)
+                                        (if (and (boundp 'xfade)  (< 0 xfade))
                                             (format "#%d" xfade)
                                           ""))) "")
                                           (or (and mingus-mode-line-show-consume-and-single-status
