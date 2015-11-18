@@ -2486,9 +2486,7 @@ Actually it is just named after that great bass player."
         (when changes
           (when (member '("changed" . "playlist") changes)
             (mingus-playlist))
-          (when
-              (member '("changed" . "player") changes)
-            (mingus-set-NP-mark t))
+          (mingus-set-NP-mark t)
           (force-mode-line-update)))
     (error
      ;; Delay before first using the timer again:
