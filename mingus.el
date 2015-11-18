@@ -2495,34 +2495,39 @@ For a new format to take effect, run M-x mingus-clear-cache."
 
  See the documentation for the variable `mingus-mode-line-format' for the
  syntax of EXPRESSION."
-  (let ((id (plist-get plist 'Id)))
-    (or (and mingus-use-caching
+  (let ((artist (getf plist 'Artist))
+        (album (getf plist 'Album))
+        (title (getf plist 'Title))
+        (albumartist (getf plist 'Albumartist))
+        (track (getf plist 'Track))
+        (name (getf plist 'Name))
+        (genre (getf plist 'Genre))
+        (date (getf plist 'Date))
+        (composer (getf plist 'Composer))
+        (performer (getf plist 'Performer))
+        (comment (getf plist 'Comment))
+        (disc (getf plist 'Disc))
+        (time (getf plist 'Time))
+        (pos (getf plist 'Pos))
+        (id (getf plist 'Id))
+        (file (getf plist 'file))
+        (separator (or separator " - ")))
+     (or (and mingus-use-caching
              (gethash id mingus-song-strings))
         (let ((val
-               (let (artist album title albumartist
-                            track name
-                            genre date
-                            composer performer
-                            comment disc
-                            time pos id file
-                            (separator (or separator " - ")))
-                 (eval `(mingus-bind-plist
-                         ',plist
-                         (let ((time
-                                (and time
-                                     (format "%02d:%.2d" (/ time 60) (mod time 60))))
-                               (pos (and pos (number-to-string pos)))
-                               (id (and id (number-to-string id)))
-                               (file
-                                (and file
-                                     (file-name-nondirectory
-                                      file)))
-                               (genre (or genre nil))
-                               (albumartist (or albumartist nil))
-                               (comment (or comment nil)))
-                           (mapconcat 'identity ,expression separator)))))))
+               (let* ((timestring
+                       (and time
+                            (format-time-string "(%M:%S) " time)))
+                      (filestring
+                       (and file
+                            (file-name-nondirectory file)))
+                      (short (remove nil (list (or artist albumartist)
+                                         album
+                                         (or title filestring)
+                                         timestring))))
+                 (mapconcat 'identity short separator))))
           (and mingus-use-caching
-           (puthash id val mingus-song-strings))
+               (puthash id val mingus-song-strings))
           val))))
 
 ;;;###autoload
