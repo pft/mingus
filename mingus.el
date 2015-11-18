@@ -770,7 +770,8 @@ C-x-r-m                 mingus-bookmark-set
 C-x-r-d                 mingus-bookmark-delete
 @                       mingus-update
 U                       mingus-update-thing-at-p
-g                       mingus-refresh
+g                       mingus-redraw-buffer
+G                       mingus-refresh
 
 Playlist keys:
 
@@ -1373,7 +1374,9 @@ Or, you might show me how to use a function/string choice in customize ;)"
 
 (define-key mingus-playlist-map "U" 'mingus-update-thing-at-p)
 
-(define-key mingus-playlist-map "g" 'mingus-refresh)
+(define-key mingus-playlist-map "g" 'mingus-redraw-buffer)
+
+(define-key mingus-playlist-map "G" 'mingus-refresh)
 
 (define-key mingus-playlist-map "!"
   (lambda ()
@@ -1500,7 +1503,8 @@ Or, you might show me how to use a function/string choice in customize ;)"
 (define-key mingus-browse-map "\r" 'mingus-down-dir-or-play-song)
 (define-key mingus-browse-map "S" 'mingus-browse-sort)
 (define-key mingus-browse-map "U" 'mingus-update-thing-at-p)
-(define-key mingus-browse-map "g" 'mingus-refresh)
+(define-key mingus-browse-map "g" 'mingus-redraw-buffer)
+(define-key mingus-browse-map "G" 'mingus-refresh)
 
 (define-key mingus-browse-map
   [(down-mouse-1)]
@@ -1612,7 +1616,8 @@ Or, you might show me how to use a function/string choice in customize ;)"
       (overlay-put overlay
                    'before-string
                    (mingus-format-plist details)))
-    (message "Press (g) to hide the info")))
+    (mingus-set-NP-mark t)
+    (message "Press (G) to hide the info")))
 
 ;;;;  {{Generic Functions}}
 (defun _mingus-bol-at (pos)
@@ -4532,6 +4537,7 @@ playlist.  Useful e.g. in audiobooks or language courses."
        (delete-region (point) (point-at-eol))))))
 
 (defun mingus-redraw-buffer ()
+  (interactive)
   (save-excursion
     (goto-char (point-min))
     (while (< (point) (point-max))
