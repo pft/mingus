@@ -2127,36 +2127,41 @@ see function `mingus-help' for instructions.
 
 (defun mingus-make-status-string ()
   "Make status string of elapsed time, volume, repeat and random status etc."
-  (let (time-elapsed time-total)
-    (eval
-     `(mingus-bind-plist
-       (mpd-get-status mpd-inter-conn)
-       (let ((percentage (and mingus-mode-line-show-elapsed-percentage
-                              (eq state 'play)
-                              time-elapsed
-                              time-total
-                              (format " (%d%%)" (round (/ (float time-elapsed)
-                                                          (/ (float time-total)
-                                                             100)))))))
-         (concat (and mingus-mode-line-show-elapsed-time time-elapsed
-                      (format " %2d:%.2d"
-                              (/ time-elapsed 60)
-                              (mod time-elapsed 60)))
-                 percentage
-                 (and volume
-                      (format
-                       " <%d%%%s%s> "
-                       volume
-                       (or (and mingus-mode-line-show-random-and-repeat-status
-                                (format "%s%s%s"
-                                        (if (eq repeat 1) "r" "")
-                                        (if (eq random 1) "z" "")
-                                        (if (and (boundp 'xfade)  (< 0 xfade))
-                                            (format "#%d" xfade)
-                                          ""))) "")
-                                          (or (and mingus-mode-line-show-consume-and-single-status
-                                                           (concat (if (and (boundp 'single) (string= single "1")) "s" "")
-                                                                           (if (and (boundp 'consume) (string= consume "1")) "c" ""))) "")))))))))
+  (let* ((status (mpd-get-status mpd-inter-conn))
+         (time-elapsed (getf status 'time-elapsed))
+         (time-total (getf status 'time-total))
+         (volume (getf status 'volume))
+         (repeat (getf status 'repeat))
+         (random (getf status 'random))
+         (single (getf status 'single))
+         (consume (getf status 'consume))
+         (xfade (getf status 'xfade))
+         (percentage (and mingus-mode-line-show-elapsed-percentage
+                          (eq (getf status 'state) 'play)
+                          time-elapsed
+                          time-total
+                          (format " (%d%%)" (round (/ (float time-elapsed)
+                                                      (/ (float time-total)
+                                                         100)))))))
+    (concat (and mingus-mode-line-show-elapsed-time
+                 time-elapsed
+                 (format-time-string "%M:%S" time-elapsed))
+            percentage
+            (and volume
+                 (format
+                  " <%d%%%s%s> "
+                  volume
+                  (if mingus-mode-line-show-random-and-repeat-status
+                      (format "%s%s%s"
+                              (if (eq repeat 1) "r" "")
+                              (if (eq random 1) "z" "")
+                              (if (and xfade (< 0 xfade))
+                                  (format "#%d" xfade)
+                                ""))
+                      "")
+                  (if mingus-mode-line-show-consume-and-single-status
+                      (concat (if (and single (string= single "1")) "s" "")
+                              (if (and consume (string= consume "1")) "c" ""))))))))
 
 (defun mingus-make-cond-exp-aux (item)
   (cond ((atom item) (mingus-make-cond-exp-aux (list item)))
