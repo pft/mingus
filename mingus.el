@@ -2392,7 +2392,9 @@ For a new format to take effect, run M-x mingus-clear-cache."
     (put-text-property (+ 6 song-width 1 artist-width)
                        (+ 6 song-width 1 artist-width 1 album-width)
                        'face 'mingus-album-stale-face string)
-    string))
+    (propertize string
+                'details item
+                'mingus-type 'file)))
 
 (defun mingus-format-song (plist &optional separator)
   "Make a string from PLIST.
@@ -3393,7 +3395,7 @@ RESULTS is a vector of [songs playlists directories].
     (let*
         ((buffer-read-only nil)
          (songs
-          (mapcar #'mingus-format-item
+          (mapcar mingus-format-song-function
                   (if (assoc 'Last-Modified (aref results 0))
                       (cdr (aref results 0))
                     (aref results 0))))
@@ -3950,7 +3952,7 @@ Argument POS is the current position in the buffer to revert to (?)."
              (newline)
              (mapc
               (lambda (song)
-                (insert (mingus-format-item song))
+                (insert (funcall mingus-format-song-function song))
                 (newline))
               (sort* (cdr album)
                      (lambda (a b)
