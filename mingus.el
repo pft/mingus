@@ -2392,13 +2392,10 @@ For a new format to take effect, run M-x mingus-clear-cache."
     string))
 
 (defun mingus-format-song (plist &optional separator)
-  "Make a string from PLIST, using EXPRESSION for the priority of values.
+  "Make a string from PLIST.
 
  Concatenate the results for the values with SEPARATOR, where SEPARATOR
- defaults to the string \" - \".
-
- See the documentation for the variable `mingus-mode-line-format' for the
- syntax of EXPRESSION."
+ defaults to the string \" - \"."
   (let ((artist (getf plist 'Artist))
         (album (getf plist 'Album))
         (title (getf plist 'Title))
