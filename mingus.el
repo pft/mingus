@@ -1611,17 +1611,14 @@ WEBSITE:  http://github.com/pft/mingus
 (defun mingus-inspect ()
   (interactive)
   (when (mingus-buffer-p)
-    (delete-all-overlays)
-    (let ((details (mingus-get-details))
-          (overlay (make-overlay
-                    (point-at-eol)
-                    (point-at-eol)
-                    nil t nil)))
-      (overlay-put overlay
-                   'before-string
-                   (mingus-format-plist details)))
-    (mingus-set-NP-mark t)
-    (message "Press (G) to hide the info")))
+    (let ((info (mingus-format-plist (mingus-get-details)))
+          (buffer (current-buffer)))
+      (switch-to-buffer-other-window
+       (get-buffer-create "*Mingus Inspect*"))
+      (erase-buffer)
+      (insert info)
+      (goto-char (point-min))
+      (switch-to-buffer-other-window buffer))))
 
 ;;;;  {{Generic Functions}}
 (defun _mingus-bol-at (pos)
