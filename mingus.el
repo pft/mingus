@@ -2090,41 +2090,6 @@ see function `mingus-help' for instructions.
                                                        (mingus))))))))
      "")))
 
-(defconst mingus-mode-line-song-format '((artist album title)(file)(id))
-  "Format for showing current song data in modeline")
-;; customize this feature
-;; :group 'mingus-mode-line
-;; :type '(list))
-;; fixme: how do i do this correctly??????
-
-(defconst mingus-tag-list
-  '(time artist album title file track pos id genre comment))
-
-(defun mingus-remove-non-tags-from-list (list)
-  (mingus-make-lists-compatible mingus-tag-list list))
-
-(defun mingus-make-lists-compatible (taglist list)
-  (cond
-   ((atom list) (if (member list taglist) list))
-   ((and (listp (car list)) (null (cdr list)))
-    (list (mingus-remove-non-tags-from-list (car list))))
-   ((listp (car list)) (cons (mingus-remove-non-tags-from-list (car list))
-                             (mingus-remove-non-tags-from-list (cdr list))))
-   (t (remove-if (lambda (item) (not (member item taglist))) list))))
-
-(defmacro mingus-bind-plist (plist &rest body)
-  "Execute BODY with KEYS from PLIST bound to VALUES; downcase KEYS in the act."
-  (let* ((plist (eval plist)))
-    (multiple-value-bind (key-vars values)
-        (loop for (key value) on plist by #'cddr
-              for key-var = (intern-soft (downcase (symbol-name key)))
-              when key-var
-              collect key-var into key-vars
-              and collect value into values
-              finally (return (values key-vars values)))
-      `(multiple-value-bind ,key-vars ',values
-         ,@body))))
-
 (defun mingus-make-status-string ()
   "Make status string of elapsed time, volume, repeat and random status etc."
   (let* ((status (mpd-get-status mpd-inter-conn))
@@ -2163,57 +2128,6 @@ see function `mingus-help' for instructions.
                       (concat (if (and single (string= single "1")) "s" "")
                               (if (and consume (string= consume "1")) "c" ""))))))))
 
-(defun mingus-make-cond-exp-aux (item)
-  (cond ((atom item) (mingus-make-cond-exp-aux (list item)))
-        ((listp (car item))
-         (cons (append (cons 'and (car item)) (list (cons 'list (car item))))
-               (when (not (null (cdr item)))
-                 (mingus-make-cond-exp-aux (cdr item)))))
-        ((listp item) (append (cons 'and item) (list (cons 'list item))))))
-
-(defun mingus-make-cond-exp (atom-or-list)
-  "Build conditional expression of ATOM-OR-LIST.
-
-Parameter ATOM-OR-LIST is an atom or a list of atoms or a list of lists.
-
-Usage: in code that makes use of a customizable variables of the form for
-ATOM-OR-LIST just described.  For instance, if a user defines a variable
-`mingus-mode-line-format' as ((artist album title)(artist title)(filename))
-this would mean that this user prefers the sequence 'artist album title', but
-if that is impossible, the next best would be 'artist title', or - the least
-preferred - 'filename'.
-
-Examples:
-
-Return (and ATOM (list ATOM)) for (mingus-make-cond-exp 'ATOM);
-
-Return (and ATOM1 ATOM2 (list ATOM1 ATOM2)) for (mingus-make-cond-exp '(ATOM1
-ATOM2));
-
-Return (or (and ATOM1 ATOM2 (list ATOM1 ATOM2)) (and ATOM8 ATOM10 (list ATOM8
-ATOM10))) for (mingus-make-cond-exp '((ATOM1 ATOM2)(ATOM8 ATOM10))).
-"
-  (let ((formula (mingus-make-cond-exp-aux atom-or-list)))
-    (cond ((atom (cadr formula)) formula)
-          (t (cons 'or formula)))))
-
-(defconst mingus-mode-line-format-to-use
-  (mingus-make-cond-exp
-   (mingus-remove-non-tags-from-list mingus-mode-line-song-format))
-  "Expanded conditional for runtime use")
-
-(defconst mingus-playlist-format
-  '((time genre album title comment)
-    (time artist album title comment)
-    (time artist album title)
-    (time artist title)
-    (time file)
-    (file)))
-
-(defconst mingus-playlist-format-to-use
-  (mingus-make-cond-exp
-   (mingus-remove-non-tags-from-list mingus-playlist-format)))
-
 (defun mingus-make-mode-line-string ()
   "Make a string to use in the mode-line for Mingus."
   (concat (if (member (getf (mpd-get-status mpd-inter-conn) 'state)
@@ -2223,7 +2137,6 @@ ATOM10))) for (mingus-make-cond-exp '((ATOM1 ATOM2)(ATOM8 ATOM10))).
                       (str
                        (mingus-format-song
                         data
-                        mingus-mode-line-format-to-use
                         mingus-playlist-separator)))
                  (truncate-string-to-width str mingus-mode-line-string-max nil nil "…"))
                (mingus-make-status-string)))))
@@ -2351,16 +2264,7 @@ Argument OVERRIDE defines whether to treat the situation as new."
                           'before-string
                           *mingus-stopped-string*))))
 
-;;; help echo:
-(defconst mingus-mode-line-help-echo-format
-  '((artist album title time)
-    (file time))
-  "Format for showing current song data in help echo")
 
-(defconst mingus-mode-line-help-echo-format-to-use
-  (mingus-make-cond-exp
-   (mingus-remove-non-tags-from-list mingus-mode-line-help-echo-format))
-  "Expanded conditional for runtime use")
 
 (defun mingus-make-mode-line-help-echo ()
   "Make a string to use in the mode-line-help-echo for Mingus."
@@ -2370,10 +2274,7 @@ Argument OVERRIDE defines whether to treat the situation as new."
                   (concat
                    (let* ((data (car (mingus-get-songs "currentsong")))
                           (str
-                           (mingus-format-song
-                            data
-                            mingus-mode-line-help-echo-format-to-use
-                            " - ")))
+                           (mingus-format-song data " - ")))
                      str)
                    (mingus-make-status-string))))))
 
@@ -2415,7 +2316,6 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
                                      (funcall
                                       mingus-format-song-function
                                       list
-                                      mingus-playlist-format-to-use
                                       mingus-playlist-separator)
                                      'mouse-face (when mingus-use-mouse-p 'highlight t)
                                      'details list)))
@@ -2440,10 +2340,9 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
 (defcustom mingus-format-song-function 'mingus-format-song-in-columns
   "Function for formatting songs in the playlist.
 
-The function receives three arguments: SONG-DETAILS EXPR SEP.
+The function receives two arguments: SONG-DETAILS SEP.
 
 SONG-DETAILS is a plist, see `mingus-get-details'.
-For EXPR, see `mingus-playlist-format-to-use'.
 For SEP, see `mingus-playlist-separator'.
 
 For a new format to take effect, run M-x mingus-clear-cache."
@@ -2492,7 +2391,7 @@ For a new format to take effect, run M-x mingus-clear-cache."
                        'face 'mingus-album-stale-face string)
     string))
 
-(defun mingus-format-song (plist expression &optional separator)
+(defun mingus-format-song (plist &optional separator)
   "Make a string from PLIST, using EXPRESSION for the priority of values.
 
  Concatenate the results for the values with SEPARATOR, where SEPARATOR
@@ -4428,8 +4327,7 @@ the minibuffer."
 
 ;; (@> "development stuff")
 ' (mapconcat (lambda (list)
-               (mingus-format-song list mingus-playlist-format-to-use
-                                        mingus-playlist-separator))
+               (mingus-format-song list mingus-playlist-separator))
              (mingus-get-songs "playlistinfo") "\n")
 
 (defun mingus-activate-timers ()
