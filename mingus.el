@@ -3823,7 +3823,7 @@ Show results in dedicated *Mingus Browser* buffer for further selection."
                   (message "Of unknown spotify type: %S" item)))))
            (t 'file))))))
 
-(defun mingus-format-item (item &optional separator)
+(defun mingus-format-item (item &rest ignore)
   (let ((type (mingus-get-type item)))
     (propertize
      (if
@@ -4519,6 +4519,35 @@ playlist.  Useful e.g. in audiobooks or language courses."
                            (if (string= "1" state)
                                    "off"
                                  "on")))))
+
+(defun mingus-redraw-line ()
+  (when (eq 'file (mingus-item-type))
+    (save-excursion
+     (let (buffer-read-only)
+       (insert
+        (funcall mingus-format-song-function
+                 (mingus-get-details)))
+       (delete-region (point) (point-at-eol))))))
+
+(defun mingus-redraw-buffer ()
+  (save-excursion
+    (goto-char (point-min))
+    (while (< (point) (point-max))
+      (mingus-redraw-line)
+      (forward-line 1))))
+
+(defun mingus-redraw-all (&optional frame)
+  (let ((windows (remove nil
+                         (list
+                          (get-buffer-window
+                           (get-buffer "*Mingus Browser*"))
+                          (get-buffer-window
+                           (get-buffer "*Mingus*"))))))
+    (mapc (lambda (w)
+            (with-selected-window
+                w
+              (mingus-redraw-buffer)))
+          windows)))
 
 (provide 'mingus)
 ;;; mingus.el ends here
