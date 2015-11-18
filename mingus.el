@@ -2073,7 +2073,7 @@ see function `mingus-help' for instructions.
                        (if *mingus-point-of-insertion*
                            (concat "\nPOI: " (cadar
                                               *mingus-point-of-insertion*)))
-                       "mouse-1: menu or switch to mingus;
+                       "\nmouse-1: menu or switch to mingus;
  mouse-3: toggle playing;
  mouse-4: vol-up;
  mouse-5: vol-down")
@@ -2114,7 +2114,7 @@ see function `mingus-help' for instructions.
             percentage
             (and volume
                  (format
-                  " <%d%%%s%s> "
+                  "<%d%%%s%s>"
                   volume
                   (if mingus-mode-line-show-random-and-repeat-status
                       (format "%s%s%s"
@@ -2126,7 +2126,8 @@ see function `mingus-help' for instructions.
                       "")
                   (if mingus-mode-line-show-consume-and-single-status
                       (concat (if (and single (string= single "1")) "s" "")
-                              (if (and consume (string= consume "1")) "c" ""))))))))
+                              (if (and consume (string= consume "1")) "c" ""))
+                    ""))))))
 
 (defun mingus-make-mode-line-string ()
   "Make a string to use in the mode-line for Mingus."
@@ -2139,7 +2140,9 @@ see function `mingus-help' for instructions.
                         data
                         mingus-playlist-separator)))
                  (truncate-string-to-width str mingus-mode-line-string-max nil nil "…"))
-               (mingus-make-status-string)))))
+               (if mingus-mode-line-show-status
+                   (mingus-make-status-string)
+                 "")))))
 
 (defun mingus-set-NP-mark (override &optional pos)
   "Mark song 'now playing'.
