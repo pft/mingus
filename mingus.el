@@ -3823,7 +3823,7 @@ Show results in dedicated *Mingus Browser* buffer for further selection."
                   (message "Of unknown spotify type: %S" item)))))
            (t 'file))))))
 
-(defun mingus-format-item (item)
+(defun mingus-format-item (item &optional separator)
   (let ((type (mingus-get-type item)))
     (propertize
      (if
