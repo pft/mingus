@@ -2141,7 +2141,7 @@ see function `mingus-help' for instructions.
               (concat
                (let* ((data (car (mingus-get-songs "currentsong")))
                       (str
-                       (mingus-format-song
+                       (mingus-format-song-compact
                         data
                         mingus-playlist-separator)))
                  (truncate-string-to-width str mingus-mode-line-string-max nil nil "…"))
@@ -2282,7 +2282,7 @@ Argument OVERRIDE defines whether to treat the situation as new."
                   (concat
                    (let* ((data (car (mingus-get-songs "currentsong")))
                           (str
-                           (mingus-format-song data " - ")))
+                           (mingus-format-song-compact data " - ")))
                      str)
                    (mingus-make-status-string))))))
 
@@ -2322,7 +2322,7 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
                              (let ((val
                                     (propertize
                                      (funcall
-                                      mingus-format-song-function
+                                      'mingus-format-song
                                       list
                                       mingus-playlist-separator)
                                      'mouse-face (when mingus-use-mouse-p 'highlight t)
@@ -2359,6 +2359,11 @@ For a new format to take effect, run M-x mingus-clear-cache."
 
 (defun mingus-truncate-string (string length)
   (truncate-string-to-width string (max 1 length) nil 32 "…"))
+
+(defun mingus-format-song (details &optional sep)
+  (propertize (funcall mingus-format-song-function details sep)
+              'details details
+              'mingus-type 'file))
 
 (defun mingus-format-song-in-columns (item &rest ignore)
   (let* ((available-width (- (window-text-width) 9
@@ -2397,11 +2402,9 @@ For a new format to take effect, run M-x mingus-clear-cache."
     (put-text-property (+ 6 song-width 1 artist-width)
                        (+ 6 song-width 1 artist-width 1 album-width)
                        'face 'mingus-album-stale-face string)
-    (propertize string
-                'details item
-                'mingus-type 'file)))
+    string))
 
-(defun mingus-format-song (plist &optional separator)
+(defun mingus-format-song-compact (plist &optional separator)
   "Make a string from PLIST.
 
  Concatenate the results for the values with SEPARATOR, where SEPARATOR
@@ -3400,7 +3403,7 @@ RESULTS is a vector of [songs playlists directories].
     (let*
         ((buffer-read-only nil)
          (songs
-          (mapcar mingus-format-song-function
+          (mapcar 'mingus-format-song
                   (if (assoc 'Last-Modified (aref results 0))
                       (cdr (aref results 0))
                     (aref results 0))))
@@ -3848,9 +3851,7 @@ Show results in dedicated *Mingus Browser* buffer for further selection."
                      directory mingus-directory-face
                      playlist mingus-playlist-face
                      artist mingus-artist-face
-                     album mingus-album-face)))
-     'mingus-type type
-     'details item)))
+                     album mingus-album-face))))))
 
 (defun mingus-group-by-artist (songs)
   (let ((artists))
@@ -3887,8 +3888,11 @@ Show results in dedicated *Mingus Browser* buffer for further selection."
   (list 'Title string 'Type type))
 
 (defun mingus-itemize-and-format (string type)
-  (mingus-format-item
-   (mingus-itemize string type)))
+  (let ((item (mingus-itemize string type)))
+    (propertize
+     (mingus-format-item item)
+     'mingus-type type
+     'details item)))
 
 (defun mingus-query-do-it (type query pos buffer &optional as-dir)
   "Perform the query provided by either `mingus-query' or `mingus-query-regexp'.
@@ -3957,7 +3961,7 @@ Argument POS is the current position in the buffer to revert to (?)."
              (newline)
              (mapc
               (lambda (song)
-                (insert (funcall mingus-format-song-function song))
+                (insert (funcall 'mingus-format-song song))
                 (newline))
               (sort* (cdr album)
                      (lambda (a b)
@@ -4335,7 +4339,7 @@ the minibuffer."
 
 ;; (@> "development stuff")
 ' (mapconcat (lambda (list)
-               (mingus-format-song list mingus-playlist-separator))
+               (mingus-format-song-compact list mingus-playlist-separator))
              (mingus-get-songs "playlistinfo") "\n")
 
 (defun mingus-activate-timers ()
@@ -4532,8 +4536,7 @@ playlist.  Useful e.g. in audiobooks or language courses."
     (save-excursion
      (let (buffer-read-only)
        (insert
-        (funcall mingus-format-song-function
-                 (mingus-get-details)))
+        (mingus-format-song (mingus-get-details)))
        (delete-region (point) (point-at-eol))))))
 
 (defun mingus-redraw-buffer ()
