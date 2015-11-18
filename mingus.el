@@ -423,6 +423,24 @@ Mingus sort functions should take this variable into account."
   "Customization group to control the modeline for `mingus'"
   :group 'mingus)
 
+(defcustom mingus-mode-line-separator " + "
+  "Separator for fields (artist, song, genre etc.) in Mingus mode-line.
+
+You might want to put something like the following in your .emacs:
+
+  (setq mingus-mode-line-separator
+     (if window-system
+          \" ● \"
+        \" + \"))
+
+Or, you might show me how to use a function/string choice in customize ;)"
+ :group 'mingus
+ :type '(string))
+
+(make-obsolete-variable 'mingus-playlist-separator
+                        'mingus-mode-line-separator
+                        "2015-11-18")
+
 (defcustom mingus-use-ido-mode-p nil
   "Whether to use ido-mode fuzzy completion when searching artists, tracks, etc.
 Do not use ido-mode completion when nil.
@@ -972,20 +990,6 @@ WEBSITE:  http://github.com/pft/mingus
 
 ;; regexps
 
-(defcustom mingus-playlist-separator " + "
-  "Separator for fields (artist, song, genre etc.) in Mingus playlist.
-
-You might want to put something like the following in your .emacs:
-
-  (setq mingus-playlist-separator
-     (if window-system
-          \" ● \"
-        \" + \"))
-
-Or, you might show me how to use a function/string choice in customize ;)"
- :group 'mingus
- :type '(string))
-
 (defmacro mingus-define-color-line-or-region (name params)
   `(defun ,name (&optional beg end)
      (put-text-property (or beg (point-at-bol)) (or end (point-at-bol 2))
@@ -2143,7 +2147,7 @@ see function `mingus-help' for instructions.
                       (str
                        (mingus-format-song-compact
                         data
-                        mingus-playlist-separator)))
+                        mingus-mode-line-separator)))
                  (truncate-string-to-width str mingus-mode-line-string-max nil nil "…"))
                (if mingus-mode-line-show-status
                    (mingus-make-status-string)
@@ -2321,10 +2325,7 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
                               (gethash id mingus-propertized-song-strings))
                              (let ((val
                                     (propertize
-                                     (funcall
-                                      'mingus-format-song
-                                      list
-                                      mingus-playlist-separator)
+                                     (mingus-format-song list)
                                      'mouse-face (when mingus-use-mouse-p 'highlight t)
                                      'details list)))
                                (when mingus-use-caching
@@ -2348,24 +2349,22 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
 (defcustom mingus-format-song-function 'mingus-format-song-in-columns
   "Function for formatting songs in the playlist.
 
-The function receives two arguments: SONG-DETAILS SEP.
+Argument SONG-DETAILS is a plist, see `mingus-get-details'.
 
-SONG-DETAILS is a plist, see `mingus-get-details'.
-For SEP, see `mingus-playlist-separator'.
-
-For a new format to take effect, run M-x mingus-clear-cache."
+For a new format to take effect (when using caching) run M-x
+mingus-clear-cache."
   :type '(function)
   :group 'mingus)
 
 (defun mingus-truncate-string (string length)
   (truncate-string-to-width string (max 1 length) nil 32 "…"))
 
-(defun mingus-format-song (details &optional sep)
-  (propertize (funcall mingus-format-song-function details sep)
+(defun mingus-format-song (details)
+  (propertize (funcall mingus-format-song-function details)
               'details details
               'mingus-type 'file))
 
-(defun mingus-format-song-in-columns (item &rest ignore)
+(defun mingus-format-song-in-columns (item)
   (let* ((available-width (- (window-text-width) 9
                              ;; 9 is time width plus column gaps plus
                              ;; leeway
@@ -3833,7 +3832,7 @@ Show results in dedicated *Mingus Browser* buffer for further selection."
                   (message "Of unknown spotify type: %S" item)))))
            (t 'file))))))
 
-(defun mingus-format-item (item &rest ignore)
+(defun mingus-format-item (item)
   (let ((type (mingus-get-type item)))
     (propertize
      (if
@@ -3961,7 +3960,7 @@ Argument POS is the current position in the buffer to revert to (?)."
              (newline)
              (mapc
               (lambda (song)
-                (insert (funcall 'mingus-format-song song))
+                (insert (mingus-format-song song))
                 (newline))
               (sort* (cdr album)
                      (lambda (a b)
@@ -4339,7 +4338,7 @@ the minibuffer."
 
 ;; (@> "development stuff")
 ' (mapconcat (lambda (list)
-               (mingus-format-song-compact list mingus-playlist-separator))
+               (mingus-format-song-compact list))
              (mingus-get-songs "playlistinfo") "\n")
 
 (defun mingus-activate-timers ()
