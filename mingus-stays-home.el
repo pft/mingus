@@ -164,8 +164,7 @@
 (require 'cl)
 (eval-when-compile (load "cl-macs"))
 (require 'url)
-(when (featurep 'taggit)
-          (progn (require 'taggit)))
+(require 'taggit nil t)
 ;;;; {{Update Help Text}}
 
 (setq mingus-help-text
