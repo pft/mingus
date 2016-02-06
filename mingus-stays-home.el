@@ -548,7 +548,10 @@ Both filename are absolute paths in the filesystem"
          (insert (format "%5s %s\n" (mingus-sec->min:sec (getf item 'Time))
                          (truncate-string-to-width
                           (replace-regexp-in-string "\\(.*/\\)+" ""
-                                                    (getf item 'Title) t t 1)
+                                                    (or
+                                                     (getf item 'Title)
+                                                     (getf item 'file))
+                                                    t t 1)
                           (- (window-width) 7) nil 32 "…")))
          (forward-line -1)
          (mingus-burns-color-bar 0 5 "orange")
