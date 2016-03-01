@@ -12,8 +12,8 @@
 ;; ....................but actually named after a man so named
 ;;
 
-;; Copyright (C) 2006-2011, 2015 Niels Giesen <com dot gmail at niels dot giesen, in
-;; reversed order>
+;; Copyright (C) 2006-2011, 2015, 2016 Niels Giesen <com dot gmail at
+;; niels dot giesen, in reversed order>
 
 ;; Author: Niels Giesen <pft on #emacs>
 ;; URL: https://github.com/pft/mingus
@@ -24,8 +24,8 @@
 ;; Heller, "death" (github.com/death), Александр Цамутали, Maximilian
 ;; Gass and Dan King.
 
-;; Version: 0.33
-;;          Or Open Letter to Duke
+;; Version: 0.34
+;;          Or Alice's Wonderland
 ;; Latest version can be found at http://github.com/pft/mingus/
 ;; For Changes, please view http://github.com/pft/mingus/commits/master
 
