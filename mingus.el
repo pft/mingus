@@ -2488,10 +2488,13 @@ Actually it is just named after that great bass player."
 (defun mingus-timer-handler ()
   (condition-case outer
       (let ((changes
-              (condition-case inner
-                  (mingus-exec "idle\nnoidle")
-                (error ;; e.g. (eq 'file-error (car err))
-                 ))))
+             (condition-case inner
+                 (mingus-exec "idle\nnoidle")
+               (error
+                (when (eq 'file-error (car inner))
+                  ;; (file-error "make client process failed" "Connection refused"
+                  ;;  :name "mpd" :buffer nil :host "localhost" :service 6603 :nowait nil)
+                  (signal (car inner) (cdr inner)))))))
         (setq mingus-status t)
         (when changes
           (when (member '("changed" . "playlist") changes)
@@ -2501,7 +2504,10 @@ Actually it is just named after that great bass player."
     (error
      ;; Delay before first using the timer again:
      (mingus-cancel-timer)
-     (setq mingus-timer (run-with-timer 5 1 'mingus-timer-handler)))))
+     ;; If this bad, leave timer cancelled.
+     (if (eq 'file-error (car outer))
+         (setq mingus-status)
+       (setq mingus-timer (run-with-timer 5 1 'mingus-timer-handler))))))
 
 (defun mingus-start-daemon ()
   "Start mpd daemon for `mingus'."
