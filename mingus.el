@@ -2378,30 +2378,26 @@ mingus-clear-cache."
            (format "%02d.%.2d "
                    (/ (or (plist-get item 'Time) 0) 60)
                    (mod (or (plist-get item 'Time) 0) 60))
-           (mingus-truncate-string
-            (or (plist-get item 'Title)
-                (plist-get item 'file))
-            song-width)
+           (propertize
+            (mingus-truncate-string
+             (or (plist-get item 'Title)
+                 (plist-get item 'file))
+             song-width)
+            'face 'mingus-song-file-face)
            " "
-           (mingus-truncate-string
-            (or (plist-get item 'Artist)
-                (plist-get item 'AlbumArtist)
-                "")
-            artist-width)
+           (propertize
+            (mingus-truncate-string
+             (or (plist-get item 'Artist)
+                 (plist-get item 'AlbumArtist)
+                 "")
+             artist-width)
+            'face 'mingus-artist-face)
            " "
-           (mingus-truncate-string
-            (or (plist-get item 'Album) "")
-            album-width)
-           )))
-    (put-text-property 6
-                       (+ 6 song-width)
-                       'face 'mingus-song-file-face string)
-    (put-text-property (+ 6 song-width 1)
-                       (+ 6 song-width 1 artist-width)
-                       'face 'mingus-artist-face string)
-    (put-text-property (+ 6 song-width 1 artist-width)
-                       (+ 6 song-width 1 artist-width 1 album-width)
-                       'face 'mingus-album-stale-face string)
+           (propertize
+            (mingus-truncate-string
+             (or (plist-get item 'Album) "")
+             album-width)
+            'face 'mingus-album-stale-face))))
     string))
 
 (defun mingus-format-song-compact (plist &optional separator)
