@@ -2414,12 +2414,15 @@ mingus-clear-cache."
   (let* ((available-width (- (window-text-width) 9
                              ;; 9 is time width plus column gaps plus
                              ;; leeway
+                             3
+                             ;; plus left-margin
                              ))
          (song-width (/ available-width 2))
          (artist-width (/ available-width 4))
          (album-width  (/ available-width 4))
          (string
           (concat
+           (make-string 3 ? )
            (format "%02d.%.2d "
                    (/ (or (plist-get item 'Time) 0) 60)
                    (mod (or (plist-get item 'Time) 0) 60))
@@ -4599,7 +4602,8 @@ playlist.  Useful e.g. in audiobooks or language courses."
     (goto-char (point-min))
     (while (< (point) (point-max))
       (mingus-redraw-line)
-      (forward-line 1))))
+      (forward-line 1))
+    (mingus-get-art)))
 
 (defun mingus-redraw-all (&optional frame)
   (let ((windows (remove nil
@@ -4613,6 +4617,103 @@ playlist.  Useful e.g. in audiobooks or language courses."
                 w
               (mingus-redraw-buffer)))
           windows)))
+
+(defvar mingus-art-data-cache ())
+(defvar mingus-art-data-queue ())
+
+(defun mingus-get-art-data (status uri buffer pos &rest cbargs)
+  (mail-narrow-to-head)
+  ;; (message (buffer-string))
+  (goto-char (point-max))
+  (widen)
+  (skip-syntax-forward " >")
+  (let* ((data (buffer-substring-no-properties
+                (point)
+                (point-max))))
+    (push (list uri data) mingus-art-data-cache)
+    (setq mingus-art-data-queue
+          (remove (list uri t) mingus-art-data-queue))
+    (mingus-insert-art uri data buffer pos)))
+
+(defcustom mingus-art-size 48
+  "Max size for album art in playlist and browser"
+  :type 'integer
+  :group 'mingus)
+
+(defun mingus-insert-art (uri data buffer pos)
+  (let ((art
+         (create-image
+          data
+          'imagemagick t
+          :ascent 70
+          :margin '(4 . 0)
+          :max-width mingus-art-size
+          :max-height mingus-art-size)))
+    ;; (add-to-list mingus-art-data-cache (list uri data))
+    (switch-to-buffer buffer)
+    (save-excursion
+      (let (buffer-read-only)
+        (goto-char pos)
+        (beginning-of-line)
+        (put-text-property
+         (point-at-bol) (+ 8 (point-at-bol))
+         'display `(,art ;; (slice 0 0 64 16)
+                    nil
+                    (raise 0)))))))
+
+(defun mingus-get-art-urls ()
+  (let ((uris (getf (mingus-get-details) 'X-AlbumImage)))
+    (when uris
+      (split-string uris ";"))))
+
+(defun mingus-get-art (&rest ignore)
+  (interactive)
+  (let ((beg (window-start))
+        (end (window-end)))
+   (save-excursion
+     (goto-char beg)
+     (while (< (point) end)
+       (mingus-get-artwork)
+       (forward-line 1)))))
+
+;; @todo: Something promising - so that when art is retrieved, it
+;; will also be inserted
+;; @todo: Save art on-disk
+(defun mingus-get-artwork ()
+  (let* ((uris (mingus-get-art-urls))
+         (uri (car uris))
+         (url uri)
+         (saved (assoc uri mingus-art-data-cache))
+         (loading (assoc uri mingus-art-data-queue)))
+    (when
+        uri
+      (when (string-match "^/images/" uri)
+        (setq url (concat "http://127.0.0.1:6680" uri)))
+      (if saved
+          (mingus-insert-art uri (cadr saved) (current-buffer) (point))
+        (when (not loading)
+          (push (list uri t) mingus-art-data-queue)
+          (run-with-timer (+ 1 (* 0.2 (length mingus-art-data-queue)))
+                               nil
+                               (lambda (uri url buffer pos)
+                                 (url-retrieve
+                                  url
+                                  #'mingus-get-art-data (list uri buffer pos) t))
+                               uri url (current-buffer) (point)))))))
+
+(defun mingus-art-on-scroll (win beg)
+  (when (mingus-buffer-p (buffer-name (window-buffer win)))
+    (save-excursion
+      (with-current-buffer (window-buffer)
+       (goto-char beg)
+       (dotimes (x (window-height))
+         (mingus-get-art)
+         (forward-line 1))))))
+
+(add-to-list 'window-scroll-functions
+             #'mingus-art-on-scroll)
+
+;; (setq window-scroll-functions nil)
 
 (provide 'mingus)
 ;;; mingus.el ends here
