@@ -3181,6 +3181,13 @@ deleted."
   ;;hmm, where IS this mingus-url for?
   (save-window-excursion (mingus)))
 
+(defun mingus-add-album ()
+  "In Mingus, add all songs in the same album as the song under point."
+  (interactive)
+  (let ((album (getf (mingus-get-details) 'X-AlbumUri)))
+    (if album
+        (mingus-add album)
+      (message "No album found for this song"))))
 
 (defcustom mingus-stream-alist
   '(("CRo 1 - Radiozurnal (czech)" . "http://amp1.cesnet.cz:8000/cro1-256.ogg")
