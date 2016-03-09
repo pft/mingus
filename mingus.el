@@ -992,8 +992,9 @@ WEBSITE:  http://github.com/pft/mingus
 
 (defmacro mingus-define-color-line-or-region (name params)
   `(defun ,name (&optional beg end)
-     (put-text-property (or beg (point-at-bol)) (or end (point-at-bol 2))
-                        'face ,params)))
+     (let (buffer-read-only)
+      (put-text-property (or beg (point-at-bol)) (or end (point-at-bol 2))
+                         'face ,params))))
 
 (mingus-define-color-line-or-region
  mingus-mark-line
@@ -2171,8 +2172,10 @@ Argument OVERRIDE defines whether to treat the situation as new."
                  (mingus-switch-to-playlist)
                  (let (buffer-read-only)
                    (mingus-goto-line (1+ pos))
-                   (mingus-move-NP-mark (point))))
-               (mingus-set-song-pos pos))))))
+                   (mingus-move-NP-mark
+                    (point)
+                    (mingus-get-song-pos)))))
+               (mingus-set-song-pos pos)))))
 
 (when (fboundp 'define-fringe-bitmap)
   (define-fringe-bitmap 'mingus-NP-fringe
@@ -2263,8 +2266,50 @@ Argument OVERRIDE defines whether to treat the situation as new."
       (overlay-put *mingus-NP-mark*
                    'name "mingus-NP-mark"))))
 
-(defun mingus-move-NP-mark (pos)
+(defun mingus-remove-face-text-property (beg end prop)
+  (let (buffer-read-only)
+   (save-excursion
+      (goto-char beg)
+      (while (not (= (point) end))
+        (if (equal prop (get-text-property (point) 'face))
+          (put-text-property (point) (1+ (point)) 'face nil)
+          (put-text-property (point) (1+ (point))
+                             'face
+                             (remove prop
+                                     (get-text-property (point) 'face))))
+        (goto-char (1+ (point)))))))
+
+(defvar mingus-current-song-props
+  '(:weight bold :height 1.1 :background "darkslategrey"))
+
+(defun mingus-embolden-line-at (pos)
+  (let (buffer-read-only)
+   (save-excursion
+     (goto-char pos)
+     (add-face-text-property
+      (point-at-bol)
+      (point-at-eol)
+      mingus-current-song-props))))
+
+(defun mingus-debolden-buffer ()
+  (mingus-remove-face-text-property
+   (point-min)
+   (point-max)
+   mingus-current-song-props))
+
+(defun mingus-debolden-line (line)
+  (save-excursion
+    (mingus-goto-line line)
+    (mingus-remove-face-text-property
+     (point-at-bol)
+     (point-at-eol)
+     mingus-current-song-props)))
+
+(defun mingus-move-NP-mark (pos prev)
   (move-overlay *mingus-NP-mark* pos pos (get-buffer "*Mingus*"))
+  (and prev (mingus-debolden-line prev))
+  (mingus-debolden-buffer)
+  (mingus-embolden-line-at (1+ pos))
   (case
       (getf (mpd-get-status mpd-inter-conn) 'state)
     ((pause) (overlay-put *mingus-NP-mark*
