@@ -2429,19 +2429,19 @@ mingus-clear-cache."
                  (plist-get item 'file))
              song-width)
             'face 'mingus-song-file-face)
-           " "
            (propertize
-            (mingus-truncate-string
-             (or (plist-get item 'Artist)
-                 (plist-get item 'AlbumArtist)
-                 "")
-             artist-width)
+            (concat " "
+             (mingus-truncate-string
+              (or (plist-get item 'Artist)
+                  (plist-get item 'AlbumArtist)
+                  "")
+              artist-width))
             'face 'mingus-artist-face)
-           " "
            (propertize
-            (mingus-truncate-string
-             (or (plist-get item 'Album) "")
-             album-width)
+            (concat " "
+             (mingus-truncate-string
+              (or (plist-get item 'Album) "")
+              album-width))
             'face 'mingus-album-stale-face))))
     string))
 
