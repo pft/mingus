@@ -700,7 +700,7 @@ customizing these values; use `mingus-customize' for that."
   (interactive)
   (customize-group 'mingus))
 
-(defvar mingus-version "Open Letter to Duke, or: 0.33")
+(defvar mingus-version "Alice's Wonderland or: 0.34")
 
 (defun mingus-version ()
   "Echo `mingus-version' in minibuffer."
