@@ -2121,7 +2121,7 @@ see function `mingus-help' for instructions.
                                                          100)))))))
     (concat (and mingus-mode-line-show-elapsed-time
                  time-elapsed
-                 (format-time-string "%M:%S" time-elapsed))
+                 (mingus-sec->min:sec time-elapsed))
             percentage
             (and volume
                  (format
@@ -2472,7 +2472,7 @@ mingus-clear-cache."
         (let ((val
                (let* ((timestring
                        (and time
-                            (format-time-string "(%M:%S) " time)))
+                            (concat "(" (mingus-sec->min:sec time) ")")))
                       (filestring
                        (and file
                             (file-name-nondirectory file)))
