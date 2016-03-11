@@ -325,6 +325,11 @@ Songs are hashed by their MPD ids")
   "Face for displaying playlist files"
   :group 'mingus-faces)
 
+(defface mingus-mark-face
+  '((t :bold t :foreground "pink"))
+  "Mingus face for marking."
+  :group 'mingus-faces)
+
 (defface mingus-playing-face
   '((default)
     (((background light)) (:foreground "#c3be3d"))
@@ -996,15 +1001,7 @@ WEBSITE:  http://github.com/pft/mingus
       (put-text-property (or beg (point-at-bol)) (or end (point-at-bol 2))
                          'face ,params))))
 
-(mingus-define-color-line-or-region
- mingus-mark-line
- '((((class color) (background light)) (:foreground "pink" :weight bold))
-   (((class color) (background dark)) (:foreground "pink"))))
-
-(mingus-define-color-line-or-region
- mingus-mark-as-current
- '((:height 300 :foreground "lightblue" :background "white")))
-
+(mingus-define-color-line-or-region mingus-mark-line 'mingus-mark-face)
 (mingus-define-color-line-or-region mingus-unmark-line 'default)
 
 ;; fixme: delete this (remove help)
@@ -2271,12 +2268,11 @@ Argument OVERRIDE defines whether to treat the situation as new."
    (save-excursion
       (goto-char beg)
       (while (not (= (point) end))
-        (if (equal prop (get-text-property (point) 'face))
-          (put-text-property (point) (1+ (point)) 'face nil)
-          (put-text-property (point) (1+ (point))
-                             'face
-                             (remove prop
-                                     (get-text-property (point) 'face))))
+        (let* ((current (get-text-property (point) 'face))
+               (new (remove prop current)))
+          (if (or (equal prop current) (null new))
+              (remove-text-properties (point) (1+ (point)) '(face))
+            (put-text-property (point) (1+ (point)) 'face new)))
         (goto-char (1+ (point)))))))
 
 (defvar mingus-current-song-props
