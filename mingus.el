@@ -394,6 +394,11 @@ Songs are hashed by their MPD ids")
  :group 'multimedia
  :group 'applications)
 
+(defcustom mingus-timer-interval 1
+  "The interval for executing `mingus-timer-handler', in seconds."
+  :group 'mingus
+  :type '(integer float))
+
 (defcustom mingus-use-caching nil
   "Whether or not to use caching.
 
@@ -2499,7 +2504,9 @@ Actually it is just named after that great bass player."
          (add-to-list 'global-mode-string mingus-mode-line-object)))
   (if (timerp mingus-timer)
       (timer-activate mingus-timer)
-    (setq mingus-timer (run-with-idle-timer 1 1 'mingus-timer-handler)))
+    (setq mingus-timer (run-with-idle-timer mingus-timer-interval
+                                            mingus-timer-interval
+                                            'mingus-timer-handler)))
   (mingus-playlist))
 
 (defun mingus-cancel-timer ()
@@ -2549,7 +2556,8 @@ Actually it is just named after that great bass player."
      ;; If this bad, leave timer cancelled.
      (if (eq 'file-error (car outer))
          (setq mingus-status)
-       (setq mingus-timer (run-with-timer 5 1 'mingus-timer-handler))))))
+       (setq mingus-timer (run-with-timer 5 mingus-timer-interval
+                                          'mingus-timer-handler))))))
 
 (defun mingus-start-daemon ()
   "Start mpd daemon for `mingus'."
