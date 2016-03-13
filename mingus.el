@@ -2538,9 +2538,11 @@ Actually it is just named after that great bass player."
                   (signal (car inner) (cdr inner)))))))
         (setq mingus-status t)
         (when changes
-          (when (member '("changed" . "playlist") changes)
-            (mingus-playlist))
-          (mingus-set-NP-mark t)
+          (if (buffer-live-p (get-buffer "*Mingus*"))
+              (if (member '("changed" . "playlist") changes)
+                  (mingus-playlist)
+                (when (mingus-buffer-visible-p (get-buffer "*Mingus*"))
+                  (mingus-set-NP-mark t))))
           (force-mode-line-update)))
     (error
      ;; Delay before first using the timer again:
