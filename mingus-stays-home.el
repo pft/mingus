@@ -524,6 +524,7 @@ Both filename are absolute paths in the filesystem"
 \\{mingus-burnin-map}"
   (setq major-mode 'mingus-burn-mode)
   (setq mode-name "Mingus-burns")
+  (setq buffer-undo-list t)
   (use-local-map mingus-burnin-map)
   (setq buffer-read-only t))
 

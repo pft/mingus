@@ -2005,6 +2005,7 @@ details : the car of the `details' text property.
 \\{mingus-help-map}"
   (set (make-local-variable 'font-lock-defaults)
        '(mingus-help-font-lock-keywords))
+  (setq buffer-undo-list t)
   (font-lock-mode t)
   (setq major-mode 'mingus-help-mode)
   (setq mode-name "Mingus-help")
@@ -2041,6 +2042,7 @@ see function `mingus-help' for instructions.
   (use-local-map mingus-playlist-map)
   (setq major-mode 'mingus-playlist-mode)
   (setq mode-name "Mingus-playlist")
+  (setq buffer-undo-list t)
   (delete-all-overlays)
   (font-lock-mode -1)
   (setq buffer-read-only t)
@@ -2054,6 +2056,7 @@ see function `mingus-help' for instructions.
     (use-local-map mingus-browse-map)
     (setq major-mode 'mingus-browse-mode)
     (setq mode-name "Mingus-browse")
+    (setq buffer-undo-list t)
     (delete-all-overlays)
     (run-hooks 'mingus-browse-hook)
     (set (make-local-variable '*mingus-positions*) nil)
