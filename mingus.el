@@ -397,7 +397,7 @@ Songs are hashed by their MPD ids")
 (defcustom mingus-timer-interval 1
   "The interval for executing `mingus-timer-handler', in seconds."
   :group 'mingus
-  :type '(integer float))
+  :type '(number))
 
 (defcustom mingus-use-caching nil
   "Whether or not to use caching.
