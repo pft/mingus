@@ -2277,14 +2277,14 @@ Argument OVERRIDE defines whether to treat the situation as new."
       (goto-char beg)
       (while (not (= (point) end))
         (let* ((current (get-text-property (point) 'face))
-               (new (remove prop current)))
-          (if (or (equal prop current) (null new))
-              (remove-text-properties (point) (1+ (point)) '(face))
-            (put-text-property (point) (1+ (point)) 'face new)))
+               (new (and (listp current) (remove prop current))))
+          (cond ((equal prop current)
+                 (remove-text-properties (point) (1+ (point)) '(face)))
+                (new (put-text-property (point) (1+ (point)) 'face new))))
         (goto-char (1+ (point)))))))
 
 (defvar mingus-current-song-props
-  '(:weight bold :height 1.1 :background "darkslategrey"))
+  '(:weight bold :background "darkslategrey"))
 
 (defun mingus-embolden-line-at (pos)
   (let (buffer-read-only)
