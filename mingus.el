@@ -2284,7 +2284,7 @@ Argument OVERRIDE defines whether to treat the situation as new."
         (goto-char (1+ (point)))))))
 
 (defvar mingus-current-song-props
-  '(:weight bold :background "darkslategrey"))
+  '(:weight bold))
 
 (defun mingus-embolden-line-at (pos)
   (let (buffer-read-only)
