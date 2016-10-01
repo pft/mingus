@@ -351,6 +351,37 @@ Songs are hashed by their MPD ids")
   "Face for playing mark"
   :group 'mingus-faces)
 
+(defcustom mingus-current-song-props
+  '(:weight bold)
+  "Extra properties added to the faces used for the current song"
+  :group 'mingus-faces
+  :type  '(set
+           (list :inline t :tag "Weight"
+                 (const :weight)
+                 (choice :tag "Weight"
+                         :help-echo "Font weight."
+                         :value bold		; default
+                         (const :tag "black" ultra-bold)
+                         (const :tag "bold" bold)
+                         (const :tag "book" semi-light)
+                         (const :tag "demibold" semi-bold)
+                         (const :tag "extralight" extra-light)
+                         (const :tag "extrabold" extra-bold)
+                         (const :tag "heavy" extra-bold)
+                         (const :tag "light" light)
+                         (const :tag "medium" normal)
+                         (const :tag "normal" normal)
+                         (const :tag "regular" normal)
+                         (const :tag "semibold" semi-bold)
+                         (const :tag "semilight" semi-light)
+                         (const :tag "ultralight" ultra-light)
+                         (const :tag "ultrabold" ultra-bold)
+                         (const :tag "thin" thin)))
+           (list :inline t :tag "Background"
+                 (const :background)
+                 (color
+                  :help-echo "Set background color (name or #RRGGBB hex spec)."))))
+
 (defun mingus-exec (string)
   (mpd-execute-command mpd-inter-conn string))
 
@@ -2283,31 +2314,31 @@ Argument OVERRIDE defines whether to treat the situation as new."
                 (new (put-text-property (point) (1+ (point)) 'face new))))
         (goto-char (1+ (point)))))))
 
-(defvar mingus-current-song-props
-  '(:weight bold :background "darkslategrey"))
-
 (defun mingus-embolden-line-at (pos)
-  (let (buffer-read-only)
+  (when mingus-current-song-props
+   (let (buffer-read-only)
+     (save-excursion
+       (goto-char pos)
+       (add-face-text-property
+        (point-at-bol)
+        (point-at-eol)
+        mingus-current-song-props)))))
+
+(defun mingus-debolden-buffer ()
+  (when mingus-current-song-props
+   (mingus-remove-face-text-property
+    (point-min)
+    (point-max)
+    mingus-current-song-props)))
+
+(defun mingus-debolden-line (line)
+  (when mingus-current-song-props
    (save-excursion
-     (goto-char pos)
-     (add-face-text-property
+     (mingus-goto-line line)
+     (mingus-remove-face-text-property
       (point-at-bol)
       (point-at-eol)
       mingus-current-song-props))))
-
-(defun mingus-debolden-buffer ()
-  (mingus-remove-face-text-property
-   (point-min)
-   (point-max)
-   mingus-current-song-props))
-
-(defun mingus-debolden-line (line)
-  (save-excursion
-    (mingus-goto-line line)
-    (mingus-remove-face-text-property
-     (point-at-bol)
-     (point-at-eol)
-     mingus-current-song-props)))
 
 (defun mingus-move-NP-mark (pos prev)
   (move-overlay *mingus-NP-mark* pos pos (get-buffer "*Mingus*"))
