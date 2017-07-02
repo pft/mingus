@@ -2198,6 +2198,7 @@ see function `mingus-help' for instructions.
   (condition-case nil
       (let ((pos (getf (mpd-get-status mpd-inter-conn) 'song)))
         (and pos
+             (not (eq pos (mingus-get-song-pos)))
              (get-buffer-window "*Mingus*")
              (with-current-buffer "*Mingus*"
                (save-excursion
