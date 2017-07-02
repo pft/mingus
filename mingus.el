@@ -2191,27 +2191,22 @@ see function `mingus-help' for instructions.
                    (mingus-make-status-string)
                  "")))))
 
-(defun mingus-set-NP-mark (override &optional pos)
-  "Mark song 'now playing'.
-
-Optional argument POS gives possibility of supplying the currentsong without
-making a connection.
-
-Argument OVERRIDE defines whether to treat the situation as new."
+(defun mingus-set-NP-mark ()
+  "Mark song 'now playing'."
   (when (null *mingus-NP-mark*)
     (mingus-create-NP-mark))
   (condition-case nil
-      (let ((pos (or pos (getf (mpd-get-status mpd-inter-conn) 'song))))
+      (let ((pos (getf (mpd-get-status mpd-inter-conn) 'song)))
         (and pos
-             (save-excursion
-               (save-window-excursion
-                 (mingus-switch-to-playlist)
+             (get-buffer-window "*Mingus*")
+             (with-current-buffer "*Mingus*"
+               (save-excursion
                  (let (buffer-read-only)
                    (mingus-goto-line (1+ pos))
                    (mingus-move-NP-mark
                     (point)
                     (mingus-get-song-pos)))))
-               (mingus-set-song-pos pos)))))
+             (mingus-set-song-pos pos)))))
 
 (when (fboundp 'define-fringe-bitmap)
   (define-fringe-bitmap 'mingus-NP-fringe
@@ -2289,18 +2284,16 @@ Argument OVERRIDE defines whether to treat the situation as new."
 
 (defun mingus-create-NP-mark ()
   (let ((string *mingus-playing-string*))
-
-    (save-window-excursion
-      (setq *mingus-NP-mark*
-            (make-overlay (point-min)
-                          (point-min)))
-      (delete-overlay *mingus-NP-mark*)
-      (overlay-put *mingus-NP-mark*
-                   'before-string string)
-      (overlay-put *mingus-NP-mark*
-                   'face 'mingus-playing-face)
-      (overlay-put *mingus-NP-mark*
-                   'name "mingus-NP-mark"))))
+    (setq *mingus-NP-mark*
+          (make-overlay (point-min)
+                        (point-min)))
+    (delete-overlay *mingus-NP-mark*)
+    (overlay-put *mingus-NP-mark*
+                 'before-string string)
+    (overlay-put *mingus-NP-mark*
+                 'face 'mingus-playing-face)
+    (overlay-put *mingus-NP-mark*
+                 'name "mingus-NP-mark")))
 
 (defun mingus-remove-face-text-property (beg end prop)
   (let (buffer-read-only)
@@ -2414,7 +2407,7 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
                                val))))
                      songs "\n")))
                   (mingus-set-marks)
-                  (mingus-set-NP-mark t))
+                  (mingus-set-NP-mark))
               (insert *mingus-header-when-empty*))
             (mingus-goto-line pos))
           (run-hooks 'mingus-make-playlist-hook)))
@@ -2579,7 +2572,7 @@ Actually it is just named after that great bass player."
               (if (member '("changed" . "playlist") changes)
                   (mingus-playlist)
                 (when (mingus-buffer-visible-p (get-buffer "*Mingus*"))
-                  (mingus-set-NP-mark t))))
+                  (mingus-set-NP-mark))))
           (force-mode-line-update)))
     (error
      ;; Delay before first using the timer again:
@@ -2624,21 +2617,21 @@ Actually it is just named after that great bass player."
 
 (mingus-define-mpd->mingus mingus-pause
                            (mingus-minibuffer-feedback 'state)
-                           (mingus-set-NP-mark t))
+                           (mingus-set-NP-mark))
 
 (defalias 'mingus-toggle 'mingus-pause)
 
 (mingus-define-mpd->mingus
  mingus-prev
- (mingus-set-NP-mark t))
+ (mingus-set-NP-mark))
 
 (mingus-define-mpd->mingus
  mingus-next
- (mingus-set-NP-mark t))
+ (mingus-set-NP-mark))
 
 (mingus-define-mpd->mingus
  mingus-stop
- (mingus-set-NP-mark t))
+ (mingus-set-NP-mark))
 
 (defun mingus-boolean->string (bool)
   (case bool
@@ -2986,7 +2979,7 @@ Switch to *Mingus* buffer if necessary."
                                              (car mingus-uplist)) 0)
                                      (- (mingus-line-number-at-pos) 1))
                             (mingus-update-command-list) ;reset the count
-                            (mingus-set-NP-mark t)
+                            (mingus-set-NP-mark)
                             ;; (mingus-set-song-pos)
                             ))))))
         (cond ((= (mingus-line-number-at-pos)
@@ -3004,7 +2997,7 @@ Switch to *Mingus* buffer if necessary."
                 (transpose-lines 1)
                 (forward-line -1)
                 (message "Moved 1 song down.")
-                (mingus-set-NP-mark t))))))))
+                (mingus-set-NP-mark))))))))
 
 (defun mingus-move-all ()
   "In Mingus, move all marked songs to current position in buffer."
@@ -3169,7 +3162,7 @@ deleted."
  When called with argument POSITION, play playlist id POSITION."
   (interactive)
   (mpd-play mpd-inter-conn (or position (1- (mingus-line-number-at-pos))))
-  (mingus-set-NP-mark t))
+  (mingus-set-NP-mark))
 
 (defun mingus-play-pos (position)
   "Play song in mpd playlist at position specified by prefix argument."
