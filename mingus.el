@@ -1514,8 +1514,9 @@ WEBSITE:  http://github.com/pft/mingus
   (lambda (ev)
     (interactive "e")
     (when mingus-use-mouse-p
-     (mouse-set-point ev)
-     (mingus-play))))
+      (if (not (eolp))
+          (progn (mouse-set-point ev)
+                 (mingus-play))))))
 
 (define-key mingus-playlist-map
   (if (featurep 'xemacs) [button2] [mouse-2])
