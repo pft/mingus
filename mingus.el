@@ -2587,7 +2587,7 @@ Actually it is just named after that great bass player."
      (mingus-cancel-timer)
      ;; If this bad, leave timer cancelled.
      (if (eq 'file-error (car outer))
-         (setq mingus-status)
+         (setq mingus-status nil)
        (setq mingus-timer (run-with-timer 5 mingus-timer-interval
                                           'mingus-timer-handler))))))
 
@@ -2856,7 +2856,7 @@ Switch to *Mingus* buffer if necessary."
 (defun mingus-unmark-all ()
   "In Mingus, unset `mingus-marked-list'."
   (interactive)
-  (setq mingus-marked-list)
+  (setq mingus-marked-list nil)
   (mingus-playlist t)                   ;@todo: just remove marks...
   (message "No songs marked anymore"))
 
