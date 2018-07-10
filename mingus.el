@@ -2462,6 +2462,7 @@ mingus-clear-cache."
            (propertize
             (mingus-truncate-string
              (or (plist-get item 'Title)
+                 (plist-get item 'Name)
                  (plist-get item 'file))
              song-width)
             'face 'mingus-song-file-face)
