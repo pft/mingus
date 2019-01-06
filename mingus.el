@@ -3821,7 +3821,10 @@ Complete in the style of the function `find-file'."
 ;;; Searching section
 (defun mingus-completing-search-type (type query)
   "Both TYPE and QUERY must be supplied as string."
-  (if (string= type "regexp on filename") nil
+  (cond
+   ((string= type "regexp on filename") nil)
+   ((string= query "") nil)
+   (t
     (remove-duplicates
      (mapcar (lambda (item)
                (downcase (plist-get item (if (string= "filename" type) 'file
@@ -3832,7 +3835,7 @@ Complete in the style of the function `find-file'."
                    (mingus-get-songs
                     (format "search %s %s" type (mpd-safe-string query)))
                    if (eq 'file (car i)) collect i))
-     :test 'string=)))
+     :test 'string=))))
 
 (defvar mingus-album-query-hist nil)
 (defvar mingus-artist-query-hist nil)
