@@ -231,6 +231,7 @@
 (require 'time-date)
 (require 'libmpdee)
 (require 'thingatpt)
+(require 'subr-x)
 
 ;; (@> "globals")
 (defvar mingus-header-height 0)
@@ -3823,7 +3824,7 @@ Complete in the style of the function `find-file'."
   "Both TYPE and QUERY must be supplied as string."
   (cond
    ((string= type "regexp on filename") nil)
-   ((string= query "") nil)
+   ((string-empty-p (string-trim query)) nil)
    (t
     (remove-duplicates
      (mapcar (lambda (item)
@@ -3833,7 +3834,7 @@ Complete in the style of the function `find-file'."
                                             (concat (capitalize type)))))))
              (loop for i in
                    (mingus-get-songs
-                    (format "search %s %s" type (mpd-safe-string query)))
+                    (format "search %s %s" type (mpd-safe-string (string-trim query))))
                    if (eq 'file (car i)) collect i))
      :test 'string=))))
 
@@ -3904,7 +3905,9 @@ possible).  Optional argument TYPE predefines the type of query."
                  nil
                  (intern-soft
                   (format "mingus-%s-query-hist" type)))))
-    (mingus-query-do-it type query pos buffer as-dir)))
+    (if (not (string-empty-p (string-trim query)))
+        (mingus-query-do-it type query pos buffer as-dir)
+      (message "Empty query"))))
 
 (defun mingus-query-dir (&optional type)
   (interactive)
