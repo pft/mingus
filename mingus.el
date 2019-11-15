@@ -3398,7 +3398,8 @@ Actually it tries to retrieve any stream from a given url.
   (when item
     (case (mingus-get-type item)
       ((playlist) (format "load %s" (mpd-safe-string (plist-get item 'Title))))
-      ((file directory album)
+      ((file) (format "addid %s" (mpd-safe-string (plist-get item 'file))))
+      ((directory album)
        (format "add %s" (mpd-safe-string
                          (or (plist-get item 'file)
                              (plist-get item 'Title))))))))
