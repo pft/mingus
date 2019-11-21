@@ -2205,9 +2205,8 @@ Argument OVERRIDE defines whether to treat the situation as new."
   (condition-case nil
       (let ((pos (or pos (getf (mpd-get-status mpd-inter-conn) 'song))))
         (and pos
-             (save-excursion
-               (save-window-excursion
-                 (mingus-switch-to-playlist)
+             (with-current-buffer "*Mingus*"
+               (save-excursion
                  (let (buffer-read-only)
                    (mingus-goto-line (1+ pos))
                    (mingus-move-NP-mark
