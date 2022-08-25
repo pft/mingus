@@ -551,7 +551,7 @@ These variables are set when loading mingus or callinge `mingus-set-variables'."
     (when (get-buffer "*Mingus Browser*")
       (mingus-ls ""))))
 
-(defcustom mingus-mpd-host (getenv "MPD_HOST")
+(defcustom mingus-mpd-host (or (getenv "MPD_HOST") "127.0.0.1")
   "Setting for environment variable MPD_HOST"
   :group 'mingus
   :type '(string)
