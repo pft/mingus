@@ -17,7 +17,7 @@
 
 ;; Author: Niels Giesen <pft on #emacs>
 ;; URL: https://github.com/pft/mingus
-;; Package-Requires: ((libmpdee "2.1"))
+;; Package-Requires: ((libmpdee "2.2"))
 
 ;; Contributors (with patches and bug reports): Jeremie Lasalle
 ;; Ratelle, "Lexa12", Marc Zonzon, Mark Taylor, Drew Adams, Alec
