@@ -12,7 +12,7 @@
 ;; ....................but actually named after a man so named
 ;;
 
-;; Copyright (C) 2006-2011, 2015, 2016 Niels Giesen <com dot gmail at
+;; Copyright (C) 2006-2011, 2015, 2016, 2019 Niels Giesen <com dot gmail at
 ;; niels dot giesen, in reversed order>
 
 ;; Author: Niels Giesen <pft on #emacs>
@@ -1721,7 +1721,7 @@ E.g.: \"Artist 3 my beautiful song\" is logically less than \"Artist 11 blue sea
 (defun mingus-mark-active ()
   (if (featurep 'xemacs)
       (mark)
-    mark-active))
+    (use-region-p)))
 
 (defun mingus-min:sec->secs (min:secs)
   "Convert MIN:SECS (a string) to seconds (an integer)."
@@ -3358,11 +3358,12 @@ Actually it tries to retrieve any stream from a given url.
       (mingus-browse-top-level)))))
 
 (defun mingus-get-items ()
-  (let ((items (unless mark-active
-                 (list (mingus-get-details))))
-        (beg (if mark-active (min (mark) (point))))
-        (end (if mark-active (max (mark) (point)))))
-    (when mark-active
+  (let* ((markp (mingus-mark-active))
+         (items (unless markp
+                  (list (mingus-get-details))))
+         (beg (if markp (min (mark) (point))))
+         (end (if markp (max (mark) (point)))))
+    (when markp
      (save-excursion
        (goto-char end)
        (while
@@ -4230,8 +4231,8 @@ It may also mean handling file:/// links."
   "Get everything under the region, sloppily.
 Region is between (beginning of line of) BEG and (beginning of line of) END."
   (interactive "r")
-  (let ((beg (if mark-active (_mingus-bol-at beg) (point-at-bol)))
-        (end (if mark-active (_mingus-bol-at end) (point-at-eol)))
+  (let ((beg (if (mingus-mark-active) (_mingus-bol-at beg) (point-at-bol)))
+        (end (if (mingus-mark-active) (_mingus-bol-at end) (point-at-eol)))
         results)
     (save-excursion
       (goto-char beg)
