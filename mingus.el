@@ -246,7 +246,6 @@
 
 This is used by `mingus-refresh'.")
 (make-variable-buffer-local 'mingus-browse-command-history)
-(defvar mingus-playlist-hooks nil "Hooks run at the end of `mingus-playlist'")
 (defvar mingus-marked-list nil
   "List of marked songs, identified by songid")
 (defvar *mingus-point-of-insertion* nil "Insertion point for mingus")
@@ -1055,7 +1054,7 @@ WEBSITE:  http://github.com/pft/mingus
 
 ;; keys
 
-(defconst mingus-global-map (make-keymap) "Global keymap for `mingus'")
+(defvar mingus-global-map (make-keymap) "Global keymap for `mingus'.")
 
 (define-key mingus-global-map "k" (lambda () (interactive) (forward-line -1)))
 
@@ -1329,7 +1328,7 @@ WEBSITE:  http://github.com/pft/mingus
 (define-key mingus-global-map [menu-bar mingus toggle]
   '("Toggle play/pause"  . mingus-toggle))
 
-(defconst mingus-help-map (copy-keymap mingus-global-map)
+(defvar mingus-help-map (copy-keymap mingus-global-map)
   "Help keymap for `mingus'")
 
 (define-key mingus-help-map "0" (lambda ()
@@ -1353,8 +1352,8 @@ WEBSITE:  http://github.com/pft/mingus
 (define-key mingus-help-map [menu-bar mingus playlist]
   '(menu-item "Playlist" mingus :help "go to playlist"))
 
-(defconst mingus-playlist-map (copy-keymap mingus-global-map)
-  "Playlist keymap for `mingus'")
+(defvar mingus-playlist-map (copy-keymap mingus-global-map)
+  "Playlist keymap for `mingus'.")
 
 ;;deletion keys
 (defun mingus-del-dwim ()
@@ -1540,8 +1539,8 @@ WEBSITE:  http://github.com/pft/mingus
      (mouse-set-point ev)
      (mingus-dired-file))))
 
-(defconst mingus-browse-map (copy-keymap mingus-global-map)
-  "Browse keymap for `mingus'")
+(defvar mingus-browse-map (copy-keymap mingus-global-map)
+  "Browse keymap for `mingus'.")
 
 (define-key mingus-browse-map "\r" 'mingus-down-dir-or-play-song)
 (define-key mingus-browse-map "S" 'mingus-browse-sort)
@@ -2042,16 +2041,14 @@ details : the car of the `details' text property.
   (goto-char (point-min))
   (mingus-help-mode))
 
-(defun mingus-help-mode ()
-  "Help screen for `mingus';
+(define-derived-mode mingus-help-mode special-mode "Mingus-help"
+  "Help screen for `mingus'.
+
 \\{mingus-help-map}"
   (set (make-local-variable 'font-lock-defaults)
        '(mingus-help-font-lock-keywords))
   (setq buffer-undo-list t)
   (font-lock-mode t)
-  (setq major-mode 'mingus-help-mode)
-  (setq mode-name "Mingus-help")
-  (use-local-map mingus-help-map)
   (setq buffer-read-only t))
 
 (defun mingus-switch-to-playlist ()
@@ -2077,27 +2074,22 @@ details : the car of the `details' text property.
   (while (mingus-buffer-p)
     (bury-buffer)))
 
-(defun mingus-playlist-mode ()
-  "Mingus playlist mode;
-see function `mingus-help' for instructions.
+(define-derived-mode mingus-playlist-mode special-mode "Mingus-playlist"
+  "Mingus playlist mode.
+
+See function `mingus-help' for instructions.
 \\{mingus-playlist-map}"
-  (use-local-map mingus-playlist-map)
-  (setq major-mode 'mingus-playlist-mode)
-  (setq mode-name "Mingus-playlist")
   (setq buffer-undo-list t)
   (delete-all-overlays)
   (font-lock-mode -1)
   (setq buffer-read-only t)
-  (setq left-fringe-width 16)
-  (run-hooks 'mingus-playlist-hooks))
+  (setq left-fringe-width 16))
 
-(defun mingus-browse-mode ()
+(define-derived-mode mingus-browse-mode special-mode "Mingus-browse"
   "Mingus browse mode.
+
 \\{mingus-browse-map}"
   (let ((res mingus-last-query-results))
-    (use-local-map mingus-browse-map)
-    (setq major-mode 'mingus-browse-mode)
-    (setq mode-name "Mingus-browse")
     (setq buffer-undo-list t)
     (delete-all-overlays)
     (run-hooks 'mingus-browse-hook)
