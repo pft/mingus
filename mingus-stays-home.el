@@ -161,9 +161,8 @@
 (require 'mingus)
 ;; Even though Mingus already requires cl, in Emacs23 we have to silence the
 ;; compiler (this might be a regression):
-(eval-when-compile (require 'cl-lib))
-(eval-when-compile (require 'cl-macs))
-(eval-when-compile (require 'url))
+(require 'cl-lib)
+(require 'url)
 (require 'taggit nil t)
 ;;;; {{Update Help Text}}
 
@@ -179,10 +178,10 @@ E                       mingus-blank-disk
 MORE ELABORATE INSTRUCTIONS:"
        (replace-regexp-in-string
         "U                       mingus-unmark-all"
-                (format
-                 "U                       mingus-unmark-all%s"
-                 (if (featurep 'taggit)
-                  "
+        (format
+         "U                       mingus-unmark-all%s"
+         (if (featurep 'taggit)
+             "
 #                       taggit-interactive
 e                       taggit (edit buffer)" ""))
         (replace-regexp-in-string

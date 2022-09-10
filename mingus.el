@@ -225,14 +225,14 @@
 
 ;;; Code:
 ;; (@> "requirements")
-(eval-when-compile (require 'url))
-(eval-when-compile (require 'cl-lib))
-(eval-when-compile (require 'cl-macs))
-(require 'dired)
-(require 'time-date)
-(require 'libmpdee)
-(require 'thingatpt)
+(require 'cl-lib)
 (require 'subr-x)
+
+(require 'dired)
+(require 'thingatpt)
+(require 'url)
+
+(require 'libmpdee)
 
 ;; (@> "globals")
 (defvar mingus-header-height 0)
