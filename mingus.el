@@ -1037,7 +1037,7 @@ WEBSITE:  http://github.com/pft/mingus
 (defmacro mingus-define-color-line-or-region (name params)
   `(defun ,name (&optional beg end)
      (let (buffer-read-only)
-      (put-text-property (or beg (point-at-bol)) (or end (point-at-bol 2))
+      (put-text-property (or beg (pos-bol)) (or end (pos-bol 2))
                          'face ,params))))
 
 (mingus-define-color-line-or-region mingus-mark-line 'mingus-mark-face)
@@ -1616,7 +1616,7 @@ WEBSITE:  http://github.com/pft/mingus
   (let ((line (gensym))
         (col (gensym)))
     `(let ((,line (mingus-line-number-at-pos))
-           (,col (- (point) (point-at-bol))))
+           (,col (- (point) (pos-bol))))
        ,@body
        (mingus-goto-line ,line)
        (move-to-column ,col))))
@@ -1662,12 +1662,12 @@ WEBSITE:  http://github.com/pft/mingus
 (defun _mingus-bol-at (pos)
   "Return the position at beginning of line relative to POS."
   (save-excursion (goto-char pos)
-                  (point-at-bol)))
+                  (pos-bol)))
 
 (defun _mingus-eol-at (pos)
   "Return the position at end of line relative to POS."
   (save-excursion (goto-char pos)
-                  (point-at-eol)))
+                  (pos-eol)))
 ;; List processing
 (defun mingus-make-alist (list)
   "Make an alist out of a flat list (plist-style list)."
@@ -1778,15 +1778,15 @@ This is an exact copy of line-number-at-pos for use in emacs21."
 
 (defun mingus-delete-line ()
   "Delete line at point."
-  (delete-region (point-at-bol 1) (point-at-bol 2))
+  (delete-region (pos-bol 1) (pos-bol 2))
   (when (eobp)
-    (delete-region (point-at-bol) (point-at-eol 0))
+    (delete-region (pos-bol) (pos-eol 0))
     (beginning-of-line)))
 
 (defun mingus-strip-last-line ()
   (let (pos (point))
     (goto-char (point-max))
-    (delete-region (point-at-bol) (point-at-eol 0))
+    (delete-region (pos-bol) (pos-eol 0))
     (goto-char pos)))
 
 ;; {{basic mpd functions}}
@@ -2190,7 +2190,7 @@ See function `mingus-help' for instructions.
                  "")))))
 
 (defun mingus-set-NP-mark (override &optional pos)
-  "Mark song 'now playing'.
+  "Mark song \='now playing\='.
 
 Optional argument POS gives possibility of supplying the currentsong without
 making a connection.
@@ -2318,8 +2318,8 @@ Argument OVERRIDE defines whether to treat the situation as new."
      (save-excursion
        (goto-char pos)
        (add-face-text-property
-        (point-at-bol)
-        (point-at-eol)
+        (pos-bol)
+        (pos-eol)
         mingus-current-song-props)))))
 
 (defun mingus-debolden-buffer ()
@@ -2334,8 +2334,8 @@ Argument OVERRIDE defines whether to treat the situation as new."
    (save-excursion
      (mingus-goto-line line)
      (mingus-remove-face-text-property
-      (point-at-bol)
-      (point-at-eol)
+      (pos-bol)
+      (pos-eol)
       mingus-current-song-props))))
 
 (defun mingus-move-NP-mark (pos prev)
@@ -2422,7 +2422,7 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
   (mapc
    (lambda (sublist)
      (mingus-goto-line (1+ (plist-get sublist 'Pos)))
-     (put-text-property (point-at-bol) (point-at-eol) 'details sublist))
+     (put-text-property (pos-bol) (pos-eol) 'details sublist))
    songs))
 
 (defcustom mingus-format-song-function 'mingus-format-song-in-columns
@@ -3061,7 +3061,7 @@ Switch to *Mingus* buffer if necessary."
         (buffer-read-only))
     (mingus-pos-mlist-> (1- (mingus-line-number-at-pos)))
     (mpd-delete mpd-inter-conn pos)
-    (delete-region (point-at-bol) (point-at-bol 2))
+    (delete-region (pos-bol) (pos-bol 2))
     (mingus-set-playlist-version)))
 
 (defun mingus-reset-point-of-insertion ()
@@ -3123,7 +3123,7 @@ deleted."
     (save-excursion
       (mapc (lambda (lines)
               (mingus-goto-line (1+ lines))
-              (delete-region (point-at-bol) (point-at-eol))) lines)
+              (delete-region (pos-bol) (pos-eol))) lines)
       (goto-char (point-min))
       (delete-matching-lines "^$"))))
 
@@ -3144,7 +3144,7 @@ deleted."
             (setq mingus-marked-list nil)))
       (mingus-del)))
   (when (eobp)
-    (delete-region (point-at-bol) (point-at-bol 2))
+    (delete-region (pos-bol) (pos-bol 2))
     (beginning-of-line)))
 
 (defun mingus-del-other-songs ()
@@ -3419,7 +3419,7 @@ Actually it tries to retrieve any stream from a given url.
 
 (defun mingus-get-details ()
   "Get details for song from text-property `details'"
-  (get-text-property (point-at-bol) 'details))
+  (get-text-property (pos-bol) 'details))
 
 (defun mingus-get-filename-at-p ()
   "Retrieve filename of song at point."
@@ -3429,7 +3429,7 @@ Actually it tries to retrieve any stream from a given url.
     (plist-get details 'Title))))
 
 (defun mingus-item-type ()
-  (get-text-property (point-at-bol) 'mingus-type))
+  (get-text-property (pos-bol) 'mingus-type))
 
 (defun mingus-playlistp ()
   "In *Mingus Browser* buffer, is thing-at-p a playlist?"
@@ -3557,10 +3557,10 @@ RESULTS is a vector of [songs playlists directories].
       ;; @todo: Normal MPD (query results may list songs inside a
       ;; directory - then you would want the parent
 
-      ;; (if (re-search-backward "/" (point-at-bol) t 2)
+      ;; (if (re-search-backward "/" (pos-bol) t 2)
       ;;     (progn
       ;;       (mingus-ls
-      ;;        (buffer-substring-no-properties (point-at-bol) (point))))
+      ;;        (buffer-substring-no-properties (pos-bol) (point))))
       ;;   (if (stringp header-line-format)
       ;;       (mingus-ls (file-name-directory header-line-format))
       ;;    (mingus-ls "")))
@@ -3581,7 +3581,7 @@ RESULTS is a vector of [songs playlists directories].
     (mingus-browse-mode
      (mingus-save-excursion
       (eval (pop mingus-browse-command-history)))
-     (goto-char (point-at-bol)))
+     (goto-char (pos-bol)))
     (mingus-playlist-mode
      (mingus-playlist t))
     (t
@@ -3609,7 +3609,7 @@ Prefix argument shows value of *mingus-point-of-insertion*, and moves there."
                 (set '*mingus-point-of-insertion*
                      (list (list (mingus-line-number-at-pos)
                                  (buffer-substring-no-properties
-                                  (point-at-bol) (point-at-eol))))))
+                                  (pos-bol) (pos-eol))))))
                (*mingus-point-of-insertion*
                 (mingus-goto-line (caar *mingus-point-of-insertion*))))
          (message "*mingus-point-of-insertion* set AFTER %s"
@@ -4115,7 +4115,7 @@ Argument POS is the current position in the buffer to revert to (?)."
         (while (re-search-backward re nil t)
           (push (cons
                  (match-string-no-properties 0)
-                 (buffer-substring (point-at-bol) (point-at-eol)))
+                 (buffer-substring (pos-bol) (pos-eol)))
                 list))
         (erase-buffer)
         (mapc (lambda (item)
@@ -4218,8 +4218,8 @@ It may also mean handling file:/// links."
   "Get everything under the region, sloppily.
 Region is between (beginning of line of) BEG and (beginning of line of) END."
   (interactive "r")
-  (let ((beg (if mark-active (_mingus-bol-at beg) (point-at-bol)))
-        (end (if mark-active (_mingus-bol-at end) (point-at-eol)))
+  (let ((beg (if mark-active (_mingus-bol-at beg) (pos-bol)))
+        (end (if mark-active (_mingus-bol-at end) (pos-eol)))
         results)
     (save-excursion
       (goto-char beg)
@@ -4632,7 +4632,7 @@ playlist.  Useful e.g. in audiobooks or language courses."
      (let (buffer-read-only)
        (insert
         (mingus-format-song (mingus-get-details)))
-       (delete-region (point) (point-at-eol))))))
+       (delete-region (point) (pos-eol))))))
 
 (defun mingus-redraw-buffer ()
   (interactive)
