@@ -2405,7 +2405,7 @@ Optional argument REFRESH means not matter what is the status, do a refresh"
                              (let ((val
                                     (propertize
                                      (mingus-format-song list)
-                                     'mouse-face (when mingus-use-mouse-p 'highlight t)
+                                     'mouse-face (when mingus-use-mouse-p 'highlight)
                                      'details list)))
                                (when mingus-use-caching
                                  (puthash id val mingus-propertized-song-strings))
