@@ -2573,7 +2573,8 @@ Actually it is just named after that great bass player."
           (if (buffer-live-p (get-buffer "*Mingus*"))
               (if (member '("changed" . "playlist") changes)
                   (mingus-playlist)
-                (when (mingus-buffer-visible-p (get-buffer "*Mingus*"))
+                (when (and (not (and (fboundp 'frame-parent) (frame-parent)))
+                           (mingus-buffer-visible-p (get-buffer "*Mingus*")))
                   (mingus-set-NP-mark t))))
           (force-mode-line-update)))
     (error
