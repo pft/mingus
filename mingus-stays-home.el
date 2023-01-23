@@ -161,8 +161,7 @@
 (require 'mingus)
 ;; Even though Mingus already requires cl, in Emacs23 we have to silence the
 ;; compiler (this might be a regression):
-(require 'cl)
-(eval-when-compile (load "cl-macs"))
+(require 'cl-lib)
 (require 'url)
 (require 'taggit nil t)
 ;;;; {{Update Help Text}}
@@ -179,10 +178,10 @@ E                       mingus-blank-disk
 MORE ELABORATE INSTRUCTIONS:"
        (replace-regexp-in-string
         "U                       mingus-unmark-all"
-                (format
-                 "U                       mingus-unmark-all%s"
-                 (if (featurep 'taggit)
-                  "
+        (format
+         "U                       mingus-unmark-all%s"
+         (if (featurep 'taggit)
+             "
 #                       taggit-interactive
 e                       taggit (edit buffer)" ""))
         (replace-regexp-in-string
@@ -266,39 +265,39 @@ However, you can just as well specify it directly in this string."
 
 
 ;;;; {{Keymap}}
-(defconst mingus-burnin-map (copy-keymap mingus-global-map)
+(defvar mingus-burn-mode-map (copy-keymap mingus-global-map)
   "Burnin keymap for `mingus'")
 
-(define-key mingus-burnin-map " " 'scroll-up)
-(define-key mingus-burnin-map "\C-m" 'mingus-burns-play)
-(define-key mingus-burnin-map "d" 'mingus-burns-del)
+(define-key mingus-burn-mode-map " " 'scroll-up)
+(define-key mingus-burn-mode-map "\C-m" 'mingus-burns-play)
+(define-key mingus-burn-mode-map "d" 'mingus-burns-del)
 
-(define-key mingus-burnin-map "B" 'mingus-burn-it)
-(define-key mingus-burnin-map "D" 'mingus-burns-decode-playlist)
-(define-key mingus-burnin-map "E" 'mingus-blank-disk)
+(define-key mingus-burn-mode-map "B" 'mingus-burn-it)
+(define-key mingus-burn-mode-map "D" 'mingus-burns-decode-playlist)
+(define-key mingus-burn-mode-map "E" 'mingus-blank-disk)
 
-(define-key mingus-burnin-map [menu-bar mingus sep-playlist-editing]
+(define-key mingus-burn-mode-map [menu-bar mingus sep-playlist-editing]
   '(menu-item "--"))
-(define-key mingus-burnin-map [menu-bar mingus unset]
+(define-key mingus-burn-mode-map [menu-bar mingus unset]
   '("Unset Insertion Point" . mingus-unset-insertion-point))
-(define-key mingus-burnin-map [menu-bar mingus sep4]
+(define-key mingus-burn-mode-map [menu-bar mingus sep4]
   '(menu-item "--"))
-(define-key mingus-burnin-map [menu-bar mingus burn]
+(define-key mingus-burn-mode-map [menu-bar mingus burn]
   '(menu-item "Burn CD" mingus-burn-it :burnin "Burn a cd with current contents of the playlist"))
-(define-key mingus-burnin-map [menu-bar mingus decode]
+(define-key mingus-burn-mode-map [menu-bar mingus decode]
   '(menu-item "Decode Playlist" mingus-burns-decode-playlist :burnin "Decode current contents of the playlist to .wav files"))
-(define-key mingus-burnin-map [menu-bar mingus blank]
+(define-key mingus-burn-mode-map [menu-bar mingus blank]
   '(menu-item "Blank Disk" mingus-blank-disk :burnin "Blank disk"))
-(define-key mingus-burnin-map [menu-bar mingus sep3]
+(define-key mingus-burn-mode-map [menu-bar mingus sep3]
   '(menu-item "--"))
 
-(define-key mingus-burnin-map [menu-bar mingus browser]
+(define-key mingus-burn-mode-map [menu-bar mingus browser]
   '(menu-item "Browser" mingus-browse :burnin "go to browser"))
-(define-key mingus-burnin-map [menu-bar mingus playlist]
+(define-key mingus-burn-mode-map [menu-bar mingus playlist]
   '(menu-item "Playlist" mingus :burnin "go to playlist"))
 
-(define-key mingus-burnin-map "0" 'mingus-dired-file)
-(define-key mingus-burnin-map [menu-bar mingus dired]
+(define-key mingus-burn-mode-map "0" 'mingus-dired-file)
+(define-key mingus-burn-mode-map [menu-bar mingus dired]
   '(menu-item "Dired" mingus-dired-file :burnin "look song up in dired"))
 
 (define-key mingus-playlist-map "4" 'mingus-burns)
@@ -360,7 +359,7 @@ However, you can just as well specify it directly in this string."
 ;;   (switch-to-buffer "*Mingus Burns*")
 ;;   (setq major-mode 'mingus-burns)
 ;;   (setq mode-name "Mingus-burns")
-;;   (use-local-map mingus-burnin-map)
+;;   (use-local-map mingus-burn-mode-map)
 ;;   (let ((buffer-read-only nil)
 ;;      (new-contents (shell-command-to-string "mpc --format \"%file%\" playlist")))
 ;;     (if (string-match "^#[0-9]+) http://" new-contents)
@@ -519,15 +518,14 @@ Both filename are absolute paths in the filesystem"
       (t (message "Decoding %s to %s" src dest)
          (start-process "mingdec" "*Mingus-Output*" "sox" "-V" src "-t" ".wav" dest)))))
 
-(defun mingus-burn-mode ()
-  "Mingus burning mode
-\\{mingus-burnin-map}"
-  (setq major-mode 'mingus-burn-mode)
-  (setq mode-name "Mingus-burns")
+(define-derived-mode mingus-burn-mode special-mode "Mingus-burns"
+  "Mingus burning mode.
+
+\\{mingus-burn-mode-map}"
   (setq buffer-undo-list t)
-  (use-local-map mingus-burnin-map)
   (setq buffer-read-only t))
 
+;;;###autoload
 (defun mingus-burns ()
   (interactive)
   (switch-to-buffer "*Mingus Burns*")
