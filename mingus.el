@@ -22,7 +22,7 @@
 ;; Contributors (with patches and bug reports): Jeremie Lasalle
 ;; Ratelle, "Lexa12", Marc Zonzon, Mark Taylor, Drew Adams, Alec
 ;; Heller, "death" (github.com/death), Александр Цамутали, Maximilian
-;; Gass, Dan King and Vincent Zhang.
+;; Gass, Dan King, Vincent Zhang, and Ben Metzger
 
 ;; Version: 0.34
 ;;          Or Alice's Wonderland
@@ -3817,6 +3817,7 @@ Complete in the style of the function `find-file'."
   "Both TYPE and QUERY must be supplied as string."
   (cond
    ((string= type "regexp on filename") nil)
+   ((string= type "any") nil)
    ((string-empty-p (string-trim query)) nil)
    (t
     (cl-remove-duplicates
@@ -3854,7 +3855,7 @@ possible).  Optional argument TYPE predefines the type of query."
   (interactive "P")
   (let* ((type (or type (mingus-completing-read-allow-spaces
                          "Search type: "
-                         '("album" "artist" "genre"
+                         '("any" "album" "artist" "genre"
                            "composer" "filename" "title"
                            "regexp on filename")
                          nil t)))
