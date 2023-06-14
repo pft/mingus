@@ -2056,8 +2056,9 @@ details : the car of the `details' text property.
    ((get-buffer-window "*Mingus*")
     (select-window (get-buffer-window "*Mingus*")))
    (t
-    (switch-to-buffer "*Mingus*")))
-  (mingus-playlist-mode))
+    (display-buffer "*Mingus*")))
+  (with-current-buffer "*Mingus*"
+    (mingus-playlist-mode)))
 
 (defun mingus-switch-to-browser ()
   (switch-to-buffer "*Mingus Browser*")
